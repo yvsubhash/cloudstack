@@ -3749,8 +3749,9 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             }
         }
 
-        if (nicTo.getType() == Networks.TrafficType.Control || nicTo.getType() == Networks.TrafficType.Management || nicTo.getType() == Networks.TrafficType.Storage) {
-            switchName = _privateNetworkVSwitchName;
+            if (switchName == null
+			&& (nicTo.getType() == Networks.TrafficType.Control || nicTo.getType() == Networks.TrafficType.Management || nicTo.getType() == Networks.TrafficType.Storage)) {
+		switchName = _privateNetworkVSwitchName;
         }
 
         return new Ternary<String,String,String>(switchName, switchType.toString(), vlanToken);
@@ -3830,7 +3831,14 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 argsBuf.append(" -u ").append(userpwd.getUsernamePassword());
             }
 
+<<<<<<< HEAD
             try {
+=======
+        if (switchName == null
+                && (nicTo.getType() == Networks.TrafficType.Control || nicTo.getType() == Networks.TrafficType.Management || nicTo.getType() == Networks.TrafficType.Storage)) {
+            switchName = _privateNetworkVSwitchName;
+        }
+>>>>>>> 5bc72ea... CLOUDSTACK-6317 [VMware] Tagged VLAN support broken for Management/Control/Storage traffic
 
                 if (s_logger.isDebugEnabled()) {
                     s_logger.debug("Executing /opt/cloud/bin/vpn_lt2p.sh ");
