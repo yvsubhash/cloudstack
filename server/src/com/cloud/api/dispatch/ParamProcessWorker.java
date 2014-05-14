@@ -241,11 +241,11 @@ public class ParamProcessWorker implements DispatchWorker {
         }
 
         APICommand commandAnnotation = cmd.getClass().getAnnotation(APICommand.class);
-
         String apiName = commandAnnotation != null ? commandAnnotation.name() : null;
 
         if (!entitiesToAccess.isEmpty()) {
             List<ControlledEntity> entitiesToOperate = new ArrayList<ControlledEntity>();
+
             for (Object entity : entitiesToAccess.keySet()) {
                 if (entity instanceof ControlledEntity) {
 
@@ -267,8 +267,8 @@ public class ParamProcessWorker implements DispatchWorker {
             }
 
             if (!entitiesToOperate.isEmpty()) {
-                _accountMgr.checkAccess(owner, AccessType.OperateEntry, apiName,
-                        entitiesToOperate.toArray(new ControlledEntity[entitiesToOperate.size()]));
+                _accountMgr.checkAccess(owner, AccessType.OperateEntry, false, apiName,
+                        (ControlledEntity[]) entitiesToOperate.toArray());
             }
 
         }

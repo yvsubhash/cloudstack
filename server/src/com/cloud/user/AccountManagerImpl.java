@@ -61,6 +61,7 @@ import org.apache.cloudstack.framework.messagebus.PublishScope;
 import org.apache.cloudstack.managed.context.ManagedContextRunnable;
 import org.apache.cloudstack.region.gslb.GlobalLoadBalancerRuleDao;
 
+import com.cloud.api.ApiDBUtils;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceOwnerType;
@@ -101,7 +102,6 @@ import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.RemoteAccessVpnDao;
 import com.cloud.network.dao.RemoteAccessVpnVO;
 import com.cloud.network.dao.VpnUserDao;
-import com.cloud.network.security.SecurityGroup;
 import com.cloud.network.security.SecurityGroupManager;
 import com.cloud.network.security.dao.SecurityGroupDao;
 import com.cloud.network.vpc.Vpc;
@@ -481,90 +481,103 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
 
     @Override
-    public void checkAccess(Account caller, AccessType accessType, ControlledEntity... entities) throws PermissionDeniedException {
-        checkAccess(caller, accessType, null, entities);
+    public void checkAccess(Account account, AccessType accessType, ControlledEntity... entities) throws PermissionDeniedException {
+        // TODO this will eventually deprecate below sameOwner check interface.
+        // TO BE IMPLEMENTED when multiple controlled entity support interface is added into SecurityChecker
+        checkAccess(account, accessType, false, entities);
     }
 
     @Override
-    public void checkAccess(Account caller, AccessType accessType, String apiName, ControlledEntity... entities) throws PermissionDeniedException {
-        boolean granted = false;
-        // construct entities identification string
-        StringBuffer entityBuf = new StringBuffer("{");
-        for (ControlledEntity ent : entities) {
-            entityBuf.append(ent.toString());
-        }
-        entityBuf.append("}");
-        String entityStr = entityBuf.toString();
+    public void checkAccess(Account account, AccessType accessType, String apiName, ControlledEntity... entities) throws PermissionDeniedException {
+        // TODO this will eventually deprecate below sameOwner check interface.
+        // TO BE IMPLEMENTED when multiple controlled entity support interface is added into SecurityChecker
+        checkAccess(account, accessType, false, apiName, entities);
+    }
 
-        boolean isRootAdmin = isRootAdmin(caller.getAccountId());
-        boolean isDomainAdmin = isDomainAdmin(caller.getAccountId());
-        boolean isResourceDomainAdmin = isResourceDomainAdmin(caller.getAccountId());
+    @Override
+    public void checkAccess(Account caller, AccessType accessType, boolean sameOwner, ControlledEntity... entities) {
+        checkAccess(caller, accessType, sameOwner, null, entities);
+    }
 
-        if ((isRootAdmin || isDomainAdmin || isResourceDomainAdmin || caller.getId() == Account.ACCOUNT_ID_SYSTEM)
-                && (accessType == null || accessType == AccessType.UseEntry)) {
-
+    @Override
+    public void checkAccess(Account caller, AccessType accessType, boolean sameOwner, String apiName, ControlledEntity... entities) {
+        //check for the same owner
+        Long ownerId = null;
+        ControlledEntity prevEntity = null;
+        if (sameOwner) {
             for (ControlledEntity entity : entities) {
-                if (entity instanceof VirtualMachineTemplate || (entity instanceof Network && accessType != null && (isDomainAdmin || isResourceDomainAdmin))
-                        || entity instanceof AffinityGroup || entity instanceof SecurityGroup) {
-                    // Go through IAM (SecurityCheckers)
-                    for (SecurityChecker checker : _securityCheckers) {
-                        if (checker.checkAccess(caller, accessType, apiName, entity)) {
-                            if (s_logger.isDebugEnabled()) {
-                                s_logger.debug("Access to " + entityStr + " granted to " + caller + " by "
-                                        + checker.getName());
-                            }
-                            granted = true;
-                            break;
-                        }
+                if (sameOwner) {
+                    if (ownerId == null) {
+                        ownerId = entity.getAccountId();
+                    } else if (ownerId.longValue() != entity.getAccountId()) {
+                        throw new PermissionDeniedException("Entity " + entity + " and entity " + prevEntity + " belong to different accounts");
                     }
-                } else {
-                    if (isRootAdmin || caller.getId() == Account.ACCOUNT_ID_SYSTEM) {
-                        // no need to make permission checks if the system/root
-                        // admin makes the call
-                        if (s_logger.isTraceEnabled()) {
-                            s_logger.trace("No need to make permission check for System/RootAdmin account, returning true");
-                        }
-                        granted = true;
-                    } else if (isDomainAdmin || isResourceDomainAdmin) {
-                        Domain entityDomain = getEntityDomain(entity);
-                        if (entityDomain != null) {
-                            try {
-                                checkAccess(caller, entityDomain);
-                                granted = true;
-                            } catch (PermissionDeniedException e) {
-                                List<ControlledEntity> entityList = new ArrayList<ControlledEntity>();
-                                entityList.add(entity);
-                                e.addDetails(caller, entityList);
-                                throw e;
-                            }
-                        }
-                    }
+                    prevEntity = entity;
                 }
-
-                if (!granted) {
-                    assert false : "How can all of the security checkers pass on checking this check: " + entityStr;
-                    throw new PermissionDeniedException("There's no way to confirm " + caller + " has access to "
-                            + entityStr);
-                }
-
             }
-        } else {
-            // Go through IAM (SecurityCheckers)
+        }
+
+        if (caller.getId() == Account.ACCOUNT_ID_SYSTEM || isRootAdmin(caller.getId())) {
+            // no need to make permission checks if the system/root admin makes the call
+            if (s_logger.isTraceEnabled()) {
+                s_logger.trace("No need to make permission check for System/RootAdmin account, returning true");
+            }
+            return;
+        }
+
+        HashMap<Long, List<ControlledEntity>> domains = new HashMap<Long, List<ControlledEntity>>();
+
+        for (ControlledEntity entity : entities) {
+            long domainId = entity.getDomainId();
+            if (entity.getAccountId() != -1 && domainId == -1) { // If account exists domainId should too so calculate
+                // it. This condition might be hit for templates or entities which miss domainId in their tables
+                Account account = ApiDBUtils.findAccountById(entity.getAccountId());
+                domainId = account != null ? account.getDomainId() : -1;
+            }
+            if (entity.getAccountId() != -1 && domainId != -1 && !(entity instanceof VirtualMachineTemplate) &&
+                !(entity instanceof Network && accessType != null && accessType == AccessType.UseEntry) && !(entity instanceof AffinityGroup)) {
+                List<ControlledEntity> toBeChecked = domains.get(entity.getDomainId());
+                // for templates, we don't have to do cross domains check
+                if (toBeChecked == null) {
+                    toBeChecked = new ArrayList<ControlledEntity>();
+                    domains.put(domainId, toBeChecked);
+                }
+                toBeChecked.add(entity);
+            }
+            boolean granted = false;
             for (SecurityChecker checker : _securityCheckers) {
-                if (checker.checkAccess(caller, accessType, apiName, entities)) {
+                if (checker.checkAccess(caller, entity, accessType, apiName)) {
                     if (s_logger.isDebugEnabled()) {
-                        s_logger.debug("Access to " + entityStr + " granted to " + caller + " by " + checker.getName());
+                        s_logger.debug("Access to " + entity + " granted to " + caller + " by " + checker.getName());
                     }
                     granted = true;
                     break;
                 }
             }
+
+            if (!granted) {
+                assert false : "How can all of the security checkers pass on checking this check: " + entity;
+                throw new PermissionDeniedException("There's no way to confirm " + caller + " has access to " + entity);
+            }
         }
 
-        if (!granted) {
-            assert false : "How can all of the security checkers pass on checking this check: " + entityStr;
-            throw new PermissionDeniedException("There's no way to confirm " + caller + " has access to " + entityStr);
+        for (Map.Entry<Long, List<ControlledEntity>> domain : domains.entrySet()) {
+            for (SecurityChecker checker : _securityCheckers) {
+                Domain d = _domainMgr.getDomain(domain.getKey());
+                if (d == null || d.getRemoved() != null) {
+                    throw new PermissionDeniedException("Domain is not found.", caller, domain.getValue());
+                }
+                try {
+                    checker.checkAccess(caller, d);
+                } catch (PermissionDeniedException e) {
+                    e.addDetails(caller, domain.getValue());
+                    throw e;
+                }
+            }
         }
+
+        // check that resources belong to the same account
+
     }
 
     private Domain getEntityDomain(ControlledEntity entity) {

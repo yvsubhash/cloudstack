@@ -101,6 +101,11 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public void checkAccess(Account arg0, AccessType arg1, boolean arg2, ControlledEntity... arg3) throws PermissionDeniedException {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
     public String[] createApiKeyAndSecretKey(RegisterCmd arg0) {
         // TODO Auto-generated method stub
         return null;
@@ -362,6 +367,11 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
 
     }
 
+    @Override
+    public void checkAccess(Account account, AccessType accessType, boolean sameOwner, String apiName,
+            ControlledEntity... entities) throws PermissionDeniedException {
+        // TODO Auto-generated method stub
+    }
 
     @Override
     public Long finalyzeAccountId(String accountName, Long domainId, Long projectId, boolean enabledOnly) {
@@ -380,6 +390,7 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
         // TODO Auto-generated method stub
 
     }
+
 
 
 }
