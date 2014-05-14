@@ -35,14 +35,10 @@ import javax.inject.Inject;
 
 import org.apache.log4j.Logger;
 
-import org.apache.cloudstack.acl.ControlledEntity;
-import org.apache.cloudstack.acl.InfrastructureEntity;
 import org.apache.cloudstack.acl.SecurityChecker;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.api.ACL;
-import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiErrorCode;
-import org.apache.cloudstack.api.BaseAsyncCreateCmd;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.BaseCmd.CommandType;
 import org.apache.cloudstack.api.EntityReference;
@@ -56,12 +52,7 @@ import org.apache.cloudstack.api.command.user.event.DeleteEventsCmd;
 import org.apache.cloudstack.api.command.user.event.ListEventsCmd;
 import org.apache.cloudstack.context.CallContext;
 
-import com.cloud.dc.DataCenter;
 import com.cloud.exception.InvalidParameterValueException;
-import com.cloud.exception.PermissionDeniedException;
-import com.cloud.offering.DiskOffering;
-import com.cloud.offering.ServiceOffering;
-import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.utils.DateUtil;
 import com.cloud.utils.db.EntityManager;
@@ -218,11 +209,12 @@ public class ParamProcessWorker implements DispatchWorker {
 
         }
 
-        doAccessChecks(cmd, entitiesToAccess);
+        // doAccessChecks(cmd, entitiesToAccess);
     }
 
 
-    private void doAccessChecks(final BaseCmd cmd, final Map<Object, AccessType> entitiesToAccess) {
+    /* IAM feature disabled.
+     * private void doAccessChecks(final BaseCmd cmd, final Map<Object, AccessType> entitiesToAccess) {
         Account caller = CallContext.current().getCallingAccount();
         Account owner = _accountMgr.getAccount(cmd.getEntityOwnerId());
         if (owner == null) {
@@ -327,7 +319,7 @@ public class ParamProcessWorker implements DispatchWorker {
         assert false : "How can all of the security checkers pass on checking this caller?";
         throw new PermissionDeniedException("There's no way to confirm " + caller + " has access to zone:"
                 + zone.getId());
-    }
+    }*/
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void setFieldValue(final Field field, final BaseCmd cmdObj, final Object paramObj, final Parameter annotation) throws IllegalArgumentException, ParseException {
