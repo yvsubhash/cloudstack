@@ -972,6 +972,12 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a network with id " + networkId);
         }
 
+        if (caller.getType() != Account.ACCOUNT_TYPE_ADMIN) {
+        if (!(network.getGuestType() == Network.GuestType.Shared && network.getAclType() == ACLType.Domain)
+                && !(network.getAclType() == ACLType.Account && network.getAccountId() == vmInstance.getAccountId())) {
+            throw new InvalidParameterValueException("only shared network or isolated network with the same account_id can be added to vmId: " + vmId);
+        }
+        }
 
         List<NicVO> allNics = _nicDao.listByVmId(vmInstance.getId());
         for (NicVO nic : allNics) {
@@ -2506,7 +2512,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                     }
                 }
 
-                _networkModel.checkNetworkPermissions(owner, network, AccessType.UseEntry);
+                _networkModel.checkNetworkPermissions(owner, network);
 
                 // don't allow to use system networks
                 NetworkOffering networkOffering = _entityMgr.findById(NetworkOffering.class, network.getNetworkOfferingId());
@@ -2705,8 +2711,13 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                 throw new InvalidParameterValueException("Network id=" + network.getId() + " doesn't belong to zone " + zone.getId());
             }
 
-            // Perform account permission check on network
-            _accountMgr.checkAccess(caller, AccessType.UseEntry, false, network);
+            //relax the check if the caller is admin account
+            if (caller.getType() != Account.ACCOUNT_TYPE_ADMIN) {
+            if (!(network.getGuestType() == Network.GuestType.Shared && network.getAclType() == ACLType.Domain)
+                    && !(network.getAclType() == ACLType.Account && network.getAccountId() == accountId)) {
+                throw new InvalidParameterValueException("only shared network or isolated network with the same account_id can be added to vm");
+            }
+            }
 
             IpAddresses requestedIpPair = null;
             if (requestedIps != null && !requestedIps.isEmpty()) {
@@ -4421,7 +4432,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                             throw ex;
                         }
 
-                        _networkModel.checkNetworkPermissions(newAccount, network, AccessType.UseEntry);
+                        _networkModel.checkNetworkPermissions(newAccount, network);
 
                         // don't allow to use system networks
                         NetworkOffering networkOffering = _entityMgr.findById(NetworkOffering.class, network.getNetworkOfferingId());
