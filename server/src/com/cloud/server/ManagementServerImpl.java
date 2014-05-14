@@ -1768,22 +1768,19 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         SearchBuilder<IPAddressVO> sb = _publicIpAddressDao.createSearchBuilder();
         Long domainId = null;
         Boolean isRecursive = null;
-        List<Long> permittedDomains = new ArrayList<Long>();
         List<Long> permittedAccounts = new ArrayList<Long>();
-        List<Long> permittedResources = new ArrayList<Long>();
-
         ListProjectResourcesCriteria listProjectResourcesCriteria = null;
         if (isAllocated) {
             Account caller = CallContext.current().getCallingAccount();
 
             Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
                     cmd.getDomainId(), cmd.isRecursive(), null);
-            _accountMgr.buildACLSearchParameters(caller, cmd.getId(), cmd.getAccountName(), cmd.getProjectId(), permittedDomains, permittedAccounts, permittedResources,
-                    domainIdRecursiveListProject, cmd.listAll(), false, "listPublicIpAddresses");
-            //domainId = domainIdRecursiveListProject.first();
+            _accountMgr.buildACLSearchParameters(caller, cmd.getId(), cmd.getAccountName(), cmd.getProjectId(), permittedAccounts,
+                    domainIdRecursiveListProject, cmd.listAll(), false);
+            domainId = domainIdRecursiveListProject.first();
             isRecursive = domainIdRecursiveListProject.second();
             listProjectResourcesCriteria = domainIdRecursiveListProject.third();
-            _accountMgr.buildACLSearchBuilder(sb, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchBuilder(sb, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
         }
 
         sb.and("dataCenterId", sb.entity().getDataCenterId(), SearchCriteria.Op.EQ);
@@ -1838,7 +1835,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
         SearchCriteria<IPAddressVO> sc = sb.create();
         if (isAllocated) {
-            _accountMgr.buildACLSearchCriteria(sc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchCriteria(sc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
         }
 
         sc.setJoinParameters("vlanSearch", "vlanType", vlanType);
@@ -3581,22 +3578,21 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         String fingerPrint = cmd.getFingerprint();
 
         Account caller = CallContext.current().getCallingAccount();
-        List<Long> permittedDomains = new ArrayList<Long>();
         List<Long> permittedAccounts = new ArrayList<Long>();
-        List<Long> permittedResources = new ArrayList<Long>();
 
         Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
                 cmd.getDomainId(), cmd.isRecursive(), null);
-        _accountMgr.buildACLSearchParameters(caller, null, cmd.getAccountName(), cmd.getProjectId(), permittedDomains, permittedAccounts, permittedResources,
-                domainIdRecursiveListProject, cmd.listAll(), false, "listSSHKeyPairs");
+        _accountMgr.buildACLSearchParameters(caller, null, cmd.getAccountName(), cmd.getProjectId(), permittedAccounts, domainIdRecursiveListProject,
+                cmd.listAll(), false);
+        Long domainId = domainIdRecursiveListProject.first();
         Boolean isRecursive = domainIdRecursiveListProject.second();
         ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
         SearchBuilder<SSHKeyPairVO> sb = _sshKeyPairDao.createSearchBuilder();
-        _accountMgr.buildACLSearchBuilder(sb, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchBuilder(sb, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
         Filter searchFilter = new Filter(SSHKeyPairVO.class, "id", false, cmd.getStartIndex(), cmd.getPageSizeVal());
 
         SearchCriteria<SSHKeyPairVO> sc = sb.create();
-        _accountMgr.buildACLSearchCriteria(sc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchCriteria(sc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
 
         if (name != null) {
             sc.addAnd("name", SearchCriteria.Op.EQ, name);
