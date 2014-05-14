@@ -952,7 +952,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
         List<EventVO> events = _eventDao.listToArchiveOrDeleteEvents(ids, cmd.getType(), cmd.getStartDate(), cmd.getEndDate(), permittedAccountIds);
         ControlledEntity[] sameOwnerEvents = events.toArray(new ControlledEntity[events.size()]);
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, sameOwnerEvents);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, false, sameOwnerEvents);
 
         if (ids != null && events.size() < ids.size()) {
             result = false;
@@ -979,7 +979,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
         List<EventVO> events = _eventDao.listToArchiveOrDeleteEvents(ids, cmd.getType(), cmd.getStartDate(), cmd.getEndDate(), permittedAccountIds);
         ControlledEntity[] sameOwnerEvents = events.toArray(new ControlledEntity[events.size()]);
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, sameOwnerEvents);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, false, sameOwnerEvents);
 
         if (ids != null && events.size() < ids.size()) {
             result = false;
@@ -3315,7 +3315,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         }
 
         // check permissions
-        _accountMgr.checkAccess(caller, null, _accountMgr.getAccount(user.getAccountId()));
+        _accountMgr.checkAccess(caller, null, true, _accountMgr.getAccount(user.getAccountId()));
 
         String cloudIdentifier = _configDao.getValue("cloud.identifier");
         if (cloudIdentifier == null) {
@@ -3422,7 +3422,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
             throw ex;
         }
 
-        _accountMgr.checkAccess(caller, null, group);
+        _accountMgr.checkAccess(caller, null, true, group);
 
         // Check if name is already in use by this account (exclude this group)
         boolean isNameInUse = _vmGroupDao.isNameInUse(group.getAccountId(), groupName);
@@ -3661,7 +3661,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         }
 
         // make permission check
-        _accountMgr.checkAccess(caller, null, vm);
+        _accountMgr.checkAccess(caller, null, true, vm);
 
         _userVmDao.loadDetails(vm);
         String password = vm.getDetail("Encrypted.Password");
@@ -3834,7 +3834,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
             throw new InvalidParameterValueException("Unable to find SystemVm with id " + systemVmId);
         }
 
-        _accountMgr.checkAccess(caller, null, systemVm);
+        _accountMgr.checkAccess(caller, null, true, systemVm);
 
         // Check that the specified service offering ID is valid
         ServiceOfferingVO newServiceOffering = _offeringDao.findById(serviceOfferingId);

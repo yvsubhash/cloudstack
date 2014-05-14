@@ -35,6 +35,9 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.log4j.Logger;
+
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.affinity.AffinityGroupService;
@@ -83,8 +86,6 @@ import org.apache.cloudstack.storage.command.DeleteCommand;
 import org.apache.cloudstack.storage.command.DettachCommand;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
@@ -531,7 +532,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("Vm with id " + vmId + " is not in the right state");
         }
 
-        _accountMgr.checkAccess(caller, null, userVm);
+        _accountMgr.checkAccess(caller, null, true, userVm);
 
         boolean result = resetVMPasswordInternal(vmId, password);
 
@@ -637,7 +638,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                     + " in specified domain id");
         }
 
-        _accountMgr.checkAccess(caller, null, userVm);
+        _accountMgr.checkAccess(caller, null, true, userVm);
         String password = null;
         String sshPublicKey = s.getPublicKey();
         if (template != null && template.getEnablePassword()) {
@@ -777,7 +778,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                     + "; make sure the virtual machine is stopped");
         }
 
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // Check resource limits for CPU and Memory.
         Map<String, String> customParameters = cmd.getDetails();
@@ -891,7 +892,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a virtual machine with id " + vmId);
         }
 
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // Check resource limits for CPU and Memory.
         ServiceOfferingVO newServiceOffering = _offeringDao.findById(svcOffId);
@@ -960,6 +961,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         Long vmId = cmd.getVmId();
         Long networkId = cmd.getNetworkId();
         String ipAddress = cmd.getIpAddress();
+        Account caller = CallContext.current().getCallingAccount();
 
         UserVmVO vmInstance = _vmDao.findById(vmId);
         if (vmInstance == null) {
@@ -982,11 +984,17 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             profile = new NicProfile(ipAddress, null);
         }
 
+        // Perform permission check on VM
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
+
         // Verify that zone is not Basic
         DataCenterVO dc = _dcDao.findById(vmInstance.getDataCenterId());
         if (dc.getNetworkType() == DataCenter.NetworkType.Basic) {
             throw new CloudRuntimeException("Zone " + vmInstance.getDataCenterId() + ", has a NetworkType of Basic. Can't add a new NIC to a VM on a Basic Network");
         }
+
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, AccessType.UseEntry, false, network);
 
         //ensure network belongs in zone
         if (network.getDataCenterId() != vmInstance.getDataCenterId()) {
@@ -1046,7 +1054,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         // Perform permission check on VM
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // Verify that zone is not Basic
         DataCenterVO dc = _dcDao.findById(vmInstance.getDataCenterId());
@@ -1060,7 +1068,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         // Perform account permission check on network
-        _accountMgr.checkAccess(caller, AccessType.UseEntry, network);
+        _accountMgr.checkAccess(caller, AccessType.UseEntry, false, network);
 
         boolean nicremoved = false;
 
@@ -1102,7 +1110,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         // Perform permission check on VM
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // Verify that zone is not Basic
         DataCenterVO dc = _dcDao.findById(vmInstance.getDataCenterId());
@@ -1284,7 +1292,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("This operation not permitted for this hypervisor of the vm");
         }
 
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         //Check if its a scale "up"
         ServiceOfferingVO newServiceOffering = _offeringDao.findById(newServiceOfferingId);
@@ -1493,7 +1501,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         // check permissions
-        _accountMgr.checkAccess(caller, null, vm);
+        _accountMgr.checkAccess(caller, null, true, vm);
 
         if (vm.getRemoved() != null) {
             if (s_logger.isDebugEnabled()) {
@@ -1836,7 +1844,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find virtual machine with id " + id);
         }
 
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, vmInstance);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, vmInstance);
 
         //If the flag is specified and is changed
         if (isDisplayVm != null && isDisplayVm != vmInstance.isDisplayVm()) {
@@ -2042,7 +2050,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a virtual machine with id " + vmId);
         }
 
-        _accountMgr.checkAccess(caller, null, vmInstance);
+        _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // If the VM is Volatile in nature, on reboot discard the VM's root disk and create a new root disk for it: by calling restoreVM
         long serviceOfferingId = vmInstance.getServiceOfferingId();
@@ -2140,7 +2148,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a vm group with id " + groupId);
         }
 
-        _accountMgr.checkAccess(caller, null, group);
+        _accountMgr.checkAccess(caller, null, true, group);
 
         return deleteVmGroup(groupId);
     }
@@ -2274,7 +2282,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         List<NetworkVO> networkList = new ArrayList<NetworkVO>();
 
         // Verify that caller can perform actions in behalf of vm owner
-        _accountMgr.checkAccess(caller, null, owner);
+        _accountMgr.checkAccess(caller, null, true, owner);
 
         // Get default guest network in Basic zone
         Network defaultNetwork = _networkModel.getExclusiveGuestNetwork(zone.getId());
@@ -2329,7 +2337,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         boolean isVmWare = (template.getHypervisorType() == HypervisorType.VMware || (hypervisor != null && hypervisor == HypervisorType.VMware));
 
         // Verify that caller can perform actions in behalf of vm owner
-        _accountMgr.checkAccess(caller, null, owner);
+        _accountMgr.checkAccess(caller, null, true, owner);
 
         // If no network is specified, find system security group enabled network
         if (networkIdList == null || networkIdList.isEmpty()) {
@@ -2387,7 +2395,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
                 // Perform account permission check
                 if (network.getAclType() == ACLType.Account) {
-                    _accountMgr.checkAccess(owner, AccessType.UseEntry, network);
+                    _accountMgr.checkAccess(caller, AccessType.UseEntry, false, network);
                 }
                 networkList.add(network);
             }
@@ -2433,7 +2441,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         List<NetworkVO> networkList = new ArrayList<NetworkVO>();
 
         // Verify that caller can perform actions in behalf of vm owner
-        _accountMgr.checkAccess(caller, null, owner);
+        _accountMgr.checkAccess(caller, null, true, owner);
 
         List<HypervisorType> vpcSupportedHTypes = _vpcMgr.getSupportedVpcHypervisors();
         if (networkIdList == null || networkIdList.isEmpty()) {
@@ -2527,7 +2535,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             List<Long> affinityGroupIdList, Map<String, String> customParameters, String customId) throws InsufficientCapacityException, ResourceUnavailableException,
             ConcurrentOperationException, StorageUnavailableException, ResourceAllocationException {
 
-        _accountMgr.checkAccess(caller, null, owner);
+        _accountMgr.checkAccess(caller, null, true, owner);
 
         if (owner.getState() == Account.State.disabled) {
             throw new PermissionDeniedException("The owner of vm to deploy is disabled: " + owner);
@@ -2603,7 +2611,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                     throw new InvalidParameterValueException("Unable to find security group by id " + securityGroupId);
                 } else {
                     // verify permissions
-                    _accountMgr.checkAccess(owner, AccessType.UseEntry, sg);
+                    _accountMgr.checkAccess(caller, null, true, owner, sg);
                 }
             }
         }
@@ -2619,7 +2627,27 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                             + " , Please try again after removing the affinity group");
                 } else {
                     // verify permissions
-                    _accountMgr.checkAccess(owner, AccessType.UseEntry, ag);
+                    if (ag.getAclType() == ACLType.Domain) {
+                        _accountMgr.checkAccess(caller, null, false, owner, ag);
+                        // Root admin has access to both VM and AG by default,
+                        // but
+                        // make sure the owner of these entities is same
+                        if (caller.getId() == Account.ACCOUNT_ID_SYSTEM || _accountMgr.isRootAdmin(caller.getId())) {
+                            if (!_affinityGroupService.isAffinityGroupAvailableInDomain(ag.getId(), owner.getDomainId())) {
+                                throw new PermissionDeniedException("Affinity Group " + ag + " does not belong to the VM's domain");
+                            }
+                        }
+                    } else {
+                        _accountMgr.checkAccess(caller, null, true, owner, ag);
+                        // Root admin has access to both VM and AG by default,
+                        // but
+                        // make sure the owner of these entities is same
+                        if (caller.getId() == Account.ACCOUNT_ID_SYSTEM || _accountMgr.isRootAdmin(caller.getId())) {
+                            if (ag.getAccountId() != owner.getAccountId()) {
+                                throw new PermissionDeniedException("Affinity Group " + ag + " does not belong to the VM's account");
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2645,7 +2673,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         // Check templates permissions
-        _accountMgr.checkAccess(owner, AccessType.UseEntry, template);
+        if (!template.isPublicTemplate()) {
+            Account templateOwner = _accountMgr.getAccount(template.getAccountId());
+            _accountMgr.checkAccess(owner, null, true, templateOwner);
+        }
 
         // check if the user data is correct
         validateUserData(userData, httpmethod);
@@ -2675,7 +2706,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             }
 
             // Perform account permission check on network
-            _accountMgr.checkAccess(owner, AccessType.UseEntry, network);
+            _accountMgr.checkAccess(caller, AccessType.UseEntry, false, network);
 
             IpAddresses requestedIpPair = null;
             if (requestedIps != null && !requestedIps.isEmpty()) {
@@ -3298,7 +3329,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a virtual machine with id " + vmId);
         }
 
-        _accountMgr.checkAccess(callerAccount, null, vm);
+        _accountMgr.checkAccess(callerAccount, null, true, vm);
 
         Account owner = _accountDao.findById(vm.getAccountId());
 
@@ -3605,7 +3636,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw ex;
         }
 
-        _accountMgr.checkAccess(caller, null, vm);
+        _accountMgr.checkAccess(caller, null, true, vm);
 
         boolean status;
 
@@ -4186,8 +4217,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         //check caller has access to both the old and new account
-        _accountMgr.checkAccess(caller, null, oldAccount);
-        _accountMgr.checkAccess(caller, null, newAccount);
+        _accountMgr.checkAccess(caller, null, true, oldAccount);
+        _accountMgr.checkAccess(caller, null, true, newAccount);
 
         // make sure the accounts are not same
         if (oldAccount.getAccountId() == newAccount.getAccountId()) {
@@ -4240,7 +4271,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         VirtualMachineTemplate template = _templateDao.findById(vm.getTemplateId());
         if (!template.isPublicTemplate()) {
             Account templateOwner = _accountMgr.getAccount(template.getAccountId());
-            _accountMgr.checkAccess(newAccount, null, templateOwner);
+            _accountMgr.checkAccess(newAccount, null, true, templateOwner);
         }
 
         // VV 5: check the new account can create vm in the domain
@@ -4497,7 +4528,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw ex;
         }
 
-        _accountMgr.checkAccess(caller, null, vm);
+        _accountMgr.checkAccess(caller, null, true, vm);
 
         return restoreVMInternal(caller, vm, newTemplateId);
     }
@@ -4547,7 +4578,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         //newTemplateId can be either template or ISO id. In the following snippet based on the vm deployment (from template or ISO) it is handled accordingly
         if (newTemplateId != null) {
             template = _templateDao.findById(newTemplateId);
-            _accountMgr.checkAccess(caller, null, template);
+            _accountMgr.checkAccess(caller, null, true, template);
             if (isISO) {
                 if (!template.getFormat().equals(ImageFormat.ISO)) {
                     throw new InvalidParameterValueException("Invalid ISO id provided to restore the VM ");
@@ -4728,7 +4759,6 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
                 // root.getPoolId() should be null if the VM we are detaching the disk from has never been started before
                 DataStore dataStore = root.getPoolId() != null ? _dataStoreMgr.getDataStore(root.getPoolId(), DataStoreRole.Primary) : null;
-
                 volumeMgr.disconnectVolumeFromHost(volFactory.getVolume(root.getId()), host, dataStore);
             }
         }
@@ -4776,7 +4806,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         //check permissions
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, vm);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, vm);
         return vm.getUserData();
     }
 

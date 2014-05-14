@@ -233,7 +233,7 @@ public class ParamProcessWorker implements DispatchWorker {
             if (owner.getId() != caller.getId()) {
                 // mimic impersonation either by passing (account, domainId) or through derived owner from other api parameters
                 // in this case, we should check access using the owner
-                _accountMgr.checkAccess(caller, null, owner);
+                _accountMgr.checkAccess(caller, null, true, owner);
             }
         } else {
             // check access using the caller for other operational cmds
@@ -252,7 +252,7 @@ public class ParamProcessWorker implements DispatchWorker {
                     if (AccessType.OperateEntry == entitiesToAccess.get(entity)) {
                         entitiesToOperate.add((ControlledEntity) entity);
                     } else {
-                        _accountMgr.checkAccess(owner, entitiesToAccess.get(entity), apiName,
+                        _accountMgr.checkAccess(owner, entitiesToAccess.get(entity), false, apiName,
                                 (ControlledEntity) entity);
                     }
                 } else if (entity instanceof InfrastructureEntity) {

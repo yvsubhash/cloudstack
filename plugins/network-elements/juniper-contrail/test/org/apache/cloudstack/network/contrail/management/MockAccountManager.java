@@ -378,19 +378,4 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
         // TODO Auto-generated method stub
         return null;
     }
-
-    @Override
-    public void checkAccess(Account account, AccessType accessType, ControlledEntity... entities) throws PermissionDeniedException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void checkAccess(Account account, AccessType accessType, String apiName, ControlledEntity... entities) throws PermissionDeniedException {
-        // TODO Auto-generated method stub
-
-    }
-
-
-
 }
