@@ -387,8 +387,8 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             for (SecurityChecker checker : _securityCheckers) {
                 try {
                     if (checker.checkAccess(acct, null, null, "SystemCapability")) {
-                        if (s_logger.isDebugEnabled()) {
-                            s_logger.debug("Root Access granted to " + acct + " by " + checker.getName());
+                        if (s_logger.isTraceEnabled()) {
+                            s_logger.trace("Root Access granted to " + acct + " by " + checker.getName());
                         }
                         return true;
                     }
@@ -410,8 +410,8 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             for (SecurityChecker checker : _securityCheckers) {
                 try {
                     if (checker.checkAccess(acct, null, null, "DomainCapability")) {
-                        if (s_logger.isDebugEnabled()) {
-                            s_logger.debug("DomainAdmin Access granted to " + acct + " by " + checker.getName());
+                        if (s_logger.isTraceEnabled()) {
+                            s_logger.trace("DomainAdmin Access granted to " + acct + " by " + checker.getName());
                         }
                         return true;
                     }
@@ -441,8 +441,8 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             for (SecurityChecker checker : _securityCheckers) {
                 try {
                     if (checker.checkAccess(acct, null, null, "DomainResourceCapability")) {
-                        if (s_logger.isDebugEnabled()) {
-                            s_logger.debug("ResourceDomainAdmin Access granted to " + acct + " by " + checker.getName());
+                        if (s_logger.isTraceEnabled()) {
+                            s_logger.trace("ResourceDomainAdmin Access granted to " + acct + " by " + checker.getName());
                         }
                         return true;
                     }
