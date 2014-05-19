@@ -33,7 +33,6 @@ import org.apache.cloudstack.context.CallContext;
 import com.cloud.uservm.UserVm;
 import com.cloud.vm.VirtualMachine;
 
-
 @APICommand(name = "addNicToVirtualMachine", description = "Adds VM to specified network by creating a NIC", responseObject = UserVmResponse.class, responseView = ResponseView.Full, entityType = {VirtualMachine.class},
         requestHasSensitiveInfo = false, responseHasSensitiveInfo = true)
 public class AddNicToVMCmdByAdmin extends AddNicToVMCmd {

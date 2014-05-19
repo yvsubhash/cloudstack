@@ -169,7 +169,9 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
     @Override
     public List<VMSnapshotVO> listVMSnapshots(ListVMSnapshotCmd cmd) {
         Account caller = getCaller();
+        List<Long> permittedDomains = new ArrayList<Long>();
         List<Long> permittedAccounts = new ArrayList<Long>();
+        List<Long> permittedResources = new ArrayList<Long>();
 
         boolean listAll = cmd.listAll();
         Long id = cmd.getId();
@@ -182,15 +184,14 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
 
         Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
                 cmd.getDomainId(), cmd.isRecursive(), null);
-        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedAccounts, domainIdRecursiveListProject, listAll,
-                false);
-        Long domainId = domainIdRecursiveListProject.first();
+        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedDomains, permittedAccounts, permittedResources,
+                domainIdRecursiveListProject, listAll, false, "listVMSnapshot");
         Boolean isRecursive = domainIdRecursiveListProject.second();
         ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
 
         Filter searchFilter = new Filter(VMSnapshotVO.class, "created", false, cmd.getStartIndex(), cmd.getPageSizeVal());
         SearchBuilder<VMSnapshotVO> sb = _vmSnapshotDao.createSearchBuilder();
-        _accountMgr.buildACLSearchBuilder(sb, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchBuilder(sb, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         sb.and("vm_id", sb.entity().getVmId(), SearchCriteria.Op.EQ);
         sb.and("domain_id", sb.entity().getDomainId(), SearchCriteria.Op.EQ);
@@ -202,7 +203,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
         sb.done();
 
         SearchCriteria<VMSnapshotVO> sc = sb.create();
-        _accountMgr.buildACLSearchCriteria(sc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchCriteria(sc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         if (accountName != null && cmd.getDomainId() != null) {
             Account account = _accountMgr.getActiveAccountByName(accountName, cmd.getDomainId());
@@ -213,8 +214,8 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
             sc.setParameters("vm_id", vmId);
         }
 
-        if (domainId != null) {
-            sc.setParameters("domain_id", domainId);
+        if (cmd.getDomainId() != null) {
+            sc.setParameters("domain_id", cmd.getDomainId());
         }
 
         if (state == null) {
@@ -296,7 +297,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
         }
 
         // check access
-        _accountMgr.checkAccess(caller, null, true, userVmVo);
+        //_accountMgr.checkAccess(caller, null, userVmVo);
 
         // check max snapshot limit for per VM
         if (_vmSnapshotDao.findByVm(vmId).size() >= _vmSnapshotMax) {
@@ -447,7 +448,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
             throw new InvalidParameterValueException("unable to find the vm snapshot with id " + vmSnapshotId);
         }
 
-        _accountMgr.checkAccess(caller, null, true, vmSnapshot);
+        _accountMgr.checkAccess(caller, null, vmSnapshot);
 
         // check VM snapshot states, only allow to delete vm snapshots in created and error state
         if (VMSnapshot.State.Ready != vmSnapshot.getState() && VMSnapshot.State.Expunging != vmSnapshot.getState() && VMSnapshot.State.Error != vmSnapshot.getState()) {
@@ -512,7 +513,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
             throw new InvalidParameterValueException("unable to find the vm snapshot with id " + vmSnapshotId);
         }
 
-        _accountMgr.checkAccess(caller, null, true, vmSnapshot);
+        _accountMgr.checkAccess(caller, null, vmSnapshot);
 
         // check VM snapshot states, only allow to delete vm snapshots in created and error state
         if (VMSnapshot.State.Ready != vmSnapshot.getState() && VMSnapshot.State.Expunging != vmSnapshot.getState() && VMSnapshot.State.Error != vmSnapshot.getState()) {
@@ -563,7 +564,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
         }
 
         Account caller = getCaller();
-        _accountMgr.checkAccess(caller, null, true, vmSnapshotVo);
+        _accountMgr.checkAccess(caller, null, vmSnapshotVo);
 
         // VM should be in running or stopped states
         if (userVm.getState() != VirtualMachine.State.Running
@@ -645,7 +646,7 @@ public class VMSnapshotManagerImpl extends ManagerBase implements VMSnapshotMana
         }
 
         Account caller = getCaller();
-        _accountMgr.checkAccess(caller, null, true, vmSnapshotVo);
+        _accountMgr.checkAccess(caller, null, vmSnapshotVo);
 
         // VM should be in running or stopped states
         if (userVm.getState() != VirtualMachine.State.Running && userVm.getState() != VirtualMachine.State.Stopped) {

@@ -263,25 +263,26 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
         Boolean display = cmd.getDisplay();
 
         Account caller = CallContext.current().getCallingAccount();
+        List<Long> permittedDomains = new ArrayList<Long>();
         List<Long> permittedAccounts = new ArrayList<Long>();
+        List<Long> permittedResources = new ArrayList<Long>();
 
         if (ipId != null) {
             IPAddressVO ipAddressVO = _ipAddressDao.findById(ipId);
             if (ipAddressVO == null || !ipAddressVO.readyToUse()) {
                 throw new InvalidParameterValueException("Ip address id=" + ipId + " not ready for firewall rules yet");
             }
-            _accountMgr.checkAccess(caller, null, true, ipAddressVO);
+            _accountMgr.checkAccess(caller, null, ipAddressVO);
         }
 
         Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(cmd.getDomainId(), cmd.isRecursive(), null);
-        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedAccounts, domainIdRecursiveListProject, cmd.listAll(), false);
-        Long domainId = domainIdRecursiveListProject.first();
+        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedDomains, permittedAccounts, permittedResources, domainIdRecursiveListProject, cmd.listAll(), false, "listFirewallRules");
         Boolean isRecursive = domainIdRecursiveListProject.second();
         ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
 
         Filter filter = new Filter(FirewallRuleVO.class, "id", false, cmd.getStartIndex(), cmd.getPageSizeVal());
         SearchBuilder<FirewallRuleVO> sb = _firewallDao.createSearchBuilder();
-        _accountMgr.buildACLSearchBuilder(sb, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchBuilder(sb, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         sb.and("id", sb.entity().getId(), Op.EQ);
         sb.and("trafficType", sb.entity().getTrafficType(), Op.EQ);
@@ -303,7 +304,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
         }
 
         SearchCriteria<FirewallRuleVO> sc = sb.create();
-        _accountMgr.buildACLSearchCriteria(sc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchCriteria(sc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         if (id != null) {
             sc.setParameters("id", id);
@@ -463,7 +464,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
             }
 
             // Validate ip address
-            _accountMgr.checkAccess(caller, null, true, ipAddress);
+            _accountMgr.checkAccess(caller, null, ipAddress);
         }
 
         //network id either has to be passed explicitly, or implicitly as a part of ipAddress object
@@ -475,7 +476,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
         assert network != null : "Can't create rule as network associated with public ip address is null?";
 
         if (trafficType == FirewallRule.TrafficType.Egress) {
-            _accountMgr.checkAccess(caller, null, true, network);
+            _accountMgr.checkAccess(caller, null, network);
         }
 
         // Verify that the network guru supports the protocol specified
@@ -638,7 +639,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
         }
 
         if (caller != null) {
-            _accountMgr.checkAccess(caller, null, true, rules.toArray(new FirewallRuleVO[rules.size()]));
+            _accountMgr.checkAccess(caller, null, rules.toArray(new FirewallRuleVO[rules.size()]));
         }
 
         try {
@@ -692,7 +693,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
             throw new InvalidParameterValueException("Only root admin can delete the system wide firewall rule");
         }
 
-        _accountMgr.checkAccess(caller, null, true, rule);
+        _accountMgr.checkAccess(caller, null, rule);
 
         revokeRule(rule, caller, userId, false);
 
@@ -742,7 +743,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
             throw new InvalidParameterValueException("Only root admin can update the system wide firewall rule");
         }
 
-        _accountMgr.checkAccess(caller, null, true, rule);
+        _accountMgr.checkAccess(caller, null, rule);
 
         if (customId != null) {
             rule.setUuid(customId);
@@ -761,7 +762,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
     @DB
     public void revokeRule(final FirewallRuleVO rule, Account caller, long userId, final boolean needUsageEvent) {
         if (caller != null) {
-            _accountMgr.checkAccess(caller, null, true, rule);
+            _accountMgr.checkAccess(caller, null, rule);
         }
 
         Transaction.execute(new TransactionCallbackNoReturn() {

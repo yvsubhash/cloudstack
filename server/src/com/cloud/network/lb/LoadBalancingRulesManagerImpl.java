@@ -30,11 +30,6 @@ import java.util.Set;
 import javax.ejb.Local;
 import javax.inject.Inject;
 
-import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
@@ -50,6 +45,7 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.lb.ApplicationLoadBalancerRuleVO;
 import org.apache.cloudstack.lb.dao.ApplicationLoadBalancerRuleDao;
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.api.to.LoadBalancerTO;
 import com.cloud.configuration.ConfigurationManager;
@@ -169,6 +165,8 @@ import com.cloud.vm.VirtualMachine.State;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.NicSecondaryIpDao;
 import com.cloud.vm.dao.UserVmDao;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 @Local(value = {LoadBalancingRulesManager.class, LoadBalancingRulesService.class})
 public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements LoadBalancingRulesManager, LoadBalancingRulesService {
@@ -529,7 +527,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterValueException("Failed: LB rule id: " + cmd.getLbRuleId() + " not present ");
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
         if (loadBalancer.getState() == FirewallRule.State.Revoke) {
             throw new InvalidParameterValueException("Failed:  LB rule id: " + cmd.getLbRuleId() + " is in deleting state: ");
         }
@@ -588,7 +586,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterValueException("Failed: LB rule id: " + cmd.getLbRuleId() + " not present ");
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         if (loadBalancer.getState() == FirewallRule.State.Revoke) {
             throw new InvalidParameterValueException("Failed:  LB rule id: " + cmd.getLbRuleId() + " is in deleting state: ");
@@ -750,7 +748,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
         long loadBalancerId = loadBalancer.getId();
         FirewallRule.State backupState = loadBalancer.getState();
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         if (apply) {
             if (loadBalancer.getState() == FirewallRule.State.Active) {
@@ -803,7 +801,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
         final long loadBalancerId = loadBalancer.getId();
         FirewallRule.State backupState = loadBalancer.getState();
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         if (apply) {
             if (loadBalancer.getState() == FirewallRule.State.Active) {
@@ -1195,7 +1193,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterException("Invalid certificate id: " + certId);
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         // check if LB and Cert belong to the same account
         if (loadBalancer.getAccountId() != certVO.getAccountId()) {
@@ -1258,7 +1256,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterException("No certificate is bound to lb with id: " + lbRuleId);
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         boolean success = false;
         FirewallRule.State backupState = loadBalancer.getState();
@@ -1302,7 +1300,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterException("Invalid load balancer value: " + loadBalancerId);
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, loadBalancer);
 
         if (instanceIds == null && vmIdIpMap.isEmpty()) {
             throw new InvalidParameterValueException("Both instanceids and vmidipmap  can't be null");
@@ -1464,7 +1462,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         if (rule == null) {
             throw new InvalidParameterValueException("Unable to find load balancer rule " + loadBalancerId);
         }
-        _accountMgr.checkAccess(caller, null, true, rule);
+        _accountMgr.checkAccess(caller, null, rule);
 
         boolean result = deleteLoadBalancerRule(loadBalancerId, apply, caller, ctx.getCallingUserId(), true);
         if (!result) {
@@ -1688,7 +1686,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw ex;
         }
 
-        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, ipAddr);
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, ipAddr);
 
         final Long networkId = ipAddr.getAssociatedWithNetworkId();
         if (networkId == null) {
@@ -2062,7 +2060,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
 
         // check permissions
-        _accountMgr.checkAccess(caller, null, true, lb);
+        _accountMgr.checkAccess(caller, null, lb);
 
         if (name != null) {
             lb.setName(name);
@@ -2141,7 +2139,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             return null;
         }
 
-        _accountMgr.checkAccess(caller, null, true, loadBalancer);
+        _accountMgr.checkAccess(caller, null, loadBalancer);
 
         List<UserVmVO> loadBalancerInstances = new ArrayList<UserVmVO>();
         List<String> serviceStates = new ArrayList<String>();
@@ -2220,7 +2218,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             return null;
         }
 
-        _accountMgr.checkAccess(caller, null, true, loadBalancer);
+        _accountMgr.checkAccess(caller, null, loadBalancer);
 
         List<LBStickinessPolicyVO> sDbpolicies = _lb2stickinesspoliciesDao.listByLoadBalancerIdAndDisplayFlag(cmd.getLbRuleId(), forDisplay);
 
@@ -2237,10 +2235,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         if (loadBalancer == null) {
             return null;
         }
-
-        _accountMgr.checkAccess(caller, null, true, loadBalancer);
+        _accountMgr.checkAccess(caller, null, loadBalancer);
         List<LBHealthCheckPolicyVO> hcDbpolicies = _lb2healthcheckDao.listByLoadBalancerIdAndDisplayFlag(cmd.getLbRuleId(), forDisplay);
-
         return hcDbpolicies;
     }
 
@@ -2257,19 +2253,21 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         Boolean forDisplay = cmd.getDisplay();
 
         Account caller = CallContext.current().getCallingAccount();
+        List<Long> permittedDomains = new ArrayList<Long>();
         List<Long> permittedAccounts = new ArrayList<Long>();
+        List<Long> permittedResources = new ArrayList<Long>();
 
         Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
                 cmd.getDomainId(), cmd.isRecursive(), null);
-        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedAccounts,
-                domainIdRecursiveListProject, cmd.listAll(), false);
-        Long domainId = domainIdRecursiveListProject.first();
+        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), cmd.getProjectId(), permittedDomains, permittedAccounts, permittedResources,
+                domainIdRecursiveListProject, cmd.listAll(), false, "listLoadBalancerRules");
+        //Long domainId = domainIdRecursiveListProject.first();
         Boolean isRecursive = domainIdRecursiveListProject.second();
         ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
 
         Filter searchFilter = new Filter(LoadBalancerVO.class, "id", true, cmd.getStartIndex(), cmd.getPageSizeVal());
         SearchBuilder<LoadBalancerVO> sb = _lbDao.createSearchBuilder();
-        _accountMgr.buildACLSearchBuilder(sb, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchBuilder(sb, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         sb.and("id", sb.entity().getId(), SearchCriteria.Op.EQ);
         sb.and("name", sb.entity().getName(), SearchCriteria.Op.LIKE);
@@ -2303,7 +2301,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
 
         SearchCriteria<LoadBalancerVO> sc = sb.create();
-        _accountMgr.buildACLSearchCriteria(sc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+        _accountMgr.buildACLSearchCriteria(sc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
 
         if (keyword != null) {
             SearchCriteria<LoadBalancerVO> ssc = _lbDao.createSearchCriteria();
@@ -2486,7 +2484,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterException("Invalid Load balancer : " + policy.getLoadBalancerId() + " for Stickiness policy id: " + id);
         }
 
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, loadBalancer);
 
         if (customId != null) {
             policy.setUuid(customId);
@@ -2513,7 +2511,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterException("Invalid Load balancer : " + policy.getLoadBalancerId() + " for Stickiness policy id: " + id);
         }
 
-        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, loadBalancer);
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, loadBalancer);
 
         if (customId != null) {
             policy.setUuid(customId);

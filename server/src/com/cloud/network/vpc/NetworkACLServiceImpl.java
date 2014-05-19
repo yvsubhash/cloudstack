@@ -103,7 +103,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         if (vpc == null) {
             throw new InvalidParameterValueException("Unable to find VPC");
         }
-        _accountMgr.checkAccess(caller, null, true, vpc);
+        _accountMgr.checkAccess(caller, null, vpc);
         return _networkAclMgr.createNetworkACL(name, description, vpcId, forDisplay);
     }
 
@@ -161,7 +161,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
             if (vpc == null) {
                 throw new InvalidParameterValueException("Unable to find VPC");
             }
-            _accountMgr.checkAccess(caller, null, true, vpc);
+            _accountMgr.checkAccess(caller, null, vpc);
             //Include vpcId 0 to list default ACLs
             sc.setParameters("vpcId", vpcId, 0);
         } else {
@@ -169,23 +169,26 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
 
             // VpcId is not specified. Find permitted VPCs for the caller
             // and list ACLs belonging to the permitted VPCs
+            List<Long> permittedDomains = new ArrayList<Long>();
             List<Long> permittedAccounts = new ArrayList<Long>();
+            List<Long> permittedResources = new ArrayList<Long>();
+
             Long domainId = cmd.getDomainId();
             boolean isRecursive = cmd.isRecursive();
             String accountName = cmd.getAccountName();
             Long projectId = cmd.getProjectId();
             boolean listAll = cmd.listAll();
             Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean,
-                    ListProjectResourcesCriteria>(domainId, isRecursive, null);
-            _accountMgr.buildACLSearchParameters(caller, id, accountName, projectId, permittedAccounts, domainIdRecursiveListProject,
-                    listAll, false);
-            domainId = domainIdRecursiveListProject.first();
+                ListProjectResourcesCriteria>(domainId, isRecursive, null);
+            _accountMgr.buildACLSearchParameters(caller, id, accountName, projectId, permittedDomains, permittedAccounts, permittedResources, domainIdRecursiveListProject,
+                    listAll, false, "listNetworkACLLists");
+            //domainId = domainIdRecursiveListProject.first();
             isRecursive = domainIdRecursiveListProject.second();
             ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
             SearchBuilder<VpcVO> sbVpc = _vpcDao.createSearchBuilder();
-            _accountMgr.buildACLSearchBuilder(sbVpc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchBuilder(sbVpc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
             SearchCriteria<VpcVO> scVpc = sbVpc.create();
-            _accountMgr.buildACLSearchCriteria(scVpc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchCriteria(scVpc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
             List<VpcVO> vpcs = _vpcDao.search(scVpc, null);
             List<Long> vpcIds = new ArrayList<Long>();
             for (VpcVO vpc : vpcs) {
@@ -222,7 +225,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         if (vpc == null) {
             throw new InvalidParameterValueException("Unable to find specified VPC associated with the ACL");
         }
-        _accountMgr.checkAccess(caller, null, true, vpc);
+        _accountMgr.checkAccess(caller, null, vpc);
         return _networkAclMgr.deleteNetworkACL(acl);
     }
 
@@ -253,14 +256,14 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
             if (vpc == null) {
                 throw new InvalidParameterValueException("Unable to find Vpc associated with the NetworkACL");
             }
-            _accountMgr.checkAccess(caller, null, true, vpc);
+            _accountMgr.checkAccess(caller, null, vpc);
             if (!gateway.getVpcId().equals(acl.getVpcId())) {
                 throw new InvalidParameterValueException("private gateway: " + privateGatewayId + " and ACL: " + aclId + " do not belong to the same VPC");
             }
         }
 
         PrivateGateway privateGateway = _vpcSvc.getVpcPrivateGateway(gateway.getId());
-        _accountMgr.checkAccess(caller, null, true, privateGateway);
+        _accountMgr.checkAccess(caller, null, privateGateway);
 
         return  _networkAclMgr.replaceNetworkACLForPrivateGw(acl, privateGateway);
 
@@ -296,7 +299,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
                 throw new InvalidParameterValueException("Unable to find Vpc associated with the NetworkACL");
             }
 
-            _accountMgr.checkAccess(caller, null, true, vpc);
+            _accountMgr.checkAccess(caller, null, vpc);
             if (!network.getVpcId().equals(acl.getVpcId())) {
                 throw new InvalidParameterValueException("Network: " + networkId + " and ACL: " + aclId + " do not belong to the same VPC");
             }
@@ -368,7 +371,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         if (vpc == null) {
             throw new InvalidParameterValueException("Unable to find Vpc associated with the NetworkACL");
         }
-        _accountMgr.checkAccess(caller, null, true, vpc);
+        _accountMgr.checkAccess(caller, null, vpc);
 
         //Ensure that number is unique within the ACL
         if (aclItemCmd.getNumber() != null) {
@@ -485,6 +488,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         String action = cmd.getAction();
         Map<String, String> tags = cmd.getTags();
         Account caller = CallContext.current().getCallingAccount();
+        Boolean display = cmd.getDisplay();
 
         Filter filter = new Filter(NetworkACLItemVO.class, "id", false, cmd.getStartIndex(), cmd.getPageSizeVal());
         SearchBuilder<NetworkACLItemVO> sb = _networkACLItemDao.createSearchBuilder();
@@ -494,6 +498,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         sb.and("trafficType", sb.entity().getTrafficType(), Op.EQ);
         sb.and("protocol", sb.entity().getProtocol(), Op.EQ);
         sb.and("action", sb.entity().getAction(), Op.EQ);
+        sb.and("display", sb.entity().isDisplay(), Op.EQ);
 
         if (tags != null && !tags.isEmpty()) {
             SearchBuilder<ResourceTagVO> tagSearch = _resourceTagDao.createSearchBuilder();
@@ -515,6 +520,10 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         }
 
         SearchCriteria<NetworkACLItemVO> sc = sb.create();
+
+        if (display != null) {
+            sc.setParameters("display", display);
+        }
 
         if (id != null) {
             sc.setParameters("id", id);
@@ -542,32 +551,33 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
                 if (vpc == null) {
                     throw new InvalidParameterValueException("Unable to find VPC associated with acl");
                 }
-                _accountMgr.checkAccess(caller, null, true, vpc);
+                _accountMgr.checkAccess(caller, null, vpc);
             }
             sc.setParameters("aclId", aclId);
         } else {
             //ToDo: Add accountId to network_acl_item table for permission check
 
-
             // aclId is not specified
             // List permitted VPCs and filter aclItems
+            List<Long> permittedDomains = new ArrayList<Long>();
             List<Long> permittedAccounts = new ArrayList<Long>();
+            List<Long> permittedResources = new ArrayList<Long>();
             Long domainId = cmd.getDomainId();
             boolean isRecursive = cmd.isRecursive();
             String accountName = cmd.getAccountName();
             Long projectId = cmd.getProjectId();
             boolean listAll = cmd.listAll();
             Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean,
-                    ListProjectResourcesCriteria>(domainId, isRecursive, null);
-            _accountMgr.buildACLSearchParameters(caller, id, accountName, projectId, permittedAccounts, domainIdRecursiveListProject,
-                    listAll, false);
+                ListProjectResourcesCriteria>(domainId, isRecursive, null);
+            _accountMgr.buildACLSearchParameters(caller, id, accountName, projectId, permittedDomains, permittedAccounts, permittedResources, domainIdRecursiveListProject,
+                    listAll, false, "listNetworkACLs");
             domainId = domainIdRecursiveListProject.first();
             isRecursive = domainIdRecursiveListProject.second();
             ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
             SearchBuilder<VpcVO> sbVpc = _vpcDao.createSearchBuilder();
-            _accountMgr.buildACLSearchBuilder(sbVpc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchBuilder(sbVpc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
             SearchCriteria<VpcVO> scVpc = sbVpc.create();
-            _accountMgr.buildACLSearchCriteria(scVpc, domainId, isRecursive, permittedAccounts, listProjectResourcesCriteria);
+            _accountMgr.buildACLSearchCriteria(scVpc, isRecursive, permittedDomains, permittedAccounts, permittedResources, listProjectResourcesCriteria);
             List<VpcVO> vpcs = _vpcDao.search(scVpc, null);
             List<Long> vpcIds = new ArrayList<Long>();
             for (VpcVO vpc : vpcs) {
@@ -610,7 +620,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
 
             Account caller = CallContext.current().getCallingAccount();
 
-            _accountMgr.checkAccess(caller, null, true, vpc);
+            _accountMgr.checkAccess(caller, null, vpc);
 
             if((aclItem.getAclId() == NetworkACL.DEFAULT_ALLOW) || (aclItem.getAclId() == NetworkACL.DEFAULT_DENY)){
                 throw new InvalidParameterValueException("ACL Items in default ACL cannot be deleted");
@@ -637,7 +647,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
 
         Account caller = CallContext.current().getCallingAccount();
 
-        _accountMgr.checkAccess(caller, null, true, vpc);
+        _accountMgr.checkAccess(caller, null, vpc);
 
         if (number != null) {
             //Check if ACL Item with specified number already exists
@@ -659,7 +669,7 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         NetworkACLVO acl = _networkACLDao.findById(id);
         Vpc vpc = _entityMgr.findById(Vpc.class, acl.getVpcId());
         Account caller = CallContext.current().getCallingAccount();
-        _accountMgr.checkAccess(caller, null, true, vpc);
+        _accountMgr.checkAccess(caller, null, vpc);
 
         if (customId != null) {
             acl.setUuid(customId);
