@@ -1039,9 +1039,15 @@ public class LibvirtStorageAdaptor implements StorageAdaptor {
          */
 
         KVMStoragePool srcPool = disk.getPool();
-        PhysicalDiskFormat sourceFormat = disk.getFormat();
         String sourcePath = disk.getPath();
+        PhysicalDiskFormat sourceFormat;
 
+        if (srcPool.getType() == StoragePoolType.CLVM) {
+         /* CLVM is always RAW, so it should be treated as such */
+            sourceFormat = PhysicalDiskFormat.RAW;
+        } else {
+            sourceFormat = disk.getFormat();
+        }
         KVMPhysicalDisk newDisk;
         s_logger.debug("copyPhysicalDisk: disk size:" + disk.getSize() + ", virtualsize:" + disk.getVirtualSize()+" format:"+disk.getFormat());
         if (destPool.getType() != StoragePoolType.RBD) {
