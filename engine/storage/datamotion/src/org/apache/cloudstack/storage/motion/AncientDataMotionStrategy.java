@@ -111,10 +111,6 @@ public class AncientDataMotionStrategy implements DataMotionStrategy {
             return false;
         }
 
-        if (srcData.getType() == DataObjectType.TEMPLATE) {
-            TemplateInfo template = (TemplateInfo)srcData;
-        }
-
         if (s_logger.isDebugEnabled()) {
             s_logger.debug("needCacheStorage true, dest at " + destTO.getPath() + " dest role " + destStoreTO.getRole().toString() + srcTO.getPath() + " src role " +
                 srcStoreTO.getRole().toString());
