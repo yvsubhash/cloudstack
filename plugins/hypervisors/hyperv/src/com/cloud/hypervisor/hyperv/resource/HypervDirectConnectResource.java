@@ -1914,9 +1914,6 @@ public class HypervDirectConnectResource extends ServerResourceBase implements S
         Answer[] result = s_gson.fromJson(ansStr, Answer[].class);
         s_logger.debug("executeRequest received response "
                 + s_gson.toJson(result));
-        if (result.length > 0) {
-            ModifyVmNicConfigAnswer ans = ((ModifyVmNicConfigAnswer)result[0]);
-        }
     }
 
     protected void assignPublicIpAddress(final String vmName, final String privateIpAddress, final String publicIpAddress, final boolean add, final boolean firstIP,
