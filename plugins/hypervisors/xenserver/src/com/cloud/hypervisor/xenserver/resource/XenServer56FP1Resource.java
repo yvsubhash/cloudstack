@@ -119,11 +119,7 @@ public class XenServer56FP1Resource extends XenServer56Resource {
      */
     @Override
     protected boolean isDmcEnabled(Connection conn, Host host) throws XenAPIException, XmlRpcException {
-        Map<String, String> hostParams = new HashMap<String, String>();
-        hostParams = host.getLicenseParams(conn);
-
-        Boolean isDmcEnabled = hostParams.get("restrict_dmc").equalsIgnoreCase("false");
-
-        return isDmcEnabled;
+        Map<String, String> hostParams = host.getLicenseParams(conn);
+        return hostParams.get("restrict_dmc").equalsIgnoreCase("false");
     }
 }
