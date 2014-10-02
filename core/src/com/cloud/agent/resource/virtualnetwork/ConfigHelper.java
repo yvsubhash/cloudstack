@@ -30,7 +30,9 @@ import org.apache.commons.codec.binary.Base64;
 import com.google.gson.Gson;
 
 import com.cloud.agent.api.BumpUpPriorityCommand;
+import com.cloud.agent.api.Command;
 import com.cloud.agent.api.SetupGuestNetworkCommand;
+import com.cloud.agent.api.baremetal.PrepareKickstartPxeServerCommand;
 import com.cloud.agent.api.routing.CreateIpAliasCommand;
 import com.cloud.agent.api.routing.DeleteIpAliasCommand;
 import com.cloud.agent.api.routing.DhcpEntryCommand;
@@ -66,7 +68,7 @@ import com.cloud.utils.net.NetUtils;
 
 public class ConfigHelper {
 
-    public static List<ConfigItem> generateCommandCfg(NetworkElementCommand cmd) {
+    public static List<ConfigItem> generateCommandCfg(Command cmd) {
         List<ConfigItem> cfg;
         if (cmd instanceof SetPortForwardingRulesVpcCommand) {
             cfg = generateConfig((SetPortForwardingRulesVpcCommand)cmd);
@@ -110,6 +112,8 @@ public class ConfigHelper {
             cfg = generateConfig((SetSourceNatCommand)cmd);
         } else if (cmd instanceof IpAssocCommand) {
             cfg = generateConfig((IpAssocCommand)cmd);
+        } else if (cmd instanceof PrepareKickstartPxeServerCommand) {
+            cfg = generateConfig((PrepareKickstartPxeServerCommand)cmd);
         } else {
             return null;
         }
@@ -713,6 +717,22 @@ public class ConfigHelper {
                 cfg.add(c);
             }
         }
+        return cfg;
+    }
+
+    private static List<ConfigItem> generateConfig(PrepareKickstartPxeServerCommand cmd) {
+        LinkedList<ConfigItem> cfg = new LinkedList<>();
+
+        String args = String.format("%s %s %s %s %s %s", cmd.getKernel(), cmd.getInitrd(), cmd.getTemplateUuid(), String.format("01-%s", cmd.getMac().replaceAll(":", "-"))
+                .toLowerCase(), cmd.getKsFile(), cmd.getMac());
+        ScriptConfigItem c = new ScriptConfigItem(VRScripts.PXE_CONFIG, args);
+        cfg.add(c);
+
+        //args = String.format("%s %s %s", mgmtNic.getIp4Address(), internalServerIp, mgmtNic.getGateway());
+        args = "10.1.1.1 10.1.1.2 10.1.1.3"; //FIXME dummy values for test
+        c = new ScriptConfigItem(VRScripts.BAREMETAL_SNAT, args);
+        cfg.add(c);
+
         return cfg;
     }
 

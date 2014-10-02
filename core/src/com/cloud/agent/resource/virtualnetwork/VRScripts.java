@@ -54,6 +54,8 @@ public class VRScripts {
     protected static final String VPC_STATIC_NAT = "vpc_staticnat.sh";
     protected static final String VPC_STATIC_ROUTE = "vpc_staticroute.sh";
     protected static final String VPN_L2TP = "vpn_l2tp.sh";
+    protected static final String PXE_CONFIG = "prepare_pxe.sh";
+    protected static final String BAREMETAL_SNAT = "baremetal_snat.sh";
 
     protected static final String VR_CFG = "vr_cfg.sh";
 }
