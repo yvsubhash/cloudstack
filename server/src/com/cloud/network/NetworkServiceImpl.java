@@ -1976,20 +1976,17 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
 
         final NetworkVO network = getNetworkIfItExists(networkId);
 
+        setNewFieldsOnNetwork(name, displayText, customId, network);
+
         checkOfferingForVpc(networkOfferingId, network);
 
         checkWhetherNetworkIsUpdatable(network);
 
         _accountMgr.checkAccess(callerAccount, null, true, network);
 
-        setNewFieldsOnNetwork(name, displayText, customId, network);
-
         checkResourceCountUpdate(displayNetwork, network);
 
-        // network offering and domain suffix can be updated for Isolated networks only in 3.0
-        if ((networkOfferingId != null || domainSuffix != null) && network.getGuestType() != GuestType.Isolated) {
-            throw new InvalidParameterValueException("NetworkOffering and domain suffix upgrade can be perfomed for Isolated networks only");
-        }
+        checkForUpgradeIsolatedNetworkFunctionality(domainSuffix, networkOfferingId, network);
 
         final long oldNetworkOfferingId = network.getNetworkOfferingId();
         NetworkOffering oldNtwkOff = _networkOfferingDao.findByIdIncludingRemoved(oldNetworkOfferingId);
@@ -2009,6 +2006,20 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         changeCidrWhenValid(guestVmCidr, networkOfferingChanged, network);
 
         ReservationContext context = new ReservationContextImpl(null, null, callerUser, callerAccount);
+
+        shutDownElementsAndCleanupRules(networkId, changeCidr, restartNetwork, network, context);
+
+        updateNetworkVO(networkId, networkOfferingId, restartNetwork, networkOfferingChanged, network, oldNetworkOfferingId, newSvcProviders);
+
+        reimplementElementsAndRules(changeCidr, restartNetwork, network, context);
+
+        implementNetworkIfNeeded(networkOfferingChanged, network, oldNtwkOff, networkOffering, context);
+
+        return getNetwork(network.getId());
+    }
+
+    private void shutDownElementsAndCleanupRules(final long networkId, Boolean changeCidr, boolean restartNetwork, final NetworkVO network, ReservationContext context)
+            throws CloudRuntimeException {
         // 1) Shutdown all the elements and cleanup all the rules. Don't allow to shutdown network in intermediate
         // states - Shutdown and Implementing
         boolean validStateToShutdown = (network.getState() == Network.State.Implemented || network.getState() == Network.State.Setup || network.getState() == Network.State.Allocated);
@@ -2051,7 +2062,10 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
                 throw ex;
             }
         }
+    }
 
+    private void updateNetworkVO(final long networkId, final Long networkOfferingId, boolean restartNetwork, boolean networkOfferingChanged, final NetworkVO network,
+            final long oldNetworkOfferingId, final Map<String, String> newSvcProviders) throws CloudRuntimeException {
         // 2) Only after all the elements and rules are shutdown properly, update the network VO
         // get updated network
         Network.State networkState = _networksDao.findById(networkId).getState();
@@ -2098,7 +2112,9 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         }   else {
             _networksDao.update(networkId, network);
         }
+    }
 
+    private void reimplementElementsAndRules(Boolean changeCidr, boolean restartNetwork, final NetworkVO network, ReservationContext context) throws CloudRuntimeException {
         // 3) Implement the elements and rules again
         if (restartNetwork) {
             if (network.getState() != Network.State.Allocated) {
@@ -2118,7 +2134,10 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
                 }
             }
         }
+    }
 
+    private void implementNetworkIfNeeded(boolean networkOfferingChanged, final NetworkVO network, NetworkOffering oldNtwkOff, NetworkOfferingVO networkOffering,
+            ReservationContext context) throws CloudRuntimeException {
         // 4) if network has been upgraded from a non persistent ntwk offering to a persistent ntwk offering,
         // implement the network if its not already
         if (networkOfferingChanged && !oldNtwkOff.getIsPersistent() && networkOffering.getIsPersistent()) {
@@ -2134,8 +2153,13 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
                 }
             }
         }
+    }
 
-        return getNetwork(network.getId());
+    private void checkForUpgradeIsolatedNetworkFunctionality(String domainSuffix, final Long networkOfferingId, final NetworkVO network) throws InvalidParameterValueException {
+        // network offering and domain suffix can be updated for Isolated networks only in 3.0
+        if ((networkOfferingId != null || domainSuffix != null) && network.getGuestType() != GuestType.Isolated) {
+            throw new InvalidParameterValueException("NetworkOffering and domain suffix upgrade can be perfomed for Isolated networks only");
+        }
     }
 
     private void checkOfferingForVpc(final Long networkOfferingId, final NetworkVO network) {
