@@ -1994,7 +1994,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         final long oldNetworkOfferingId = network.getNetworkOfferingId();
         NetworkOffering oldNtwkOff = _networkOfferingDao.findByIdIncludingRemoved(oldNetworkOfferingId);
         NetworkOfferingVO networkOffering = _networkOfferingDao.findById(networkOfferingId);
-        if(theNetworkOfferingWillChange(networkOffering, oldNtwkOff, network, changeCidr)) {
+        if(isTheNetworkOfferingChanging(networkOffering, oldNtwkOff, network, changeCidr)) {
             restartNetwork = true;
             networkOfferingChanged = true;
         }
@@ -2279,7 +2279,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         s_logger.info("IP Reservation has been applied. The new CIDR for Guests Vms is " + guestVmCidr);
     }
 
-    private boolean theNetworkOfferingWillChange(
+    private boolean isTheNetworkOfferingChanging(
             NetworkOfferingVO networkOffering,
             NetworkOffering oldNtwkOff,
             final NetworkVO network,
