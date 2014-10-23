@@ -420,7 +420,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         return ipToServices;
     }
 
-    protected boolean canIpUsedForNonConserveService(PublicIp ip, Service service) {
+    protected boolean canIpBeUsedForNonConserveService(PublicIp ip, Service service) {
         // If it's non-conserve mode, then the new ip should not be used by any other services
         List<PublicIp> ipList = new ArrayList<PublicIp>();
         ipList.add(ip);
@@ -441,10 +441,10 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         return true;
     }
 
-    protected boolean canIpsUsedForNonConserve(List<PublicIp> publicIps) {
+    protected boolean canIpsBeUsedForNonConserveMode(List<PublicIp> publicIps) {
         boolean result = true;
         for (PublicIp ip : publicIps) {
-            result = canIpUsedForNonConserveService(ip, null);
+            result = canIpBeUsedForNonConserveService(ip, null);
             if (!result) {
                 break;
             }
@@ -1972,15 +1972,9 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
             final Long networkOfferingId, Boolean changeCidr, String guestVmCidr, Boolean displayNetwork, String customId) {
 
         boolean restartNetwork = false;
+        boolean networkOfferingChanged = false;
 
-        // verify input parameters
-        final NetworkVO network = _networksDao.findById(networkId);
-        if (network == null) {
-            // see NetworkVO.java
-            InvalidParameterValueException ex = new InvalidParameterValueException("Specified network id doesn't exist in the system");
-            ex.addProxyObject(String.valueOf(networkId), "networkId");
-            throw ex;
-        }
+        final NetworkVO network = getNetworkIfItExists(networkId);
 
         //perform below validation if the network is vpc network
         if (network.getVpcId() != null && networkOfferingId != null) {
@@ -1988,129 +1982,31 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
             _vpcMgr.validateNtwkOffForNtwkInVpc(networkId, networkOfferingId, null, null, vpc, null, _accountMgr.getAccount(network.getAccountId()), null);
         }
 
-        // don't allow to update network in Destroy state
-        if (network.getState() == Network.State.Destroy) {
-            throw new InvalidParameterValueException("Don't allow to update network in state " + Network.State.Destroy);
-        }
-
-        // Don't allow to update system network
-        NetworkOffering offering = _networkOfferingDao.findByIdIncludingRemoved(network.getNetworkOfferingId());
-        if (offering.isSystemOnly()) {
-            throw new InvalidParameterValueException("Can't update system networks");
-        }
-
-        // allow to upgrade only Guest networks
-        if (network.getTrafficType() != Networks.TrafficType.Guest) {
-            throw new InvalidParameterValueException("Can't allow networks which traffic type is not " + TrafficType.Guest);
-        }
+        checkWhetherNetworkIsUpdatable(network);
 
         _accountMgr.checkAccess(callerAccount, null, true, network);
 
-        if (name != null) {
-            network.setName(name);
-        }
+        setNewFieldsOnNetwork(name, displayText, customId, network);
 
-        if (displayText != null) {
-            network.setDisplayText(displayText);
-        }
-
-        if (customId != null) {
-            network.setUuid(customId);
-        }
-
-        // display flag is not null and has changed
-        if (displayNetwork != null && displayNetwork != network.getDisplayNetwork()) {
-            // Update resource count if it needs to be updated
-            NetworkOffering networkOffering = _networkOfferingDao.findById(network.getNetworkOfferingId());
-            if (_networkMgr.resourceCountNeedsUpdate(networkOffering, network.getAclType())) {
-                _resourceLimitMgr.changeResourceCount(network.getAccountId(), Resource.ResourceType.network, displayNetwork);
-            }
-
-            network.setDisplayNetwork(displayNetwork);
-        }
+        checkResourceCountUpdate(displayNetwork, network);
 
         // network offering and domain suffix can be updated for Isolated networks only in 3.0
         if ((networkOfferingId != null || domainSuffix != null) && network.getGuestType() != GuestType.Isolated) {
             throw new InvalidParameterValueException("NetworkOffering and domain suffix upgrade can be perfomed for Isolated networks only");
         }
 
-        boolean networkOfferingChanged = false;
-
         final long oldNetworkOfferingId = network.getNetworkOfferingId();
         NetworkOffering oldNtwkOff = _networkOfferingDao.findByIdIncludingRemoved(oldNetworkOfferingId);
         NetworkOfferingVO networkOffering = _networkOfferingDao.findById(networkOfferingId);
-        if (networkOfferingId != null) {
-            if (networkOffering == null || networkOffering.isSystemOnly()) {
-                InvalidParameterValueException ex = new InvalidParameterValueException("Unable to find network offering with specified id");
-                ex.addProxyObject(networkOfferingId.toString(), "networkOfferingId");
-                throw ex;
-            }
-
-            // network offering should be in Enabled state
-            if (networkOffering.getState() != NetworkOffering.State.Enabled) {
-                InvalidParameterValueException ex = new InvalidParameterValueException("Network offering with specified id is not in " + NetworkOffering.State.Enabled
-                        + " state, can't upgrade to it");
-                ex.addProxyObject(networkOffering.getUuid(), "networkOfferingId");
-                throw ex;
-            }
-            //can't update from vpc to non-vpc network offering
-            boolean forVpcNew = _configMgr.isOfferingForVpc(networkOffering);
-            boolean vorVpcOriginal = _configMgr.isOfferingForVpc(_entityMgr.findById(NetworkOffering.class, oldNetworkOfferingId));
-            if (forVpcNew != vorVpcOriginal) {
-                String errMsg = forVpcNew ? "a vpc offering " : "not a vpc offering";
-                throw new InvalidParameterValueException("Can't update as the new offering is " + errMsg);
-            }
-
-            if (networkOfferingId != oldNetworkOfferingId) {
-                Collection<String> newProviders = _networkMgr.finalizeServicesAndProvidersForNetwork(networkOffering, network.getPhysicalNetworkId()).values();
-                Collection<String> oldProviders = _networkMgr.finalizeServicesAndProvidersForNetwork(oldNtwkOff, network.getPhysicalNetworkId()).values();
-
-                if (providersConfiguredForExternalNetworking(newProviders) != providersConfiguredForExternalNetworking(oldProviders) && !changeCidr) {
-                    throw new InvalidParameterValueException("Updating network failed since guest CIDR needs to be changed!");
-                }
-                if (changeCidr) {
-                    if (!checkForNonStoppedVmInNetwork(network.getId())) {
-                        InvalidParameterValueException ex = new InvalidParameterValueException("All user vm of network of specified id should be stopped before changing CIDR!");
-                        ex.addProxyObject(network.getUuid(), "networkId");
-                        throw ex;
-                    }
-                }
-                // check if the network is upgradable
-                if (!canUpgrade(network, oldNetworkOfferingId, networkOfferingId)) {
-                    throw new InvalidParameterValueException("Can't upgrade from network offering " + oldNtwkOff.getUuid() + " to " + networkOffering.getUuid()
-                            + "; check logs for more information");
-                }
-                restartNetwork = true;
-                networkOfferingChanged = true;
-            }
+        if(theNetworkOfferingWillChange(networkOffering, oldNtwkOff, network, changeCidr)) {
+            restartNetwork = true;
+            networkOfferingChanged = true;
         }
 
         final Map<String, String> newSvcProviders = networkOfferingChanged ? _networkMgr.finalizeServicesAndProvidersForNetwork(
                 _entityMgr.findById(NetworkOffering.class, networkOfferingId), network.getPhysicalNetworkId()) : new HashMap<String, String>();
 
-        // don't allow to modify network domain if the service is not supported
-        if (domainSuffix != null) {
-            // validate network domain
-            if (!NetUtils.verifyDomainName(domainSuffix)) {
-                throw new InvalidParameterValueException(
-                        "Invalid network domain. Total length shouldn't exceed 190 chars. Each domain label must be between 1 and 63 characters long, can contain ASCII letters 'a' through 'z', the digits '0' through '9', "
-                                + "and the hyphen ('-'); can't start or end with \"-\"");
-            }
-
-            long offeringId = oldNetworkOfferingId;
-            if (networkOfferingId != null) {
-                offeringId = networkOfferingId;
-            }
-
-            Map<Network.Capability, String> dnsCapabilities = getNetworkOfferingServiceCapabilities(_entityMgr.findById(NetworkOffering.class, offeringId), Service.Dns);
-            String isUpdateDnsSupported = dnsCapabilities.get(Capability.AllowDnsSuffixModification);
-            if (isUpdateDnsSupported == null || !Boolean.valueOf(isUpdateDnsSupported)) {
-                // TBD: use uuid instead of networkOfferingId. May need to hardcode tablename in call to addProxyObject().
-                throw new InvalidParameterValueException("Domain name change is not supported by the network offering id=" + networkOfferingId);
-            }
-
-            network.setNetworkDomain(domainSuffix);
-            // have to restart the network
+        if(domainSuffixWillChange(domainSuffix, networkOfferingId, network, oldNetworkOfferingId)) {
             restartNetwork = true;
         }
 
@@ -2340,6 +2236,191 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         return getNetwork(network.getId());
     }
 
+    /**
+     * @param networkOffering
+     * @param oldNtwkOff
+     * @param network
+     * @param changeCidr
+     * @return
+     * @throws InvalidParameterValueException
+     */
+    private boolean theNetworkOfferingWillChange(
+            NetworkOfferingVO networkOffering,
+            NetworkOffering oldNtwkOff,
+            final NetworkVO network,
+            Boolean changeCidr) throws InvalidParameterValueException {
+        final Long networkOfferingId = networkOffering.getId();
+        final long oldNetworkOfferingId = oldNtwkOff.getId();
+        if (networkOfferingId != null) {
+            if (networkOffering == null || networkOffering.isSystemOnly()) {
+                InvalidParameterValueException ex = new InvalidParameterValueException("Unable to find network offering with specified id");
+                ex.addProxyObject(networkOfferingId.toString(), "networkOfferingId");
+                throw ex;
+            }
+
+            // network offering should be in Enabled state
+            if (networkOffering.getState() != NetworkOffering.State.Enabled) {
+                InvalidParameterValueException ex = new InvalidParameterValueException("Network offering with specified id is not in " + NetworkOffering.State.Enabled
+                        + " state, can't upgrade to it");
+                ex.addProxyObject(networkOffering.getUuid(), "networkOfferingId");
+                throw ex;
+            }
+
+            if (networkOfferingId != oldNetworkOfferingId) {
+                //can't update from vpc to non-vpc network offering
+                boolean forVpcNew = _configMgr.isOfferingForVpc(networkOffering);
+                boolean forVpcOriginal = _configMgr.isOfferingForVpc(_entityMgr.findById(NetworkOffering.class, oldNetworkOfferingId));
+                if (forVpcNew != forVpcOriginal) {
+                    String errMsg = forVpcNew ? "a vpc offering " : "not a vpc offering";
+                    throw new InvalidParameterValueException("Can't update as the new offering is " + errMsg);
+                }
+
+                Collection<String> newProviders = _networkMgr.finalizeServicesAndProvidersForNetwork(networkOffering, network.getPhysicalNetworkId()).values();
+                Collection<String> oldProviders = _networkMgr.finalizeServicesAndProvidersForNetwork(oldNtwkOff, network.getPhysicalNetworkId()).values();
+
+                if (providersConfiguredForExternalNetworking(newProviders) != providersConfiguredForExternalNetworking(oldProviders) && !changeCidr) {
+                    throw new InvalidParameterValueException("Updating network failed since guest CIDR needs to be changed!");
+                }
+
+                if (changeCidr) {
+                    checkWhetherNetworkIsReadyToChangeCidr(changeCidr, network);
+                }
+
+                checkWhetherNetworkIsUpgradable(network, oldNetworkOfferingId, networkOfferingId);
+
+                //if we get here without problems
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param changeCidr
+     * @param network
+     * @throws InvalidParameterValueException
+     */
+    private void checkWhetherNetworkIsReadyToChangeCidr(Boolean changeCidr, final NetworkVO network) throws InvalidParameterValueException {
+        if (!checkForNonStoppedVmInNetwork(network.getId())) {
+            InvalidParameterValueException ex = new InvalidParameterValueException("All user vm of network of specified id should be stopped before changing CIDR!");
+            ex.addProxyObject(network.getUuid(), "networkId");
+            throw ex;
+        }
+    }
+
+    /**
+     * @param domainSuffix
+     * @param networkOfferingId
+     * @param network
+     * @param oldNetworkOfferingId
+     * @throws InvalidParameterValueException
+     */
+    private boolean domainSuffixWillChange(String domainSuffix, final Long networkOfferingId, final NetworkVO network, final long oldNetworkOfferingId)
+            throws InvalidParameterValueException {
+        // don't allow to modify network domain if the service is not supported
+        if (domainSuffix != null) {
+            // validate network domain
+            if (!NetUtils.verifyDomainName(domainSuffix)) {
+                throw new InvalidParameterValueException(
+                        "Invalid network domain. Total length shouldn't exceed 190 chars. Each domain label must be between 1 and 63 characters long, can contain ASCII letters 'a' through 'z', the digits '0' through '9', "
+                                + "and the hyphen ('-'); can't start or end with \"-\"");
+            }
+
+            long offeringId = oldNetworkOfferingId;
+            if (networkOfferingId != null) {
+                offeringId = networkOfferingId;
+            }
+
+            Map<Network.Capability, String> dnsCapabilities = getNetworkOfferingServiceCapabilities(_entityMgr.findById(NetworkOffering.class, offeringId), Service.Dns);
+            String isUpdateDnsSupported = dnsCapabilities.get(Capability.AllowDnsSuffixModification);
+            if (isUpdateDnsSupported == null || !Boolean.valueOf(isUpdateDnsSupported)) {
+                // TBD: use uuid instead of networkOfferingId. May need to hardcode tablename in call to addProxyObject().
+                throw new InvalidParameterValueException("Domain name change is not supported by the network offering id=" + networkOfferingId);
+            }
+
+            network.setNetworkDomain(domainSuffix);
+            // have to restart the network
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @param name
+     * @param displayText
+     * @param customId
+     * @param network
+     */
+    private void setNewFieldsOnNetwork(String name, String displayText, String customId, final NetworkVO network) {
+        if (name != null) {
+            network.setName(name);
+        }
+
+        if (displayText != null) {
+            network.setDisplayText(displayText);
+        }
+
+        if (customId != null) {
+            network.setUuid(customId);
+        }
+    }
+
+    /**
+     * @param network
+     * @throws InvalidParameterValueException
+     */
+    private void checkWhetherNetworkIsUpdatable(final NetworkVO network) throws InvalidParameterValueException {
+        // don't allow to update network in Destroy state
+        if (network.getState() == Network.State.Destroy) {
+            throw new InvalidParameterValueException("Don't allow to update network in state " + Network.State.Destroy);
+        }
+
+        // Don't allow to update system network
+        NetworkOffering offering = _networkOfferingDao.findByIdIncludingRemoved(network.getNetworkOfferingId());
+        if (offering.isSystemOnly()) {
+            throw new InvalidParameterValueException("Can't update system networks");
+        }
+
+        // allow to upgrade only Guest networks
+        if (network.getTrafficType() != Networks.TrafficType.Guest) {
+            throw new InvalidParameterValueException("We will only allow updates of networks of type " + TrafficType.Guest + ". Can't allow network updates for traffic type " + network.getTrafficType());
+        }
+    }
+
+    /**
+     * @param networkId
+     * @return
+     * @throws InvalidParameterValueException
+     */
+    private NetworkVO getNetworkIfItExists(final long networkId) throws InvalidParameterValueException {
+        // verify input parameters
+        final NetworkVO network = _networksDao.findById(networkId);
+        if (network == null) {
+            // see NetworkVO.java
+            InvalidParameterValueException ex = new InvalidParameterValueException("Specified network id doesn't exist in the system");
+            ex.addProxyObject(String.valueOf(networkId), "networkId");
+            throw ex;
+        }
+        return network;
+    }
+
+    /**
+     * @param displayNetwork
+     * @param network
+     */
+    private void checkResourceCountUpdate(Boolean displayNetwork, final NetworkVO network) {
+        if (displayNetwork != null && displayNetwork != network.getDisplayNetwork()) {
+            // Update resource count if it needs to be updated
+            NetworkOffering networkOffering = _networkOfferingDao.findById(network.getNetworkOfferingId());
+            if (_networkMgr.resourceCountNeedsUpdate(networkOffering, network.getAclType())) {
+                _resourceLimitMgr.changeResourceCount(network.getAccountId(), Resource.ResourceType.network, displayNetwork);
+            }
+
+            network.setDisplayNetwork(displayNetwork);
+        }
+    }
+
     protected Set<Long> getAvailableIps(Network network, String requestedIp) {
         String[] cidr = network.getCidr().split("/");
         List<String> ips = _nicDao.listIpAddressInNetwork(network.getId());
@@ -2362,56 +2443,78 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         return allPossibleIps;
     }
 
-    protected boolean canUpgrade(Network network, long oldNetworkOfferingId, long newNetworkOfferingId) {
+    protected void checkWhetherNetworkIsUpgradable(Network network, long oldNetworkOfferingId, long newNetworkOfferingId) {
         NetworkOffering oldNetworkOffering = _networkOfferingDao.findByIdIncludingRemoved(oldNetworkOfferingId);
         NetworkOffering newNetworkOffering = _networkOfferingDao.findById(newNetworkOfferingId);
 
         // can upgrade only Isolated networks
         if (oldNetworkOffering.getGuestType() != GuestType.Isolated) {
-            throw new InvalidParameterValueException("NetworkOfferingId can be upgraded only for the network of type " + GuestType.Isolated);
+            throw new InvalidParameterValueException("NetworkOfferingId can be upgraded only for the network of type " + GuestType.Isolated + ", not for " + oldNetworkOffering.getGuestType());
         }
 
+        String msg;
         // security group service should be the same
         if (areServicesSupportedByNetworkOffering(oldNetworkOfferingId, Service.SecurityGroup) != areServicesSupportedByNetworkOffering(newNetworkOfferingId, Service.SecurityGroup)) {
-            s_logger.debug("Offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different securityGroupProperty, can't upgrade");
-            return false;
+            msg = "Offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different securityGroupProperty, can't upgrade";
+            s_logger.debug(msg);
+            throw new InvalidParameterValueException(
+                    "Can't upgrade network offering "
+                    + "; " + msg);
         }
 
         // Type of the network should be the same
         if (oldNetworkOffering.getGuestType() != newNetworkOffering.getGuestType()) {
-            s_logger.debug("Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " are of different types, can't upgrade");
-            return false;
+            msg = "Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " are of different types, can't upgrade";
+            s_logger.debug(msg);
+            throw new InvalidParameterValueException(
+                    "Can't upgrade network offering "
+                    + "; " + msg);
         }
 
         // tags should be the same
         if (newNetworkOffering.getTags() != null) {
             if (oldNetworkOffering.getTags() == null) {
-                s_logger.debug("New network offering id=" + newNetworkOfferingId + " has tags and old network offering id=" + oldNetworkOfferingId + " doesn't, can't upgrade");
-                return false;
+                msg = "New network offering id=" + newNetworkOfferingId + " has tags and old network offering id=" + oldNetworkOfferingId + " doesn't, can't upgrade";
+                s_logger.debug(msg);
+                throw new InvalidParameterValueException(
+                        "Can't upgrade network offering "
+                        + "; " + msg);
             }
 
             if (!StringUtils.areTagsEqual(oldNetworkOffering.getTags(), newNetworkOffering.getTags())) {
-                s_logger.debug("Network offerings " + newNetworkOffering.getUuid() + " and " + oldNetworkOffering.getUuid() + " have different tags, can't upgrade");
-                return false;
+                msg = "Network offerings " + newNetworkOffering.getUuid() + " and " + oldNetworkOffering.getUuid() + " have different tags, can't upgrade";
+                s_logger.debug(msg);
+                throw new InvalidParameterValueException(
+                        "Can't upgrade network offering "
+                        + "; " + msg);
             }
         }
 
         // Traffic types should be the same
         if (oldNetworkOffering.getTrafficType() != newNetworkOffering.getTrafficType()) {
-            s_logger.debug("Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different traffic types, can't upgrade");
-            return false;
+            msg = "Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different traffic types, can't upgrade";
+            s_logger.debug(msg);
+            throw new InvalidParameterValueException(
+                    "Can't upgrade network offering "
+                    + "; " + msg);
         }
 
         // specify vlan should be the same
         if (oldNetworkOffering.getSpecifyVlan() != newNetworkOffering.getSpecifyVlan()) {
-            s_logger.debug("Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different values for specifyVlan, can't upgrade");
-            return false;
+            msg = "Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different values for specifyVlan, can't upgrade";
+            s_logger.debug(msg);
+            throw new InvalidParameterValueException(
+                    "Can't upgrade network offering "
+                    + "; " + msg);
         }
 
         // specify ipRanges should be the same
         if (oldNetworkOffering.getSpecifyIpRanges() != newNetworkOffering.getSpecifyIpRanges()) {
-            s_logger.debug("Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different values for specifyIpRangess, can't upgrade");
-            return false;
+            msg = "Network offerings " + newNetworkOfferingId + " and " + oldNetworkOfferingId + " have different values for specifyIpRangess, can't upgrade";
+            s_logger.debug(msg);
+            throw new InvalidParameterValueException(
+                    "Can't upgrade network offering "
+                    + "; " + msg);
         }
 
         // Check all ips
@@ -2424,8 +2527,8 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
             }
         }
         if (oldNetworkOffering.isConserveMode() && !newNetworkOffering.isConserveMode()) {
-            if (!canIpsUsedForNonConserve(publicIps)) {
-                return false;
+            if (!canIpsBeUsedForNonConserveMode(publicIps)) {
+                throw new InvalidParameterValueException("Can't use ip space for non conserve mode service offering");
             }
         }
 
@@ -2436,7 +2539,12 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
             }
         }
 
-        return canIpsUseOffering(publicIps, newNetworkOfferingId);
+        boolean rc = canIpsUseOffering(publicIps, newNetworkOfferingId);
+        if(rc == false) {
+            throw new InvalidParameterValueException("Can't upgrade from network offering " + oldNetworkOfferingId + " to " + newNetworkOfferingId
+                    + "; check logs for more information");
+        }
+
     }
 
     @Override
