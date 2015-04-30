@@ -119,6 +119,9 @@ public class ServiceOfferingJoinVO extends BaseViewVO implements InternalIdentit
     @Column(name = "iops_write_rate")
     Long iopsWriteRate;
 
+    @Column(name = "cache_mode")
+    String cacheMode;
+
     @Column(name = GenericDao.CREATED_COLUMN)
     private Date created;
 
@@ -283,6 +286,10 @@ public class ServiceOfferingJoinVO extends BaseViewVO implements InternalIdentit
 
     public Long getIopsWriteRate() {
         return iopsWriteRate;
+    }
+
+    public String getCacheMode() {
+        return cacheMode;
     }
 
     public boolean isDynamic() {

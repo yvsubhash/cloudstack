@@ -98,6 +98,9 @@ public class CreateDiskOfferingCmd extends BaseCmd {
     @Parameter(name = ApiConstants.MAX_IOPS, type = CommandType.LONG, required = false, description = "max iops of the disk offering")
     private Long maxIops;
 
+    @Parameter(name = ApiConstants.CACHE_MODE, type = CommandType.STRING, required = false, description="the cache mode to use for this disk offering. none, writeback or writethrough")
+    private String cacheMode;
+
     @Parameter(name = ApiConstants.HYPERVISOR_SNAPSHOT_RESERVE,
             type = CommandType.INTEGER,
             required = false,
@@ -162,6 +165,10 @@ public class CreateDiskOfferingCmd extends BaseCmd {
 
     public String getStorageType() {
         return storageType;
+    }
+
+    public String getCacheMode() {
+        return cacheMode;
     }
 
     public String getProvisioningType(){

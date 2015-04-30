@@ -554,6 +554,18 @@ public class LibvirtVMDef {
 
         }
 
+        public void defFileBasedDisk(String filePath, int devId, diskBus bus, diskFmtType diskFmtType, diskCacheMode diskCacheMode) {
+
+            _diskType = diskType.FILE;
+            _deviceType = deviceType.DISK;
+            _diskCacheMode = diskCacheMode;
+            _sourcePath = filePath;
+            _diskLabel = getDevLabel(devId, bus);
+            _diskFmtType = diskFmtType;
+            _bus = bus;
+
+        }
+
         public void defISODisk(String volPath) {
             _diskType = diskType.FILE;
             _deviceType = deviceType.CDROM;
@@ -584,6 +596,26 @@ public class LibvirtVMDef {
             _bus = bus;
         }
 
+        public void defBlockBasedDisk(String diskName, int devId, diskBus bus, diskCacheMode diskCacheMode) {
+            _diskType = diskType.BLOCK;
+            _deviceType = deviceType.DISK;
+            _diskFmtType = diskFmtType.RAW;
+            _diskCacheMode = diskCacheMode;
+            _sourcePath = diskName;
+            _diskLabel = getDevLabel(devId, bus);
+            _bus = bus;
+        }
+
+        public void defBlockBasedDisk(String diskName, String diskLabel, diskBus bus, diskCacheMode diskCacheMode) {
+            _diskType = diskType.BLOCK;
+            _deviceType = deviceType.DISK;
+            _diskFmtType = diskFmtType.RAW;
+            _diskCacheMode = diskCacheMode;
+            _sourcePath = diskName;
+            _diskLabel = diskLabel;
+            _bus = bus;
+        }
+
         public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, int devId, diskBus bus,
                 diskProtocol protocol, diskFmtType diskFmtType) {
             _diskType = diskType.NETWORK;
@@ -600,12 +632,44 @@ public class LibvirtVMDef {
             _diskProtocol = protocol;
         }
 
+        public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, int devId, diskBus bus,
+                diskProtocol protocol, diskFmtType diskFmtType, diskCacheMode diskCacheMode) {
+            _diskType = diskType.NETWORK;
+            _deviceType = deviceType.DISK;
+            _diskFmtType = diskFmtType;
+            _diskCacheMode = diskCacheMode;
+            _sourcePath = diskName;
+            _sourceHost = sourceHost;
+            _sourcePort = sourcePort;
+            _authUserName = authUserName;
+            _authSecretUUID = authSecretUUID;
+            _diskLabel = getDevLabel(devId, bus);
+            _bus = bus;
+            _diskProtocol = protocol;
+        }
+
         public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, String diskLabel, diskBus bus,
                 diskProtocol protocol, diskFmtType diskFmtType) {
             _diskType = diskType.NETWORK;
             _deviceType = deviceType.DISK;
             _diskFmtType = diskFmtType;
             _diskCacheMode = diskCacheMode.NONE;
+            _sourcePath = diskName;
+            _sourceHost = sourceHost;
+            _sourcePort = sourcePort;
+            _authUserName = authUserName;
+            _authSecretUUID = authSecretUUID;
+            _diskLabel = diskLabel;
+            _bus = bus;
+            _diskProtocol = protocol;
+        }
+
+        public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, String diskLabel, diskBus bus,
+                diskProtocol protocol, diskFmtType diskFmtType, diskCacheMode diskCacheMode) {
+            _diskType = diskType.NETWORK;
+            _deviceType = deviceType.DISK;
+            _diskFmtType = diskFmtType;
+            _diskCacheMode = diskCacheMode;
             _sourcePath = diskName;
             _sourceHost = sourceHost;
             _sourcePort = sourcePort;
