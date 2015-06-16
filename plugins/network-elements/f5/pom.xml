@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloudstack-plugins</artifactId>
-    <version>4.6.0-SNAPSHOT</version>
+    <version>4.6.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <dependencies>
@@ -35,6 +35,7 @@
     <dependency>
       <groupId>org.apache.axis</groupId>
       <artifactId>axis</artifactId>
+      <scope>runtime</scope>
     </dependency>
    <dependency>
       <groupId>commons-discovery</groupId>
