@@ -792,17 +792,16 @@ Configurable, StateListener<VirtualMachine.State, VirtualMachine.Event, VirtualM
 
         @Override
         protected void runInContext() {
+            //Check for ownership
+            //msHost in UP state with max id should run the job
+            final ManagementServerHostVO msHost = _msHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", false, 0L, 1L));
+            if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
+                s_logger.debug("Skipping aggregate network stats update");
+                return;
+            }
             final GlobalLock scanLock = GlobalLock.getInternLock("network.stats");
             try {
                 if (scanLock.lock(ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION)) {
-                    // Check for ownership
-                    // msHost in UP state with min id should run the job
-                    final ManagementServerHostVO msHost = _msHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", false, 0L, 1L));
-                    if (msHost == null || msHost.getMsid() != mgmtSrvrId) {
-                        s_logger.debug("Skipping aggregate network stats update");
-                        scanLock.unlock();
-                        return;
-                    }
                     try {
                         Transaction.execute(new TransactionCallbackNoReturn() {
                             @Override
