@@ -27,5 +27,5 @@ public interface NetScalerServicePackageDao extends GenericDao<NetScalerServiceP
 
     List<NetScalerServicePackageVO> listByNetScalerDeviceId(long netscalerDeviceId);
 
-    public void removeAll();
+    void removeAll();
 }
