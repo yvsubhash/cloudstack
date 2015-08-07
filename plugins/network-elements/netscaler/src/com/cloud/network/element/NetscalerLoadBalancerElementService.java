@@ -127,21 +127,21 @@ public interface NetscalerLoadBalancerElementService extends PluggableService {
      * @param lbDeviceVO external load balancer VO object
      * @return NetscalerLoadBalancerResponse
      */
-    public NetScalerServicePackageResponse registerNetscalerServicePackage(RegisterServicePackageCmd cmd);
+    NetScalerServicePackageResponse registerNetscalerServicePackage(RegisterServicePackageCmd cmd);
 
-    public NetscalerControlCenterResponse createNetscalerControlCenterResponse(NetScalerControlCenterVO lncCentersVO);
+    NetscalerControlCenterResponse createNetscalerControlCenterResponse(NetScalerControlCenterVO lncCentersVO);
 
-    public NetScalerServicePackageResponse createRegisteredServicePackageResponse(NetScalerServicePackageVO lrsPackageVO);
+    NetScalerServicePackageResponse createRegisteredServicePackageResponse(NetScalerServicePackageVO lrsPackageVO);
 
-    public NetScalerServicePackageResponse deleteNetscalerServicePackage(RegisterServicePackageCmd cmd);
+    NetScalerServicePackageResponse deleteNetscalerServicePackage(RegisterServicePackageCmd cmd);
 
-    public NetScalerServicePackageResponse listNetscalerServicePackage(RegisterServicePackageCmd cmd);
+    NetScalerServicePackageResponse listNetscalerServicePackage(RegisterServicePackageCmd cmd);
 
-    public NetScalerServicePackageResponse createNetscalerServicePackageResponse(NetScalerServicePackageVO servicePackageVO);
+    NetScalerServicePackageResponse createNetscalerServicePackageResponse(NetScalerServicePackageVO servicePackageVO);
 
-    public NetScalerControlCenterVO registerNetscalerControlCenter(RegisterNetscalerControlCenterCmd registerNetscalerControlCenterCmd);
+    NetScalerControlCenterVO registerNetscalerControlCenter(RegisterNetscalerControlCenterCmd registerNetscalerControlCenterCmd);
 
-    public Map<String, Object> deployNetscalerServiceVm(DeployNetscalerVpxCmd cmd);
+    Map<String, Object> deployNetscalerServiceVm(DeployNetscalerVpxCmd cmd);
 
-    public VirtualRouter stopNetscalerServiceVm(Long id, boolean forced, Account callingAccount, long callingUserId) throws ConcurrentOperationException, ResourceUnavailableException;
+    VirtualRouter stopNetscalerServiceVm(Long id, boolean forced, Account callingAccount, long callingUserId) throws ConcurrentOperationException, ResourceUnavailableException;
 }
