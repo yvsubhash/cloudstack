@@ -195,4 +195,8 @@ public interface NetworkService {
     public boolean releasePodIp(ReleasePodIpCmdByAdmin ip) throws CloudRuntimeException;
 
     List<? extends NicSecondaryIp> listVmNicSecondaryIps(ListNicsCmd listNicsCmd);
+
+    AcquirePodIpCmdResponse allocatePodIp(Account account, String zoneId, String podId) throws ResourceAllocationException, ConcurrentOperationException;
+
+    boolean releasePodIp(ReleasePodIpCmdByAdmin ip) throws CloudRuntimeException;
 }

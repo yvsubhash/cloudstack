@@ -3155,6 +3155,9 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(AcquirePodIpCmdByAdmin.class);
         cmdList.add(ReleasePodIpCmdByAdmin.class);
 
+        cmdList.add(AcquirePodIpCmdByAdmin.class);
+        cmdList.add(ReleasePodIpCmdByAdmin.class);
+
         return cmdList;
     }
 
