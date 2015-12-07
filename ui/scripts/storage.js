@@ -2696,7 +2696,51 @@
 		                notification: {
 		                    poll: pollAsyncJobResult
 		                }
-		            }
+		            },
+                    start: {
+                        label: 'label.deploy.instance',
+
+                        action: {
+                            custom: function(args)   {
+                                var zoneObj, snapshotObj, hypervisorObj;
+
+                                $.ajax({
+                                    url: createURL("listZones&available=true"),
+                                    dataType: "json",
+                                    data: {id: args.context.instances[0].zoneid},
+                                    async: false,
+                                    success: function(json) {
+                                        zoneObj = json.listzonesresponse.zone;
+                                    }
+                                });
+
+                                snapshotObj = args.context.vmsnapshots;
+
+                                $.ajax({
+                                    url: createURL("listHypervisors&zoneid=" + args.context.instances[0].zoneid),
+                                    dataType: "json",
+                                    async: false,
+                                    success: function(json) {
+                                        hypervisorObj = json.listhypervisorsresponse.hypervisor;
+                                    }
+                                });
+
+                                var customFunc = cloudStack.uiCustom.instanceWizard(cloudStack.instanceWizard, {step: 3, title: 'label.deploy.instance', zone: zoneObj, snapshot: snapshotObj, hypervisor: hypervisorObj});
+
+                                customFunc(args);
+                            }
+                        },
+
+                        messages: {
+                            notification: function(args) {
+                                return 'label.deploy.instance';
+                            }
+                        },
+
+                        notification: {
+                            poll: pollAsyncJobResult
+                        }
+                    }
 		        }
 		    }
 		    //detailview end
@@ -2809,6 +2853,10 @@
             allowedActions.push("remove");
             allowedActions.push("revertToVMSnapshot");
             allowedActions.push("takeSnapshot");
+        }
+
+        if (args && args.context && args.context.instances && args.context.instances[0].hypervisor && args.context.instances[0].hypervisor == "VMware") {
+            allowedActions.push("start");
         }
 
         return allowedActions;
