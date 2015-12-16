@@ -2359,4 +2359,10 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
 
         return vmData;
     }
+
+    @Override
+    public String getValidNetworkCidr(Network guestNetwork) {
+        String networkCidr = guestNetwork.getNetworkCidr();
+        return networkCidr == null ? guestNetwork.getCidr() : networkCidr;
+    }
 }
