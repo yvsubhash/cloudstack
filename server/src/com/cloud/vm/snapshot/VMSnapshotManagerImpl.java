@@ -604,7 +604,7 @@ public class VMSnapshotManagerImpl extends MutualExclusiveIdsManagerBase impleme
         _accountMgr.checkAccess(caller, null, true, vmSnapshot);
 
         // check VM snapshot states, only allow to delete vm snapshots in created and error state
-        if (VMSnapshot.State.Ready != vmSnapshot.getState() && VMSnapshot.State.Expunging != vmSnapshot.getState() && VMSnapshot.State.Error != vmSnapshot.getState()) {
+        if (VMSnapshot.State.Ready != vmSnapshot.getState() && VMSnapshot.State.Expunging != vmSnapshot.getState() && VMSnapshot.State.Error != vmSnapshot.getState() && VMSnapshot.State.Allocated != vmSnapshot.getState()) {
             throw new InvalidParameterValueException("Can't delete the vm snapshotshot " + vmSnapshotId + " due to it is not in Created or Error, or Expunging State");
         }
 
