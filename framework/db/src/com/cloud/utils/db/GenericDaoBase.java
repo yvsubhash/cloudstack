@@ -30,6 +30,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLTransactionRollbackException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,6 +159,9 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
     protected static final String FOR_UPDATE_CLAUSE = " FOR UPDATE ";
     protected static final String SHARE_MODE_CLAUSE = " LOCK IN SHARE MODE";
     protected static final String SELECT_LAST_INSERT_ID_SQL = "SELECT LAST_INSERT_ID()";
+    protected static final int MYSQL_DEADLOCK_ERROR_CODE = 1213;
+    protected static final int RETRY_ON_DEADLOCK_COUNT = 3;
+    protected static final int DEADLOCK_RETRY_WAIT_TIME_MILLISECONDS = 1000;
 
     protected static final SequenceFetcher s_seqFetcher = SequenceFetcher.getInstance();
 
@@ -418,16 +422,41 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
             if (s_logger.isDebugEnabled() && lock != null) {
                 txn.registerLock(pstmt.toString());
             }
-            final ResultSet rs = pstmt.executeQuery();
+            ResultSet rs= RunPreparedStatementWithRetries(pstmt);
+
             while (rs.next()) {
                 result.add(toEntityBean(rs, cache));
             }
+
             return result;
         } catch (final SQLException e) {
             throw new CloudRuntimeException("DB Exception on: " + pstmt, e);
         } catch (final Throwable e) {
             throw new CloudRuntimeException("Caught: " + pstmt, e);
         }
+    }
+
+    public  ResultSet RunPreparedStatementWithRetries(PreparedStatement pstmt) throws SQLException, InterruptedException {
+        ResultSet rs = null;
+        for (int j=0;j < RETRY_ON_DEADLOCK_COUNT; j++) {
+            boolean isDeadLockFound = false;
+            try {
+                rs = pstmt.executeQuery();
+            }
+            catch (SQLTransactionRollbackException sre) {
+                if (sre.getErrorCode() == MYSQL_DEADLOCK_ERROR_CODE) {
+                    Thread.sleep(DEADLOCK_RETRY_WAIT_TIME_MILLISECONDS);
+                    s_logger.info("Deadlock found retrying transaction");
+                    isDeadLockFound = true;
+                }
+                else {
+                    throw sre;
+                }
+            }
+            if(!isDeadLockFound)
+                break;
+        }
+        return rs;
     }
 
     @Override
@@ -480,8 +509,7 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
                     pstmt.setObject(i++, value);
                 }
             }
-
-            ResultSet rs = pstmt.executeQuery();
+            ResultSet rs = RunPreparedStatementWithRetries(pstmt);
             SelectType st = sc.getSelectType();
             ArrayList<M> results = new ArrayList<M>();
             List<Field> fields = sc.getSelectFields();
