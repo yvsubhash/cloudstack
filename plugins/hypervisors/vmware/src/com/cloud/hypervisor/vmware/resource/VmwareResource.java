@@ -4659,6 +4659,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                         destVolumePath = vmMo.getVmdkFileBaseName(disk);
                     }
             }
+            vmMo.moveAllVmDiskFiles(destDsMo, "", false);
             VirtualMachineDiskInfoBuilder diskInfoBuilder = vmMo.getDiskInfoBuilder();
             String chainInfo = _gson.toJson(diskInfoBuilder.getDiskInfoByBackingFileBaseName(destVolumePath, destPoolTo.getUuid().replace("-", "")));
             MigrateVolumeAnswer answer = new MigrateVolumeAnswer(cmd, true, null, destVolumePath);
