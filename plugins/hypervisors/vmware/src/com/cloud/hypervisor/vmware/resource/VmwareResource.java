@@ -275,6 +275,8 @@ import com.cloud.hypervisor.vmware.mo.HostStorageSystemMO;
 import com.cloud.hypervisor.vmware.mo.HypervisorHostHelper;
 import com.cloud.hypervisor.vmware.mo.NetworkDetails;
 import com.cloud.hypervisor.vmware.mo.TaskMO;
+import com.cloud.hypervisor.vmware.mo.VirtualCdDriveType;
+import com.cloud.hypervisor.vmware.mo.VirtualDiskManagerMO;
 import com.cloud.hypervisor.vmware.mo.VirtualEthernetCardType;
 import com.cloud.hypervisor.vmware.mo.VirtualMachineDiskInfoBuilder;
 import com.cloud.hypervisor.vmware.mo.VirtualMachineMO;
@@ -4462,9 +4464,8 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         StorageFilerTO destPoolTo = cmd.getDestPool();
         StorageFilerTO srcPoolTo = cmd.getSrcPool();
         String destHostGuid = cmd.getDestHost();
-        VirtualMachineTO vmTo = cmd.getVirtualMachine();
 
-        String vmName = (null == vmTo) ? null : vmTo.getName();
+        String vmName = cmd.getVmInternalName();
         VirtualMachineMO vmMo = null;
         VmwareHypervisorHost srcHyperHost = null;
         VmwareHypervisorHost destHyperHost = null;
@@ -4499,7 +4500,6 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             }
 
             VmwareManager mgr = srcHyperHost.getContext().getStockObject(VmwareManager.CONTEXT_STOCK_NAME);
-            //String srcHostApiVersion = ((HostMO)srcHyperHost).getHostAboutInfo().getApiVersion();
 
             destDsUuid = destPoolTo.getUuid();
             srcDsUuid = srcPoolTo.getUuid();
@@ -4509,7 +4509,24 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 //Volume is not attached to a VM. Need to spawn a worker VM to attach the volume to and migrate
                 useWorkerVm = true;
                 vmName = getWorkerName(getServiceContext(), cmd, 0);
+            } else {
+                // find VM in this data center not just in this cluster.
+                DatacenterMO dcMo = new DatacenterMO(getServiceContext(), morDc);
+                vmMo = dcMo.findVm(vmName);
 
+                if (vmMo == null) {
+                    useWorkerVm = true;
+                    String originalAttachedVmName = vmName;
+                    vmName = getWorkerName(getServiceContext(), cmd, 0);
+                    String msg = "VM " + originalAttachedVmName + " does not exist in VMware datacenter " + morDc.getValue() +
+                            ". Using worker VM : " + vmName;
+                    s_logger.info(msg);
+                } else {
+                    vmName = vmMo.getName();
+                }
+            }
+
+            if (useWorkerVm) {
                 morSrcDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(srcHyperHost, srcDsUuid);
                 srcDsMo = new DatastoreMO(srcHyperHost.getContext(), morSrcDs);
                 s_logger.info("Create worker VM " + vmName);
@@ -4521,16 +4538,6 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 synchronized (this) {
                     srcVmdkDataStorePath = VmwareStorageLayoutHelper.getLegacyDatastorePathFromVmdkFileName(srcDsMo, srcVolPath + ".vmdk");
                     vmMo.attachDisk(new String[] {srcVmdkDataStorePath}, morSrcDs);
-                }
-            } else {
-                // find VM in this data center not just in this cluster.
-                DatacenterMO dcMo = new DatacenterMO(getServiceContext(), morDc);
-                vmMo = dcMo.findVm(vmName);
-
-                if (vmMo == null) {
-                    String msg = "VM " + vmName + " does not exist in VMware datacenter " + morDc.getValue();
-                    s_logger.error(msg);
-                    throw new Exception(msg);
                 }
             }
 
@@ -4546,19 +4553,19 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 morDestDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(destHyperHost, destDsUuid);
                 if (morDestDs == null) {
                     msg = "Unable to find mounted datastore with name: " + destDsUuid + " on destination host : " + destHyperHost.getHyperHostName()
-                            + " to execute MigrateVolumeCommand. Halting migration.";
+                            + " to execute ColdMigrateVolumeCommand. Halting migration.";
                     if (s_logger.isDebugEnabled()) {
                         s_logger.debug(msg);
                     }
                     throw new Exception(msg);
                 } else {
                     if (s_logger.isDebugEnabled()) {
-                        s_logger.debug("Able to find mounted datastore with name: " + destDsUuid + " on destination host : " + destHyperHost.getHyperHostName());
+                        s_logger.debug("Found mounted datastore with name: " + destDsUuid + " on destination host : " + destHyperHost.getHyperHostName());
                     }
                 }
             } else {
                 if (s_logger.isDebugEnabled()) {
-                    s_logger.debug("Able to find mounted datastore with name: " + destDsUuid + " on source host : " + srcHyperHost.getHyperHostName());
+                    s_logger.debug("Found mounted datastore with name: " + destDsUuid + " on source host : " + srcHyperHost.getHyperHostName());
                 }
             }
 
@@ -4576,7 +4583,6 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             if (Volume.Type.ROOT == volumeType) {
                 relocateSpec.setDatastore(morDestDs);
                 rootVolumeMigration = true;
-                diskLocator = new VirtualMachineRelocateSpecDiskLocator();
                 diskLocator.setDatastore(morDestDs);
                 diskLocator.setDiskId(diskId);
                 diskLocators.add(diskLocator);
@@ -4594,16 +4600,16 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 diskLocator.setDatastore(morDestDs);
                 diskLocator.setDiskId(diskId);
                 diskLocators.add(diskLocator);
-                relocateSpec.getDisk().addAll(diskLocators);
             }
+            relocateSpec.getDisk().addAll(diskLocators);
 
             if (!useWorkerVm && requireVmMigration) {
                 // Prepare network at target before migration
-                NicTO[] nics = vmTo.getNics();
-                for (NicTO nic : nics) {
-                    // prepare network on the host
-                    prepareNetworkFromNicInfo(new HostMO(getServiceContext(), morDestHost), nic, false, vmTo.getType());
-                }
+//                NicTO[] nics = vmTo.getNics();
+//                for (NicTO nic : nics) {
+//                    // prepare network on the host
+//                    prepareNetworkFromNicInfo(new HostMO(getServiceContext(), morDestHost), nic, false, vmTo.getType());
+//                }
 
                 // Ensure secondary storage mounted on target host
                 Pair<String, Long> secStoreUrl = mgr.getSecondaryStorageStoreUrlAndId(Long.parseLong(_dcId));
@@ -4643,23 +4649,65 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             // Consolidate VM disks.
             // In case of a linked clone VM, if VM's disks are not consolidated,
             // further volume operations on the ROOT volume such as volume snapshot etc. will result in DB inconsistencies.
-            String apiVersion = HypervisorHostHelper.getVcenterApiVersion(vmMo.getContext());
             if (!vmMo.consolidateVmDisks()) {
                 s_logger.warn("VM disk consolidation failed after storage migration.");
             } else {
                 s_logger.debug("Successfully consolidated disks of VM " + vmName + ".");
             }
 
+            if (rootVolumeMigration) {
+                Integer volControllerKey = 0;
+                String originalVolumePath = srcVolPath;
+                String newVolumePath = originalVolumePath;
+                if (!destDsMo.fileExists(fullVolumePath)) {
+                    VirtualDisk[] disks = vmMo.getAllDiskDevice();
+                    for (VirtualDisk disk : disks) {
+                        if (disk.getKey() == diskId) {
+                            newVolumePath = vmMo.getVmdkFileBaseName(disk);
+                            volControllerKey = disk.getControllerKey();
+                        }
+                    }
+                }
+
+                if (!originalVolumePath.equalsIgnoreCase(newVolumePath)) {
+                    String newVolumeFullCurrentPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(destDsMo, vmName, newVolumePath + ".vmdk");
+
+                    //Detach
+                    List<Pair<String, ManagedObjectReference>> detachedVolInfo = vmMo.detachDisk(newVolumeFullCurrentPath, false);
+                    String newUniqueName = VmwareHelper.getVCenterSafeUuid();
+                    s_logger.debug("New unique volume name : " + newUniqueName);
+                    String newVolumeFullTargetPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(destDsMo, vmName, newUniqueName + ".vmdk");
+                    s_logger.debug("Re-naming virtual disk : [" + newVolumeFullCurrentPath + "] to [" + newVolumeFullTargetPath + "]");
+
+                    //Rename & Update renamed VMDK file in configuration
+                    renameVolume(getServiceContext(), morDc, newVolumeFullCurrentPath, newVolumeFullTargetPath);
+                    s_logger.debug("Re-name completed successfully");
+
+                    String vmdkDsPathBeforeRename = detachedVolInfo.get(0).first();
+                    String vmdkDsPathAfterRename = vmdkDsPathBeforeRename.replace(newVolumePath, newUniqueName);
+                    Pair<String, ManagedObjectReference> updatedVolumeInfo = new Pair<String, ManagedObjectReference>(vmdkDsPathAfterRename, detachedVolInfo.get(0).second());
+                    detachedVolInfo.set(0, updatedVolumeInfo);
+                    Pair<String, ManagedObjectReference>[] volInfoArray = detachedVolInfo.toArray(new Pair[detachedVolInfo.size()]);
+                    vmMo.attachDisk(volInfoArray, volControllerKey);
+                }
+            }
             // Update and return volume path and chain info because that could have changed after migration
             String destVolumePath = srcVolPath;
             if (!destDsMo.fileExists(fullVolumePath)) {
                 VirtualDisk[] disks = vmMo.getAllDiskDevice();
-                for (VirtualDisk disk : disks)
+                for (VirtualDisk disk : disks) {
                     if (disk.getKey() == diskId) {
                         destVolumePath = vmMo.getVmdkFileBaseName(disk);
                     }
+                }
             }
-            vmMo.moveAllVmDiskFiles(destDsMo, "", false);
+            if (useWorkerVm) {
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("Moving the disk files from VM folder [" + vmMo.getVmName() +
+                            "] to / folder in datastore [" + destDsMo.getName() + "]");
+                }
+                vmMo.moveAllVmDiskFiles(destDsMo, "", false);
+            }
             VirtualMachineDiskInfoBuilder diskInfoBuilder = vmMo.getDiskInfoBuilder();
             String chainInfo = _gson.toJson(diskInfoBuilder.getDiskInfoByBackingFileBaseName(destVolumePath, destPoolTo.getUuid().replace("-", "")));
             MigrateVolumeAnswer answer = new MigrateVolumeAnswer(cmd, true, null, destVolumePath);
@@ -4687,6 +4735,11 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 detachAllDisksAndDestroyVm(vmMo, vmName);
             }
         }
+    }
+
+    private void renameVolume(VmwareContext context, ManagedObjectReference morDc, String srcName, String destName) throws Exception {
+        VirtualDiskManagerMO virtDiskMgrMo = new VirtualDiskManagerMO(context, context.getServiceContent().getVirtualDiskManager());
+        virtDiskMgrMo.moveVirtualDisk(srcName, morDc, destName, morDc, false);
     }
 
     private void detachAllDisksAndDestroyVm(VirtualMachineMO vmMo, String vmName) {

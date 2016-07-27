@@ -66,8 +66,6 @@ import com.cloud.host.HostVO;
 import com.cloud.host.Status;
 import com.cloud.host.dao.HostDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
-import com.cloud.hypervisor.HypervisorGuru;
-import com.cloud.hypervisor.HypervisorGuruManager;
 import com.cloud.resource.ResourceState;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.ScopeType;
@@ -81,8 +79,7 @@ import com.cloud.utils.Pair;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
-import com.cloud.vm.VirtualMachineProfile;
-import com.cloud.vm.VirtualMachineProfileImpl;
+import com.cloud.vm.VirtualMachine.State;
 import com.cloud.vm.dao.VMInstanceDao;
 
 @Component
@@ -104,8 +101,6 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
     ConfigurationDao configDao;
     @Inject
     DataStoreManager dataStoreMgr;
-    @Inject
-    protected HypervisorGuruManager hvGuruMgr;
 
     @Override
     public StrategyPriority canHandle(DataObject srcData, DataObject destData) {
@@ -130,8 +125,20 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
         DataObjectType srcObjectType = srcData.getType();
         DataObjectType destObjectType = destData.getType();
         HypervisorType srcVolumeHypervisorType = HypervisorType.None;
+        State srcVolumeInstanceState = State.Stopped;
+
         if (DataObjectType.VOLUME == srcObjectType) {
             srcVolumeHypervisorType = ((VolumeInfo)srcData).getHypervisorType();
+            VolumeVO volumeVo = volDao.findById(srcData.getId());
+            Long instanceId = volumeVo.getInstanceId();
+            if (instanceId != null) {
+                VMInstanceVO vm = instanceDao.findById(instanceId);
+                srcVolumeInstanceState = vm.getState();
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("State of the instance [" + instanceId + "] attached to volume [" +
+                            volumeVo.getId() + "] is : [" + srcVolumeInstanceState + "]");
+                }
+            }
         }
 
         if (DataStoreRole.Primary == srcVolumeDatastoreRole &&
@@ -139,7 +146,8 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
                 DataObjectType.VOLUME == srcObjectType &&
                 DataObjectType.VOLUME == destObjectType &&
                 HypervisorType.VMware == srcVolumeHypervisorType &&
-                !(((PrimaryDataStore)destData.getDataStore()).isManaged())) {
+                !(((PrimaryDataStore)destData.getDataStore()).isManaged()) &&
+                State.Running != srcVolumeInstanceState) {
             return true;
         }
         return false;
@@ -170,14 +178,10 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
             }
 
             VMInstanceVO vm = null;
-            VirtualMachineProfile profile = null;
-            HypervisorGuru hvGuru = null;
-            VirtualMachineTO vmTo = null;
+            String vmInternalName = null;
             if (attached) {
                 vm = instanceDao.findById(instanceId);
-                profile = new VirtualMachineProfileImpl(vm);
-                hvGuru = hvGuruMgr.getGuru(vm.getHypervisorType());
-                vmTo = hvGuru.implement(profile);
+                vmInternalName = vm.getInstanceName();
             }
 
             StoragePool destPool = (StoragePool)dataStoreMgr.getDataStore(destData.getDataStore().getId(), DataStoreRole.Primary);
@@ -207,7 +211,15 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
             HostVO workerHost = hostConnectedToSrcPool;
             HostVO vmHost = hostConnectedToSrcPool;
             if (attached && vm != null) {
-                vmHost = getHostOfStoppedVm(vm);
+                HostVO lastHost = getHostOfStoppedVm(vm);
+                if (lastHost != null) {
+                    vmHost = lastHost;
+                } else {
+                    if (s_logger.isDebugEnabled()) {
+                        s_logger.debug("Detected that last host of VM [" + vmInternalName + "] is NULL. Picking host [" +
+                                vmHost.getName() + "] connected to storage pool of ROOT volume.");
+                    }
+                }
             }
 
             if (attached && Volume.Type.ROOT == volumeType) {
@@ -264,11 +276,11 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
                 s_logger.debug("Trying to initiate cold VM migration across clusters [from:" +
                         srcClusterId + ", to:" + destClusterId + "] destination host : " + targetHost.getId() +
                         ", destination primary storage pool : " + destPool.getId());
-                answer = migrateVmToOtherClusterDatastore(vmTo, ownerOrWorkerHost, hostGuid, srcData, destData, srcPool, destPool);
+                answer = migrateVmToOtherClusterDatastore(vmInternalName, ownerOrWorkerHost, hostGuid, srcData, destData, srcPool, destPool);
             } else {
                 s_logger.debug("Trying to initiate cold volume migration within cluster " +
                         srcClusterId + " to destination primary storage pool : " + destPool.getId());
-                answer = migrateVolumeToOtherDatastore(vmTo, ownerOrWorkerHost, srcData, destData, srcPool, destPool);
+                answer = migrateVolumeToOtherDatastore(vmInternalName, ownerOrWorkerHost, srcData, destData, srcPool, destPool);
             }
 
         } catch (Exception e) {
@@ -318,7 +330,7 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
     // 3. VM cold migration within Cluster
     // 4. ROOT volume cold migration within Cluster
 
-    public Answer migrateVolumeToOtherDatastore(VirtualMachineTO vmTo, Host ownerOrWorkerHost, DataObject srcData, DataObject destData,
+    public Answer migrateVolumeToOtherDatastore(String vmInternalName, Host ownerOrWorkerHost, DataObject srcData, DataObject destData,
             StoragePool srcPool, StoragePool destPool) throws AgentUnavailableException {
         String value = configDao.getValue(Config.MigrateWait.key());
         int waitInterval = NumbersUtil.parseInt(value, Integer.parseInt(Config.MigrateWait.getDefaultValue()));
@@ -329,7 +341,7 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
         //MigrateVolumeAnswer migrateVolumeAnswer = null;
         Answer migrateVolumeAnswer = null;
         ColdMigrateVolumeCommand command = new ColdMigrateVolumeCommand(srcVolInfo.getId(), srcVolInfo.getPath(), srcPool, destPool,
-                vmTo, null, srcVolInfo.getVolumeType(), waitInterval);
+                vmInternalName, null, srcVolInfo.getVolumeType(), waitInterval);
         // host selection doesn't consider storage exclude operations during select
         if (ownerOrWorkerHost == null) {
             String errMsg = "Failed to send command ColdMigrateVolumeCommand due to invalid or null host.";
@@ -384,7 +396,7 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
     // Address cases
     // 1. Across cluster VM migration
     // 2. Across cluster detach volume migration
-    public Answer migrateVmToOtherClusterDatastore(VirtualMachineTO vmTo, Host workerHost, String hostGuid, DataObject srcData, DataObject destData,
+    public Answer migrateVmToOtherClusterDatastore(String vmInternalName, Host workerHost, String hostGuid, DataObject srcData, DataObject destData,
             StoragePool srcPool, StoragePool destPool) throws AgentUnavailableException {
         String value = configDao.getValue(Config.MigrateWait.key());
         int waitInterval = NumbersUtil.parseInt(value, Integer.parseInt(Config.MigrateWait.getDefaultValue()));
@@ -394,7 +406,7 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
 
         MigrateVolumeAnswer migrateVolumeAnswer = null;
         ColdMigrateVolumeCommand command = new ColdMigrateVolumeCommand(srcVolInfo.getId(), srcVolInfo.getPath(), srcPool, destPool,
-                vmTo, hostGuid, srcVolInfo.getVolumeType(), waitInterval);
+                vmInternalName, hostGuid, srcVolInfo.getVolumeType(), waitInterval);
         // host selection doesn't consider storage exclude operations during select
         if (workerHost == null) {
             String errMsg = "Failed to send command ColdMigrateVolumeCommand due to invalid or null host.";

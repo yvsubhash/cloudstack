@@ -2,7 +2,6 @@ package com.cloud.agent.api.storage;
 
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.to.StorageFilerTO;
-import com.cloud.agent.api.to.VirtualMachineTO;
 import com.cloud.storage.StoragePool;
 import com.cloud.storage.Volume;
 import com.cloud.storage.Volume.Type;
@@ -13,17 +12,17 @@ public class ColdMigrateVolumeCommand extends Command {
     String volumePath;
     StorageFilerTO srcPool;
     StorageFilerTO destPool;
-    VirtualMachineTO virtualMachine;
+    String vmInternalName;
     Volume.Type volumeType;
     String destHost;
 
-    public ColdMigrateVolumeCommand(long volumeId, String volumePath, StoragePool srcPool, StoragePool destPool, VirtualMachineTO vmTo,
+    public ColdMigrateVolumeCommand(long volumeId, String volumePath, StoragePool srcPool, StoragePool destPool, String vmInternalName,
             String host, Type volumeType, int waitIntervalSeconds) {
         this.volumeId = volumeId;
         this.volumePath = volumePath;
         this.srcPool = new StorageFilerTO(srcPool);
         this.destPool = new StorageFilerTO(destPool);
-        virtualMachine = vmTo;
+        this.vmInternalName = vmInternalName;
         this.volumeType = volumeType;
         destHost = host;
         setWait(waitIntervalSeconds);
@@ -74,8 +73,8 @@ public class ColdMigrateVolumeCommand extends Command {
         this.volumeType = volumeType;
     }
 
-    public VirtualMachineTO getVirtualMachine() {
-        return virtualMachine;
+    public String getVmInternalName() {
+        return vmInternalName;
     }
 
     public String getDestHost() {
