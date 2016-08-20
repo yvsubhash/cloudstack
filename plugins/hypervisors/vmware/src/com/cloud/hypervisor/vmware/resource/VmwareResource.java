@@ -4604,13 +4604,6 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             relocateSpec.getDisk().addAll(diskLocators);
 
             if (!useWorkerVm && requireVmMigration) {
-                // Prepare network at target before migration
-//                NicTO[] nics = vmTo.getNics();
-//                for (NicTO nic : nics) {
-//                    // prepare network on the host
-//                    prepareNetworkFromNicInfo(new HostMO(getServiceContext(), morDestHost), nic, false, vmTo.getType());
-//                }
-
                 // Ensure secondary storage mounted on target host
                 Pair<String, Long> secStoreUrl = mgr.getSecondaryStorageStoreUrlAndId(Long.parseLong(_dcId));
                 if (secStoreUrl == null || secStoreUrl.first() == null) {
@@ -4657,38 +4650,43 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
 
             if (rootVolumeMigration) {
                 Integer volControllerKey = 0;
+                DatastoreFile dsVmdkFile = null;
                 String originalVolumePath = srcVolPath;
                 String newVolumePath = originalVolumePath;
                 if (!destDsMo.fileExists(fullVolumePath)) {
                     VirtualDisk[] disks = vmMo.getAllDiskDevice();
                     for (VirtualDisk disk : disks) {
                         if (disk.getKey() == diskId) {
-                            newVolumePath = vmMo.getVmdkFileBaseName(disk);
                             volControllerKey = disk.getControllerKey();
+                            dsVmdkFile = vmMo.getVmdkFileName(disk);
                         }
                     }
                 }
-
+                if (dsVmdkFile != null) {
+                    newVolumePath = dsVmdkFile.getFileBaseName();
+                }
                 if (!originalVolumePath.equalsIgnoreCase(newVolumePath)) {
-                    String newVolumeFullCurrentPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(destDsMo, vmName, newVolumePath + ".vmdk");
+                    String newVolumeFullCurrentPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(
+                            destDsMo, dsVmdkFile.getDir(), newVolumePath + ".vmdk");
 
                     //Detach
                     List<Pair<String, ManagedObjectReference>> detachedVolInfo = vmMo.detachDisk(newVolumeFullCurrentPath, false);
+
                     String newUniqueName = VmwareHelper.getVCenterSafeUuid();
                     s_logger.debug("New unique volume name : " + newUniqueName);
-                    String newVolumeFullTargetPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(destDsMo, vmName, newUniqueName + ".vmdk");
+                    String newVolumeFullTargetPath = VmwareStorageLayoutHelper.getVmwareDatastorePathFromVmdkFileName(
+                            destDsMo, dsVmdkFile.getDir(), newUniqueName + ".vmdk");
                     s_logger.debug("Re-naming virtual disk : [" + newVolumeFullCurrentPath + "] to [" + newVolumeFullTargetPath + "]");
-
                     //Rename & Update renamed VMDK file in configuration
                     renameVolume(getServiceContext(), morDc, newVolumeFullCurrentPath, newVolumeFullTargetPath);
                     s_logger.debug("Re-name completed successfully");
 
-                    String vmdkDsPathBeforeRename = detachedVolInfo.get(0).first();
-                    String vmdkDsPathAfterRename = vmdkDsPathBeforeRename.replace(newVolumePath, newUniqueName);
-                    Pair<String, ManagedObjectReference> updatedVolumeInfo = new Pair<String, ManagedObjectReference>(vmdkDsPathAfterRename, detachedVolInfo.get(0).second());
+                    Pair<String, ManagedObjectReference> updatedVolumeInfo = new Pair<String, ManagedObjectReference>(newVolumeFullTargetPath, detachedVolInfo.get(0).second());
                     detachedVolInfo.set(0, updatedVolumeInfo);
                     Pair<String, ManagedObjectReference>[] volInfoArray = detachedVolInfo.toArray(new Pair[detachedVolInfo.size()]);
+                    s_logger.debug("Attaching virtual disk at [" + newVolumeFullTargetPath + "] to VM : " + vmMo.getVmName());
                     vmMo.attachDisk(volInfoArray, volControllerKey);
+                    s_logger.debug("Successfully attached virtual disk at [" + newVolumeFullTargetPath + "] to VM : " + vmMo.getVmName());
                 }
             }
             // Update and return volume path and chain info because that could have changed after migration
