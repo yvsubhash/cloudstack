@@ -264,7 +264,9 @@ public class CiscoNexusVSMElement extends CiscoNexusVSMDeviceManagerImpl impleme
                 netconfClient = new NetconfHelper(vsmIp, vsmUser, vsmPassword);
                 netconfClient.disconnect();
             } catch (CloudRuntimeException e) {
-                String msg = "Invalid credentials supplied for user " + vsmUser + " for Cisco Nexus 1000v VSM at " + vsmIp;
+                String msg = "Unable to connect Cisco Nexus 1000v VSM at " + vsmIp +
+                        ". Please check if VSM is reachable and if correct credentials are supplied for user " + vsmUser +
+                        "Exception : " + e;
                 s_logger.error(msg);
                 _clusterDao.remove(clusterId);
                 throw new CloudRuntimeException(msg);
