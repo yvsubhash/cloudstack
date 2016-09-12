@@ -1807,6 +1807,7 @@ public class VolumeServiceImpl implements VolumeService {
                 future.complete(res);
             } else {
                 srcVolume.processEvent(Event.OperationSuccessed);
+                snapshotMgr.cleanupSnapshotsByVolume(srcVolume.getId());
                 future.complete(res);
             }
         } catch (Exception e) {
@@ -1888,6 +1889,7 @@ public class VolumeServiceImpl implements VolumeService {
             } else {
                 for (Map.Entry<VolumeInfo, DataStore> entry : volumeToPool.entrySet()) {
                     VolumeInfo volume = entry.getKey();
+                    snapshotMgr.cleanupSnapshotsByVolume(volume.getId());
                     volume.processEvent(Event.OperationSuccessed);
                 }
                 future.complete(res);

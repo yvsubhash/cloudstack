@@ -73,6 +73,8 @@ public interface SnapshotManager extends Configurable {
 
     boolean canOperateOnVolume(Volume volume);
 
+    void cleanupSnapshotsByVolume(Long volumeId);
+
     Answer sendToPool(Volume vol, Command cmd);
 
     SnapshotVO getParentSnapshot(VolumeInfo volume);
