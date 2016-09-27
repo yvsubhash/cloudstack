@@ -1445,14 +1445,24 @@
                                         actions: {
                                              remove: {
                                                  label: 'label.action.delete.template',
+                                                 createForm: {
+                                                    title: 'label.action.delete.template',
+                                                    desc: function(args) {
+                                                       if(args.context.templates[0].crossZones == true) {
+                                                          return 'message.action.delete.template.for.all.zones';
+                                                       } else {
+                                                          return 'message.action.delete.template';
+                                                       }
+                                                      },
+                                                    fields: {
+                                                        forced: {
+                                                            label: 'force.delete',
+                                                            isBoolean: true,
+                                                            isChecked: false
+                                                        }
+                                                    }
+                                                 },
                                                  messages: {
-                                                     confirm: function(args) {
-                                                         if(args.context.templates[0].crossZones == true) {
-                                                             return 'message.action.delete.template.for.all.zones';
-                                                         } else {
-                                                             return 'message.action.delete.template';
-                                                         }
-                                                     },
                                                      notification: function(args) {
                                                          return 'label.action.delete.template';
                                                      }
@@ -1463,7 +1473,7 @@
                                                         queryParams += "&zoneid=" + args.context.zones[0].zoneid;
                                                      }
                                                      $.ajax({
-                                                         url: createURL(queryParams),
+                                                         url: createURL(queryParams + "&forced=" + (args.data.forced == "on")),
                                                          dataType: "json",
                                                          async: true,
                                                          success: function(json) {

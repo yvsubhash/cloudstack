@@ -34,6 +34,7 @@ import javax.naming.ConfigurationException;
 
 import com.cloud.storage.ImageStoreUploadMonitorImpl;
 import com.cloud.utils.EncryptionUtil;
+import com.google.common.base.Joiner;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -1182,6 +1183,19 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         VMTemplateVO template = _tmpltDao.findById(templateId);
         if (template == null) {
             throw new InvalidParameterValueException("unable to find template with id " + templateId);
+        }
+
+        List<VMInstanceVO> vmInstanceVOList;
+        if(cmd.getZoneId() != null) {
+            vmInstanceVOList = _vmInstanceDao.listNonExpungedByZoneAndTemplate(cmd.getZoneId(), templateId);
+        }
+        else {
+            vmInstanceVOList = _vmInstanceDao.listNonExpungedByTemplate(templateId);
+        }
+        if(!cmd.isForced() && CollectionUtils.isNotEmpty(vmInstanceVOList)) {
+            final String message = String.format("Unable to delete template with id: %1$s because VM instances: [%2$s] are using it.",  templateId, Joiner.on(",").join(vmInstanceVOList));
+            s_logger.warn(message);
+            throw new InvalidParameterValueException(message);
         }
 
         _accountMgr.checkAccess(caller, AccessType.OperateEntry, true, template);
