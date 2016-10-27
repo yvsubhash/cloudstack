@@ -66,6 +66,7 @@ import com.cloud.host.HostVO;
 import com.cloud.host.Status;
 import com.cloud.host.dao.HostDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
+import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ResourceState;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.ScopeType;
@@ -101,6 +102,8 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
     ConfigurationDao configDao;
     @Inject
     DataStoreManager dataStoreMgr;
+    @Inject
+    ResourceManager resourceMgr;
 
     @Override
     public StrategyPriority canHandle(DataObject srcData, DataObject destData) {
@@ -216,8 +219,12 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
                     vmHost = lastHost;
                 } else {
                     if (s_logger.isDebugEnabled()) {
-                        s_logger.debug("Detected that last host of VM [" + vmInternalName + "] is NULL. Picking host [" +
-                                vmHost.getName() + "] connected to storage pool of ROOT volume.");
+                        s_logger.debug("Detected that last host of VM [" + vmInternalName + "] is not usable. ");
+                    }
+                    if (vmHost != null) {
+                        s_logger.debug("Picking host [" + vmHost.getName() + "] which is connected to storage pool of ROOT volume.");
+                    } else {
+                        s_logger.debug("Host connected to source storage pool [" + srcPool.getId() + "] of ROOT volume is not usable. ");
                     }
                 }
             }
@@ -299,7 +306,8 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
         Long lastHostId = vm.getLastHostId();
         if (lastHostId != null) {
             lastHost = hostDao.findById(lastHostId, true);
-            if (lastHost != null && lastHost.getResourceState() == ResourceState.Enabled && lastHost.getStatus() == Status.Up) {
+            if (lastHost != null && lastHost.getStatus() == Status.Up &&
+                    (lastHost.getResourceState() == ResourceState.Enabled || lastHost.getResourceState() == ResourceState.Disabled)) {
                 vmHost = lastHost;
             }
         }
@@ -316,12 +324,25 @@ public class VmwareStorageMotionStrategy implements DataMotionStrategy {
     }
 
     private HostVO getAvailableHostFromCluster(Long clusterId) {
-        HostVO availableHostInCluster = null;
-        List<HostVO> availableHostsInCluster = hostDao.findHypervisorHostInCluster(clusterId);
-        if (availableHostsInCluster != null && !availableHostsInCluster.isEmpty()) {
-            availableHostInCluster = availableHostsInCluster.get(0);
+        HostVO upHostInCluster = null;
+        List<HostVO> upEnabledHostsInCluster = hostDao.findHypervisorHostInCluster(clusterId);
+        if (upEnabledHostsInCluster != null && !upEnabledHostsInCluster.isEmpty()) {
+            upHostInCluster = upEnabledHostsInCluster.get(0);
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Found host [" + upHostInCluster.getId() + "] which is Up and Enabled in cluster : " + clusterId);
+            }
+        } else {
+            // Look for disabled hosts, if any
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Found 0 hosts which are Up and Enabled in cluster : " + clusterId +
+                        ". Hence looking for hosts which are Up and Disabled in this cluster.");
+            }
+            List<HostVO> upDisabledHostsInCluster = resourceMgr.listAllUpAndDisabledHostsInCluster(clusterId);
+            if (upDisabledHostsInCluster != null && !upDisabledHostsInCluster.isEmpty()) {
+                upHostInCluster = upDisabledHostsInCluster.get(0);
+            }
         }
-        return availableHostInCluster;
+        return upHostInCluster;
     }
 
     // Address cases

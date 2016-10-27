@@ -70,6 +70,7 @@ import com.cloud.host.Host;
 import com.cloud.host.dao.HostDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.hypervisor.HypervisorGuruManager;
+import com.cloud.resource.ResourceManager;
 import com.cloud.storage.dao.VolumeDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.VMInstanceVO;
@@ -99,6 +100,8 @@ public class VmwareStorageMotionStrategyTest {
     DataStoreManager dataStoreMgr;
     @Inject
     protected HypervisorGuruManager hvGuruMgr;
+    @Inject
+    ResourceManager resourceMgr;
 
     CopyCommandResult result;
 
@@ -292,6 +295,11 @@ public class VmwareStorageMotionStrategyTest {
         @Bean
         public HypervisorGuruManager hvGuruMgr() {
             return Mockito.mock(HypervisorGuruManager.class);
+        }
+
+        @Bean
+        public ResourceManager resourceMgr() {
+            return Mockito.mock(ResourceManager.class);
         }
 
         public static class Library implements TypeFilter {

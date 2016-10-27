@@ -624,4 +624,10 @@ public class MockResourceManagerImpl extends ManagerBase implements ResourceMana
         // TODO Auto-generated method stub
         return false;
     }
+
+    @Override
+    public List<HostVO> listAllUpAndDisabledHostsInCluster(long clusterId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }
