@@ -100,23 +100,22 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
 
     protected Attribute _updateTimeAttr;
 
-    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1 = "SELECT host.cluster_id, SUM(IF(vm.state='Running' AND vm.account_id = ?, 1, 0)) " +
+    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1 = "SELECT host.cluster_id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) " +
         "FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id WHERE ";
     private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " AND host.type = 'Routing' AND host.removed is null GROUP BY host.cluster_id " +
         "ORDER BY 2 ASC ";
 
-    private static final String ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT = "SELECT pod.id, SUM(IF(vm.state='Running' AND vm.account_id = ?, 1, 0)) FROM `cloud`.`" +
+    private static final String ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT = "SELECT pod.id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) FROM `cloud`.`" +
         "host_pod_ref` pod LEFT JOIN `cloud`.`vm_instance` vm ON pod.id = vm.pod_id WHERE pod.data_center_id = ? AND pod.removed is null "
         + " GROUP BY pod.id ORDER BY 2 ASC ";
 
     private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT =
-        "SELECT host.id, SUM(IF(vm.state='Running' AND vm.account_id = ?, 1, 0)) FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id " +
+        "SELECT host.id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id " +
             "WHERE host.data_center_id = ? AND host.type = 'Routing' AND host.removed is null ";
-
     private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " GROUP BY host.id ORDER BY 2 ASC ";
 
     private static final String COUNT_VMS_BASED_ON_VGPU_TYPES1 =
-            "SELECT pci, type, SUM(vmcount) FROM (SELECT MAX(IF(offering.name = 'pciDevice',value,'')) AS pci, MAX(IF(offering.name = 'vgpuType', value,'')) " +
+            "SELECT pci, type, SUM(vmcount) FROM (SELECT MAX(IF(offering.name = 'pciDevice', value, '')) AS pci, MAX(IF(offering.name = 'vgpuType', value, '')) " +
             "AS type, COUNT(DISTINCT vm.id) AS vmcount FROM service_offering_details offering INNER JOIN vm_instance vm ON offering.service_offering_id = vm.service_offering_id " +
             "INNER JOIN `cloud`.`host` ON vm.host_id = host.id WHERE vm.state = 'Running' AND host.data_center_id = ? ";
     private static final String COUNT_VMS_BASED_ON_VGPU_TYPES2 =
@@ -654,18 +653,16 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         PreparedStatement pstmt = null;
         List<Long> result = new ArrayList<Long>();
         try {
-            String sql = ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT;
+            StringBuilder sql = new StringBuilder(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT);
             if (podId != null) {
-                sql = sql + " AND host.pod_id = ? ";
+                sql.append(" AND host.pod_id = ? ");
             }
-
             if (clusterId != null) {
-                sql = sql + " AND host.cluster_id = ? ";
+                sql.append(" AND host.cluster_id = ? ");
             }
+            sql.append(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2);
 
-            sql = sql + ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2;
-
-            pstmt = txn.prepareAutoCloseStatement(sql);
+            pstmt = txn.prepareAutoCloseStatement(sql.toString());
             pstmt.setLong(1, accountId);
             pstmt.setLong(2, dcId);
             if (podId != null) {
@@ -689,20 +686,17 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
 
     @Override
     public HashMap<String, Long> countVgpuVMs(Long dcId, Long podId, Long clusterId) {
-        StringBuilder finalQuery = new StringBuilder();
         TransactionLegacy txn = TransactionLegacy.currentTxn();
         PreparedStatement pstmt = null;
         List<Long> resourceIdList = new ArrayList<Long>();
         HashMap<String, Long> result = new HashMap<String, Long>();
 
         resourceIdList.add(dcId);
-        finalQuery.append(COUNT_VMS_BASED_ON_VGPU_TYPES1);
-
+        StringBuilder finalQuery = new StringBuilder(COUNT_VMS_BASED_ON_VGPU_TYPES1);
         if (podId != null) {
             finalQuery.append("AND host.pod_id = ? ");
             resourceIdList.add(podId);
         }
-
         if (clusterId != null) {
             finalQuery.append("AND host.cluster_id = ? ");
             resourceIdList.add(clusterId);
