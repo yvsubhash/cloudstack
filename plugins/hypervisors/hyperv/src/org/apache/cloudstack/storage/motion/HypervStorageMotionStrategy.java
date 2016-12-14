@@ -18,6 +18,7 @@
  */
 package org.apache.cloudstack.storage.motion;
 
+import com.cloud.exception.OperationCancelledException;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.MigrateWithStorageAnswer;
@@ -160,7 +161,7 @@ public class HypervStorageMotionStrategy implements DataMotionStrategy {
                 updateVolumePathsAfterMigration(volumeToPool, answer.getVolumeTos());
             }
             return answer;
-        } catch (OperationTimedoutException e) {
+        } catch (OperationTimedoutException | OperationCancelledException e) {
             s_logger.error("Error while migrating vm " + vm + " to host " + destHost, e);
             throw new AgentUnavailableException("Operation timed out on storage motion for " + vm, destHost.getId());
         }

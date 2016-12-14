@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.exception.OperationCancelledException;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.affinity.AffinityGroupService;
@@ -650,6 +651,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                 s_logger.warn("Timed Out", e);
             } catch (AgentUnavailableException e) {
                 s_logger.warn("Agent Unavailable ", e);
+            } catch (OperationCancelledException e) {
+                s_logger.warn("Operation Cancelled ", e);
             } finally {
                 if (decrementCount) {
                     VmAndCountDetails vmAndCount = vmIdCountMap.get(nicId);
@@ -2095,6 +2098,9 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             return false;
         } catch (OperationTimedoutException e) {
             s_logger.warn("Operation time out on expunging " + vm, e);
+            return false;
+        } catch (OperationCancelledException e) {
+            s_logger.warn("Operation cancelled on expunging " + vm, e);
             return false;
         } catch (ConcurrentOperationException e) {
             s_logger.warn("Concurrent operations on expunging " + vm, e);
@@ -3824,6 +3830,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         } catch (AgentUnavailableException e) {
             s_logger.warn("Agent Unavailable ", e);
             return false;
+        } catch (OperationCancelledException e) {
+            s_logger.warn("Operation Cancelled ", e);
         }
 
         boolean result = true;
