@@ -596,6 +596,7 @@ setup_common() {
   if [ -n "$ETH3_IP" ]
   then
     setup_interface "3" $ETH3_IP $ETH3_MASK $GW
+    sed -i '/-A INPUT -i eth2 -m state --state RELATED,ESTABLISHED -j ACCEPT/a -A INPUT -i eth3 -m state --state RELATED,ESTABLISHED -j ACCEPT' /etc/iptables/iptables-router
   fi
    
   echo $NAME > /etc/hostname
