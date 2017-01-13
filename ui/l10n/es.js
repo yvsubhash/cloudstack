@@ -60,6 +60,7 @@ var dictionary = {
     "label.IKE.hash": "Hash IKE",
     "label.IKE.lifetime": "Tiempo de vida IKE (segundos)",
     "label.IKE.policy": "Política IKE",
+    "label.IKE.version": "Version IKE",
     "label.IPsec.preshared.key": "Clave precompartida IPsec",
     "label.LB.isolation": "Aislamiento de LB",
     "label.LUN.number": "LUN #",

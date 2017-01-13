@@ -23,6 +23,9 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.cloudstack.api.ApiConstants;
+import org.apache.cloudstack.resourcedetail.Site2SiteCustomerGatewayDetailVO;
+import org.apache.cloudstack.resourcedetail.dao.Site2SiteCustomerGatewayDetailsDao;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -86,6 +89,8 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
     List<Site2SiteVpnServiceProvider> _s2sProviders;
     @Inject
     Site2SiteCustomerGatewayDao _customerGatewayDao;
+    @Inject
+    Site2SiteCustomerGatewayDetailsDao _customerGatewayDetailDao;
     @Inject
     Site2SiteVpnGatewayDao _vpnGatewayDao;
     @Inject
@@ -196,6 +201,15 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
         if (!NetUtils.isValidS2SVpnPolicy("esp", espPolicy)) {
             throw new InvalidParameterValueException("The customer gateway ESP policy " + espPolicy + " is invalid!");
         }
+
+        Integer ikeVersion = cmd.getIkeVersion();
+
+        if(ikeVersion == null) {
+            ikeVersion = 2;
+        } else {
+            ValidateIKEVersion(ikeVersion);
+        }
+
         Long ikeLifetime = cmd.getIkeLifetime();
         if (ikeLifetime == null) {
             // Default value of lifetime is 1 day
@@ -236,7 +250,16 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
         Site2SiteCustomerGatewayVO gw =
             new Site2SiteCustomerGatewayVO(name, accountId, owner.getDomainId(), gatewayIp, peerCidrList, ipsecPsk, ikePolicy, espPolicy, ikeLifetime, espLifetime, dpd, encap);
         _customerGatewayDao.persist(gw);
+
+        Site2SiteCustomerGatewayDetailVO gwDetail = new Site2SiteCustomerGatewayDetailVO(gw.getId(), ApiConstants.IKE_VERSION, ikeVersion.toString(), true);
+        _customerGatewayDetailDao.persist(gwDetail);
         return gw;
+    }
+
+    private void ValidateIKEVersion(Integer ikeVersion) {
+        if (ikeVersion < 1 || ikeVersion >2 ) {
+            throw new InvalidParameterValueException("The customer gateway IKE Version " + ikeVersion + " is invalid");
+        }
     }
 
     @Override
@@ -254,6 +277,7 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
             throw new InvalidParameterValueException("Unable to found specified Site to Site VPN customer gateway " + customerGatewayId + " !");
         }
         _accountMgr.checkAccess(caller, null, false, customerGateway);
+
 
         Long vpnGatewayId = cmd.getVpnGatewayId();
         Site2SiteVpnGateway vpnGateway = _vpnGatewayDao.findById(vpnGatewayId);
@@ -424,8 +448,8 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
         List<Site2SiteVpnConnectionVO> conns = _vpnConnectionDao.listByCustomerGatewayId(id);
         if (conns != null) {
             for (Site2SiteVpnConnection conn : conns) {
-                if (conn.getState() != State.Error) {
-                    throw new InvalidParameterValueException("Unable to update customer gateway with connections in non-Error state!");
+                if (conn.getState() != State.Error && conn.getState() != State.Disconnected) {
+                    throw new InvalidParameterValueException("Unable to update customer gateway with connections not in Error or Disconnected states!");
                 }
             }
         }
@@ -467,6 +491,13 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
             throw new InvalidParameterValueException("The ESP lifetime " + espLifetime + " of vpn connection is invalid!");
         }
 
+        Integer ikeVersion = cmd.getIkeVersion();
+        if(ikeVersion == null) {
+            ikeVersion = 2;
+        } else {
+            ValidateIKEVersion(ikeVersion);
+        }
+
         Boolean dpd = cmd.getDpd();
         if (dpd == null) {
             dpd = false;
@@ -500,6 +531,7 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
         gw.setDpd(dpd);
         gw.setEncap(encap);
         _customerGatewayDao.persist(gw);
+        _customerGatewayDetailDao.addDetail(gw.getId(),ApiConstants.IKE_VERSION, ikeVersion.toString(), true);
         return gw;
     }
 
@@ -617,6 +649,9 @@ public class Site2SiteVpnManagerImpl extends ManagerBase implements Site2SiteVpn
         }
 
         Pair<List<Site2SiteCustomerGatewayVO>, Integer> result = _customerGatewayDao.searchAndCount(sc, searchFilter);
+        for(Site2SiteCustomerGatewayVO vo:result.first()) {
+            _customerGatewayDao.loadDetails(vo);
+        }
         return new Pair<List<? extends Site2SiteCustomerGateway>, Integer>(result.first(), result.second());
     }
 
