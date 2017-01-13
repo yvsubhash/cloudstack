@@ -5652,6 +5652,23 @@
                                             required: true
                                         }
                                     },
+                                    ikeversion: {
+                                        label: 'label.IKE.version',
+                                        select: function(args) {
+                                            var items = [];
+                                            items.push({
+                                                id: 2,
+                                                description: 'ike2'
+                                            });
+                                            items.push({
+                                                id: 1,
+                                                description: 'ike1'
+                                            });
+                                            args.response.success({
+                                                data: items
+                                            });
+                                        }
+                                    },
 
                                     //IKE Policy
                                     ikeEncryption: {
@@ -5896,6 +5913,7 @@
                                     cidrlist: args.data.cidrlist,
                                     ipsecpsk: args.data.ipsecpsk,
                                     ikelifetime: args.data.ikelifetime,
+                                    ikeversion: args.data.ikeversion,
                                     esplifetime: args.data.esplifetime,
                                     dpd: (args.data.dpd == "on"),
                                     forceencap: (args.data.forceencap == "on")
@@ -5956,6 +5974,8 @@
                                         esplifetime: args.data.esplifetime,
                                         dpd: (args.data.dpd == "on"),
                                         forceencap: (args.data.forceencap == "on")
+                                        ikeversion: args.data.ikeversion,
+                                        dpd: (args.data.dpd == "on")
                                     };
 
                                     var ikepolicy = args.data.ikeEncryption + '-' + args.data.ikeHash;
@@ -6064,6 +6084,25 @@
                                         isEditable: true,
                                         validation: {
                                             required: true
+                                        }
+                                    },
+
+                                    ikeversion: {
+                                        label: 'label.IKE.version',
+                                        isEditable: true,
+                                        select: function(args) {
+                                            var items = [];
+                                            items.push({
+                                                id: 2,
+                                                description: 'ike2'
+                                            });
+                                            items.push({
+                                                id: 1,
+                                                description: 'ike1'
+                                            });
+                                            args.response.success({
+                                                data: items
+                                            });
                                         }
                                     },
 
@@ -6279,6 +6318,7 @@
                                             args.response.success({
                                                 data: item
                                             });
+
                                         }
                                     });
                                 }

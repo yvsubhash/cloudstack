@@ -23,7 +23,7 @@ vpnoutmark="0x525"
 vpninmark="0x524"
 
 usage() {
-    printf "Usage: %s: (-A|-D) -l <left-side vpn peer> -n <left-side guest cidr> -g <left-side next hop> -r <right-side vpn peer> -N <right-side private subnets> -e <esp policy> -i <ike policy> -t <ike lifetime> -T <esp lifetime> -s <pre-shared secret> -d <dpd 0 or 1> [ -p <passive or not> -c <check if up on creation> -S <disable vpn ports iptables> ]\n" $(basename $0) >&2
+    printf "Usage: %s: (-A|-D) -l <left-side vpn peer> -n <left-side guest cidr> -g <left-side next hop> -r <right-side vpn peer> -N <right-side private subnets> -e <esp policy> -i <ike policy> -v <ike version 1 or 2> -t <ike lifetime> -T <esp lifetime> -s <pre-shared secret> -d <dpd 0 or 1> [ -p <passive or not> -c <check if up on creation> -S <disable vpn ports iptables> ]\n" $(basename $0) >&2
 }
 
 #set -x
@@ -133,7 +133,7 @@ ipsec_tunnel_add() {
 
   logger -t cloud "$(basename $0): creating configuration for ipsec tunnel: left peer=$leftpeer \
     left net=$leftnet left gateway=$leftnexthop right peer=$rightpeer right network=$rightnets phase1 policy=$ikepolicy \
-    phase2 policy=$esppolicy secret=$secret"
+    phase2 policy=$esppolicy secret=$secret ikeversion=$ikeversion"
 
   [ "$op" == "-A" ] && ipsec_tunnel_del
 
@@ -147,7 +147,13 @@ ipsec_tunnel_add() {
     sudo echo "  rightsubnets={$rightnets}" >> $vpnconffile &&
     sudo echo "  type=tunnel" >> $vpnconffile &&
     sudo echo "  authby=secret" >> $vpnconffile &&
-    sudo echo "  keyexchange=ike" >> $vpnconffile &&
+    if [ $vflag == 1 ] && [ $ikeversion == 1 ]
+    then
+        sudo echo "  keyexchange=ikev1" >> $vpnconffile
+    else
+        sudo echo "  keyexchange=ike" >> $vpnconffile
+    fi
+
     sudo echo "  ike=$ikepolicy" >> $vpnconffile &&
     sudo echo "  ikelifetime=${ikelifetime}s" >> $vpnconffile &&
     sudo echo "  esp=$esppolicy" >> $vpnconffile &&
@@ -213,12 +219,13 @@ lflag=
 iflag=
 Iflag=
 sflag=
+vflag=
 passive=0
 op=""
 checkup=0
 secure=1
 
-while getopts 'ADSpcl:n:g:r:N:e:i:t:T:s:d:' OPTION
+while getopts 'ADSpcl:n:g:r:N:e:i:v:t:T:s:d:' OPTION
 do
   case $OPTION in
   A)    opflag=1
@@ -247,6 +254,9 @@ do
         ;;
   i)    iflag=1
         ikepolicy="$OPTARG"
+        ;;
+  v)    vflag=1
+        ikeversion="$OPTARG"
         ;;
   t)    tflag=1
         ikelifetime="$OPTARG"
