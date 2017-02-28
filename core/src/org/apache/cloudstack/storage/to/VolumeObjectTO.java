@@ -51,6 +51,7 @@ public class VolumeObjectTO implements DataTO {
     private Long iopsWriteRate;
     private DiskCacheMode cacheMode;
     private Hypervisor.HypervisorType hypervisorType;
+    private String storagePolicy;
 
     public VolumeObjectTO() {
 
@@ -81,6 +82,7 @@ public class VolumeObjectTO implements DataTO {
         cacheMode = volume.getCacheMode();
         hypervisorType = volume.getHypervisorType();
         setDeviceId(volume.getDeviceId());
+        setStoragePolicy(volume.getStoragePolicy());
     }
 
     public String getUuid() {
@@ -251,5 +253,13 @@ public class VolumeObjectTO implements DataTO {
 
     public DiskCacheMode getCacheMode() {
         return cacheMode;
+    }
+
+    public String getStoragePolicy() {
+        return storagePolicy;
+    }
+
+    public void setStoragePolicy(String storagePolicy) {
+        this.storagePolicy = storagePolicy;
     }
 }

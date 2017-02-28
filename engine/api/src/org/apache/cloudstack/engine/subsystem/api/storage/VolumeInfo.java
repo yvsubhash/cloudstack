@@ -53,4 +53,6 @@ public interface VolumeInfo extends DataObject, Volume {
     Long getIopsWriteRate();
 
     DiskCacheMode getCacheMode();
+
+    String getStoragePolicy();
 }

@@ -284,6 +284,11 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
             parameters.setHost("VMFS datastore: " + hostPath);
             parameters.setPort(0);
             parameters.setPath(hostPath);
+        } else if (scheme.equalsIgnoreCase("vsan")) {
+            parameters.setType(StoragePoolType.VSAN);
+            parameters.setHost("vsan:" + hostPath);
+            parameters.setPort(0);
+            parameters.setPath(hostPath);
         } else if (scheme.equalsIgnoreCase("ocfs2")) {
             port = 7777;
             parameters.setType(StoragePoolType.OCFS2);
@@ -360,7 +365,7 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
                 pool.getPoolType() != StoragePoolType.IscsiLUN && pool.getPoolType() != StoragePoolType.Iscsi && pool.getPoolType() != StoragePoolType.VMFS &&
                 pool.getPoolType() != StoragePoolType.SharedMountPoint && pool.getPoolType() != StoragePoolType.PreSetup && pool.getPoolType() != StoragePoolType.OCFS2 &&
                 pool.getPoolType() != StoragePoolType.RBD && pool.getPoolType() != StoragePoolType.CLVM && pool.getPoolType() != StoragePoolType.SMB &&
-                pool.getPoolType() != StoragePoolType.Gluster) {
+                pool.getPoolType() != StoragePoolType.Gluster && pool.getPoolType() != StoragePoolType.VSAN) {
             s_logger.warn(" Doesn't support storage pool type " + pool.getPoolType());
             return false;
         }

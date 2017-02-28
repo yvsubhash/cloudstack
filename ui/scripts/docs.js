@@ -830,6 +830,11 @@ cloudStack.docs = {
         desc: 'Number of guest networks/accounts that will share this device',
         externalLink: ''
     },
+
+    helpStoragePolicy: {
+        desc: 'Storage Policy to associate with Volume',
+        externalLink: ''
+    },
     // Add Palo Alto
     helpPaloAltoIPAddress: {
         desc: 'The IP address of the device',

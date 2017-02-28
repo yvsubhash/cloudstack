@@ -23,17 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
 import org.apache.commons.collections.CollectionUtils;
-
-import com.cloud.agent.api.VgpuTypesInfo;
-import com.cloud.gpu.GPU;
-import com.cloud.hypervisor.vmware.util.VmwareContext;
-import com.cloud.hypervisor.vmware.util.VmwareHelper;
-import com.cloud.utils.Pair;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
-
 import com.vmware.vim25.AboutInfo;
 import com.vmware.vim25.AlreadyExistsFaultMsg;
 import com.vmware.vim25.ClusterDasConfigInfo;
@@ -41,6 +34,7 @@ import com.vmware.vim25.ComputeResourceSummary;
 import com.vmware.vim25.ConfigTarget;
 import com.vmware.vim25.CustomFieldStringValue;
 import com.vmware.vim25.DatastoreSummary;
+import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.Description;
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.HostConfigManager;
@@ -81,6 +75,13 @@ import com.vmware.vim25.VirtualNicManagerNetConfig;
 import com.vmware.vim25.VirtualPCIPassthrough;
 import com.vmware.vim25.VirtualPCIPassthroughDeviceBackingInfo;
 import com.vmware.vim25.VirtualPCIPassthroughVmiopBackingInfo;
+
+import com.cloud.agent.api.VgpuTypesInfo;
+import com.cloud.gpu.GPU;
+import com.cloud.hypervisor.vmware.util.VmwareContext;
+import com.cloud.hypervisor.vmware.util.VmwareHelper;
+import com.cloud.storage.Storage.StoragePoolType;
+import com.cloud.utils.Pair;
 
 public class HostMO extends BaseMO implements VmwareHypervisorHost {
     private static final Logger s_logger = Logger.getLogger(HostMO.class);
@@ -881,27 +882,28 @@ public class HostMO extends BaseMO implements VmwareHypervisorHost {
     }
 
     @Override
-    public ManagedObjectReference mountDatastore(boolean vmfsDatastore, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception {
+    public ManagedObjectReference mountDatastore(StoragePoolType poolType, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception {
 
         if (s_logger.isTraceEnabled())
-            s_logger.trace("vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", vmfs: " + vmfsDatastore + ", poolHost: " + poolHostAddress +
+            s_logger.trace("vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", vmfs: " + poolType + ", poolHost: " + poolHostAddress +
                     ", poolHostPort: " + poolHostPort + ", poolPath: " + poolPath + ", poolUuid: " + poolUuid);
 
         HostDatastoreSystemMO hostDatastoreSystemMo = getHostDatastoreSystemMO();
         ManagedObjectReference morDatastore = hostDatastoreSystemMo.findDatastore(poolUuid);
         if (morDatastore == null) {
-            if (!vmfsDatastore) {
+            if (StoragePoolType.VMFS != poolType && StoragePoolType.VSAN != poolType) {
                 try {
                     morDatastore = hostDatastoreSystemMo.createNfsDatastore(poolHostAddress, poolHostPort, poolPath, poolUuid);
                 } catch (AlreadyExistsFaultMsg e) {
                     s_logger.info("Creation of NFS datastore on vCenter failed since datastore already exists." +
-                            " Details: vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", vmfs: " + vmfsDatastore + ", poolHost: " + poolHostAddress +
+                            " Details: vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", poolType: " + poolType + ", poolHost: " + poolHostAddress +
                             ", poolHostPort: " + poolHostPort + ", poolPath: " + poolPath + ", poolUuid: " + poolUuid);
                     // Retrieve the morDatastore and return it.
-                    return (getExistingDataStoreOnHost(vmfsDatastore, poolHostAddress, poolHostPort, poolPath, poolUuid, hostDatastoreSystemMo));
+                    return (getExistingDataStoreOnHost((StoragePoolType.VMFS != poolType && StoragePoolType.VSAN != poolType), poolHostAddress, poolHostPort, poolPath, poolUuid,
+                            hostDatastoreSystemMo));
                 } catch (Exception e) {
                     s_logger.info("Creation of NFS datastore on vCenter failed. " + " Details: vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() +
-                            ", vmfs: " + vmfsDatastore + ", poolHost: " + poolHostAddress + ", poolHostPort: " + poolHostPort + ", poolPath: " + poolPath + ", poolUuid: " +
+                            ", vmfs: " + poolType + ", poolHost: " + poolHostAddress + ", poolHostPort: " + poolHostPort + ", poolPath: " + poolPath + ", poolUuid: " +
                             poolUuid + ". Exception mesg: " + e.getMessage());
                     throw new Exception("Creation of NFS datastore on vCenter failed.");
                 }
@@ -916,7 +918,8 @@ public class HostMO extends BaseMO implements VmwareHypervisorHost {
             } else {
                 morDatastore = _context.getDatastoreMorByPath(poolPath);
                 if (morDatastore == null) {
-                    String msg = "Unable to create VMFS datastore. host: " + poolHostAddress + ", port: " + poolHostPort + ", path: " + poolPath + ", uuid: " + poolUuid;
+                    String msg = "Unable to create " + poolType + " datastore. host: " + poolHostAddress + ", port: " + poolHostPort + ", path: " + poolPath + ", uuid: "
+                            + poolUuid;
                     s_logger.error(msg);
 
                     if (s_logger.isTraceEnabled())
@@ -924,13 +927,45 @@ public class HostMO extends BaseMO implements VmwareHypervisorHost {
                     throw new Exception(msg);
                 }
 
+                // Ensure correct type of primary storage pool type specified while adding primary storage
                 DatastoreMO dsMo = new DatastoreMO(_context, morDatastore);
+                if ((poolType == StoragePoolType.VMFS && !dsMo.getType().equalsIgnoreCase("VMFS")) ||
+                        (poolType == StoragePoolType.VSAN && !dsMo.getType().equalsIgnoreCase("VSAN"))) {
+                    String msg = "Datastore type/protocol mis-match detected. Datastore with name : [" + dsMo.getName() +
+                            "] is of type : [" + dsMo.getType() + "]. But protocol type specified for this datastore is : [" +
+                            poolType + "]. Failing the operation of add primary storage.";
+                    s_logger.error(msg);
+                    if (s_logger.isTraceEnabled()) {
+                        s_logger.trace("vCenter API trace - mountDatastore() failed, because of incorrect protocol type specified.");
+                    }
+                    throw new Exception(msg);
+                }
+
+                // Ensure datastore exists in "normal" state while adding primary storage
+                String datastoreState = dsMo.getSummary().getMaintenanceMode();
+                if (!datastoreState.equalsIgnoreCase(DatastoreSummaryMaintenanceModeState.NORMAL.toString())) {
+                    String msg = "Datastore is in unexpected maintenance state : [" + datastoreState + "]. Failing the operation of add primary storage. " +
+                            "Ensure the datastore being added, as primary storage, is in maintenancestate : [" +
+                            DatastoreSummaryMaintenanceModeState.NORMAL + "]";
+                    s_logger.error(msg);
+                    if (s_logger.isTraceEnabled()) {
+                        s_logger.trace("vCenter API trace - mountDatastore() failed, because datastore is incorrect maintenance state");
+                    }
+                    throw new Exception(msg);
+                }
+
                 dsMo.setCustomFieldValue(CustomFieldConstants.CLOUD_UUID, poolUuid);
+
+                // Initial setup for VSAN datastore
+                if (StoragePoolType.VSAN == poolType) {
+                    HypervisorHostHelper.initVsanDatastore(dsMo, this);
+                }
             }
         }
 
-        if (s_logger.isTraceEnabled())
-            s_logger.trace("vCenter API trace - mountDatastore() done(successfully)");
+        if (s_logger.isTraceEnabled()) {
+            s_logger.trace("vCenter API trace - mountDatastore() done(successfully).");
+        }
 
         return morDatastore;
     }
@@ -1399,35 +1434,35 @@ public class HostMO extends BaseMO implements VmwareHypervisorHost {
                     // The remaining capacity of one type affects other vGPU type capacity.
                     // Each GPU should always contain one type of vGPU VMs.
                     if ((groupName.equals("NVIDIAGRID K1") && vgpuType.equals("grid_k100")) || (groupName.equals("NVIDIAGRID K2") && vgpuType.equals("grid_k200"))) {
-                        remainingCapacities[0] -= ((long)graphicInfo.getVm().size());
+                        remainingCapacities[0] -= (graphicInfo.getVm().size());
                         remainingCapacities[1] -= 8l;
                         remainingCapacities[2] -= 4l;
                         remainingCapacities[3] -= 2l;
                         remainingCapacities[4] -= 1l;
                     } else if ((groupName.equals("NVIDIAGRID K1") && vgpuType.equals("grid_k120q")) || (groupName.equals("NVIDIAGRID K2") && vgpuType.equals("grid_k220q"))) {
                         remainingCapacities[0] -= 8l;
-                        remainingCapacities[1] -= ((long) graphicInfo.getVm().size());
+                        remainingCapacities[1] -= (graphicInfo.getVm().size());
                         remainingCapacities[2] -= 4l;
                         remainingCapacities[3] -= 2l;
                         remainingCapacities[4] -= 1l;
                     } else if ((groupName.equals("NVIDIAGRID K1") && vgpuType.equals("grid_k140q")) || (groupName.equals("NVIDIAGRID K2") && vgpuType.equals("grid_k240q"))) {
                         remainingCapacities[0] -= 8l;
                         remainingCapacities[1] -= 8l;
-                        remainingCapacities[2] -= ((long) graphicInfo.getVm().size());
+                        remainingCapacities[2] -= (graphicInfo.getVm().size());
                         remainingCapacities[3] -= 2l;
                         remainingCapacities[4] -= 1l;
                     } else if ((groupName.equals("NVIDIAGRID K1") && vgpuType.equals("grid_k160q")) || (groupName.equals("NVIDIAGRID K2") && vgpuType.equals("grid_k260q"))) {
                         remainingCapacities[0] -= 8l;
                         remainingCapacities[1] -= 8l;
                         remainingCapacities[2] -= 4l;
-                        remainingCapacities[3] -= ((long)graphicInfo.getVm().size());
+                        remainingCapacities[3] -= (graphicInfo.getVm().size());
                         remainingCapacities[4] -= 1l;
                     } else if ((groupName.equals("NVIDIAGRID K1") && vgpuType.equals("grid_k180q")) || (groupName.equals("NVIDIAGRID K2") && vgpuType.equals("grid_k280q"))) {
                         remainingCapacities[0] -= 8l;
                         remainingCapacities[1] -= 8l;
                         remainingCapacities[2] -= 4l;
                         remainingCapacities[3] -= 2l;
-                        remainingCapacities[4] -= ((long)graphicInfo.getVm().size());
+                        remainingCapacities[4] -= (graphicInfo.getVm().size());
                     }
                 }
             }

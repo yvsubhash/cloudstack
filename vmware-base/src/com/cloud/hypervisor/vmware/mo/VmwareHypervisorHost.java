@@ -23,6 +23,7 @@ import com.vmware.vim25.ObjectContent;
 import com.vmware.vim25.VirtualMachineConfigSpec;
 
 import com.cloud.hypervisor.vmware.util.VmwareContext;
+import com.cloud.storage.Storage.StoragePoolType;
 import com.cloud.utils.Pair;
 
 /**
@@ -67,7 +68,7 @@ public interface VmwareHypervisorHost {
 
     ObjectContent[] getDatastorePropertiesOnHyperHost(String[] propertyPaths) throws Exception;
 
-    ManagedObjectReference mountDatastore(boolean vmfsDatastore, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception;
+    ManagedObjectReference mountDatastore(StoragePoolType poolType, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception;
 
     void unmountDatastore(String poolUuid) throws Exception;
 

@@ -42,6 +42,7 @@ public class DiskProfile {
     private Long iopsReadRate;
     private Long iopsWriteRate;
     private String cacheMode;
+    private String storagePolicy;
 
     private HypervisorType hyperType;
 
@@ -72,6 +73,11 @@ public class DiskProfile {
             offering.isCustomized(),
             null);
         this.hyperType = hyperType;
+    }
+
+    public DiskProfile(Volume vol, DiskOffering offering, HypervisorType hyperType, String storagePolicy) {
+        this(vol, offering, hyperType);
+        this.storagePolicy = storagePolicy;
     }
 
     public DiskProfile(DiskProfile dp) {
@@ -156,7 +162,7 @@ public class DiskProfile {
     }
 
     public HypervisorType getHypervisorType() {
-        return this.hyperType;
+        return hyperType;
     }
 
     public void setPath(String path) {
@@ -164,7 +170,7 @@ public class DiskProfile {
     }
 
     public String getPath() {
-        return this.path;
+        return path;
     }
 
     public void setProvisioningType(ProvisioningType provisioningType){
@@ -172,7 +178,7 @@ public class DiskProfile {
     }
 
     public ProvisioningType getProvisioningType(){
-        return this.provisioningType;
+        return provisioningType;
     }
 
     public void setSize(long size) {
@@ -217,5 +223,13 @@ public class DiskProfile {
 
     public String getCacheMode() {
         return cacheMode;
+    }
+
+    public String getStoragePolicy() {
+        return storagePolicy;
+    }
+
+    public void setStoragePolicy(String storagePolicy) {
+        this.storagePolicy = storagePolicy;
     }
 }

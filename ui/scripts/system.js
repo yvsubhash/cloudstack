@@ -17489,8 +17489,11 @@
                                             args.$select.change(function () {
                                                 var $form = $(this).closest('form');
                                                 var scope = $(this).val();
-
+                                                if ($form.find('.form-item[rel=protocol]  option[value=vsan]').length == 0) {
+						     $form.find('.form-item[rel=protocol]').find('select[name="protocol"]').append("<option value='vsan'>vsan</option>");
+						 }
                                                 if (scope == 'zone') {
+						     $form.find('.form-item[rel=protocol]  option[value=vsan]').remove();
                                                     $form.find('.form-item[rel=podId]').hide();
                                                     $form.find('.form-item[rel=clusterId]').hide();
                                                     $form.find('.form-item[rel=hostId]').hide();
@@ -17741,6 +17744,10 @@
                                                 items.push({
                                                     id: "vmfs",
                                                     description: "vmfs"
+                                                });
+                                                items.push({
+                                                    id: "vsan",
+                                                    description: "vsan"
                                                 });
                                                 items.push({
                                                     id: "custom",
@@ -18015,6 +18022,32 @@
                                                     $form.find('.form-item[rel=rbdsecret]').hide();
 
                                                     $form.find('.form-item[rel=glustervolume]').hide();
+
+                                                } else if (protocol == "vsan") {
+                                                    $form.find('.form-item[rel=server]').css('display', 'inline-block');
+                                                    $form.find('.form-item[rel=server]').find(".value").find("input").val("");
+
+                                                    $form.find('.form-item[rel=path]').hide();
+
+                                                    $form.find('.form-item[rel=smbUsername]').hide();
+                                                    $form.find('.form-item[rel=smbPassword]').hide();
+                                                    $form.find('.form-item[rel=smbDomain]').hide();
+
+                                                    $form.find('.form-item[rel=iqn]').hide();
+                                                    $form.find('.form-item[rel=lun]').hide();
+
+                                                    $form.find('.form-item[rel=volumegroup]').hide();
+
+                                                    $form.find('.form-item[rel=vCenterDataCenter]').css('display', 'inline-block');
+                                                    $form.find('.form-item[rel=vCenterDataStore]').css('display', 'inline-block');
+
+                                                    $form.find('.form-item[rel=rbdmonitor]').hide();
+                                                    $form.find('.form-item[rel=rbdpool]').hide();
+                                                    $form.find('.form-item[rel=rbdid]').hide();
+                                                    $form.find('.form-item[rel=rbdsecret]').hide();
+
+                                                    $form.find('.form-item[rel=glustervolume]').hide();
+
                                                 } else if (protocol == "SharedMountPoint") {
                                                     //"SharedMountPoint" show the same fields as "nfs" does.
                                                     $form.find('.form-item[rel=server]').hide();
@@ -18284,7 +18317,23 @@
                                         isHidden: true
                                     },
 
-                                    // RBD
+                                    //vsan
+                                    vCenterDataCenter: {
+                                        label: 'label.vcenter.datacenter',
+                                        validation: {
+                                            required: true
+                                        },
+                                        isHidden: true
+                                    },
+                                    vCenterDataStore: {
+                                        label: 'label.vcenter.datastore',
+                                        validation: {
+                                            required: true
+                                        },
+                                        isHidden: true
+                                    },
+
+				    // RBD
                                     rbdmonitor: {
                                         label: 'label.rbd.monitor',
                                         docID: 'helpPrimaryStorageRBDMonitor',
@@ -18448,6 +18497,12 @@
                                             path = "/" + path;
                                         path += "/" + args.data.vCenterDataStore;
                                         url = vmfsURL("dummy", path);
+                                    } else if (args.data.protocol == "vsan") {
+                                        var path = args.data.vCenterDataCenter;
+                                        if (path.substring(0, 1) != "/")
+                                            path = "/" + path;
+                                        path += "/" + args.data.vCenterDataStore;
+                                        url = vsanURL("dummy", path);
                                     } else if (args.data.protocol == "gluster") {
                                         var glustervolume = args.data.glustervolume;
 

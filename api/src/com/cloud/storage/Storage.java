@@ -16,10 +16,10 @@
 // under the License.
 package com.cloud.storage;
 
-import org.apache.commons.lang.NotImplementedException;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.lang.NotImplementedException;
 
 public class Storage {
     public static enum ImageFormat {
@@ -86,8 +86,9 @@ public class Storage {
             this.provisionType = provisionType;
         }
 
+        @Override
         public String toString(){
-            return this.provisionType;
+            return provisionType;
         }
 
         public static ProvisioningType getProvisioningType(String provisioningType){
@@ -127,6 +128,7 @@ public class Storage {
         RBD(true), // http://libvirt.org/storage.html#StorageBackendRBD
         SharedMountPoint(true),
         VMFS(true), // VMware VMFS storage
+        VSAN(true), // VMware VSAN
         PreSetup(true), // for XenServer, Storage Pool is set up by customers.
         EXT(false), // XenServer local EXT SR
         OCFS2(true),
@@ -145,7 +147,7 @@ public class Storage {
         }
 
         public boolean supportsOverProvisioning() {
-            return this == StoragePoolType.NetworkFilesystem || this == StoragePoolType.VMFS || this == StoragePoolType.PreSetup;
+            return this == StoragePoolType.NetworkFilesystem || this == StoragePoolType.VSAN || this == StoragePoolType.VMFS || this == StoragePoolType.PreSetup;
         }
     }
 

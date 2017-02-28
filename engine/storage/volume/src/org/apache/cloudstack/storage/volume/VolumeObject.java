@@ -20,12 +20,14 @@ import java.util.Date;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.engine.subsystem.api.storage.DataObjectInStore;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
+import org.apache.cloudstack.resourcedetail.dao.DiskOfferingDetailsDao;
 import org.apache.cloudstack.storage.command.CopyCmdAnswer;
 import org.apache.cloudstack.storage.command.CreateObjectAnswer;
 import org.apache.cloudstack.storage.datastore.ObjectInDataStoreManager;
@@ -39,6 +41,8 @@ import com.cloud.agent.api.to.DataObjectType;
 import com.cloud.agent.api.to.DataTO;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.offering.DiskOffering.DiskCacheMode;
+import com.cloud.offering.OfferingDetailConstants;
+import com.cloud.service.dao.ServiceOfferingDetailsDao;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.DiskOfferingVO;
 import com.cloud.storage.Storage.ImageFormat;
@@ -59,7 +63,7 @@ import com.cloud.vm.dao.VMInstanceDao;
 public class VolumeObject implements VolumeInfo {
     private static final Logger s_logger = Logger.getLogger(VolumeObject.class);
     protected VolumeVO volumeVO;
-    private StateMachine2<Volume.State, Volume.Event, Volume> _volStateMachine;
+    private final StateMachine2<Volume.State, Volume.Event, Volume> _volStateMachine;
     protected DataStore dataStore;
     @Inject
     VolumeDao volumeDao;
@@ -71,7 +75,13 @@ public class VolumeObject implements VolumeInfo {
     VMInstanceDao vmInstanceDao;
     @Inject
     DiskOfferingDao diskOfferingDao;
+    @Inject
+    DiskOfferingDetailsDao diskOfferingDetailsDao;
+    @Inject
+    ServiceOfferingDetailsDao serviceOfferingDetailsDao;
+
     private Object payload;
+    private String storagePolicy;
 
     public VolumeObject() {
         _volStateMachine = Volume.State.getStateMachine();
@@ -667,7 +677,7 @@ public class VolumeObject implements VolumeInfo {
 
     @Override
     public ProvisioningType getProvisioningType(){
-        return this.volumeVO.getProvisioningType();
+        return volumeVO.getProvisioningType();
     }
 
     @Override
@@ -687,4 +697,23 @@ public class VolumeObject implements VolumeInfo {
     public Class<?> getEntityType() {
         return Volume.class;
     }
+
+    @Override
+    public String getStoragePolicy() {
+        if (StringUtils.isEmpty(storagePolicy)) {
+            if (Volume.Type.ROOT == getVolumeType()) {
+                Long vmId = volumeVO.getInstanceId();
+                if (vmId != null) {
+                    VMInstanceVO vm = vmInstanceDao.findByIdIncludingRemoved(vmId);
+                    storagePolicy = serviceOfferingDetailsDao.getDetail(vm.getServiceOfferingId(),
+                            OfferingDetailConstants.STORAGE_POLICY);
+                }
+            } else {
+                storagePolicy = diskOfferingDetailsDao.getDetail(volumeVO.getDiskOfferingId(),
+                    OfferingDetailConstants.STORAGE_POLICY);
+            }
+        }
+        return storagePolicy;
+    }
+
 }

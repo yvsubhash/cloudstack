@@ -17,5 +17,5 @@
 package com.cloud.storage.resource;
 
 public enum VmwareStorageLayoutType {
-    VMWARE, CLOUDSTACK_LEGACY
+    VMWARE, CLOUDSTACK_LEGACY, VSAN
 }

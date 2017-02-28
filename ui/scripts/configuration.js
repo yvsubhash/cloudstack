@@ -1900,6 +1900,10 @@
                                         isReverse: true,
                                         isChecked: false
                                     },
+                                    storagepolicy: {
+                                        label: 'label.storage.policy',
+                                        docID: 'helpStoragePolicy'
+                                    },
                                     disksize: {
                                         label: 'label.disk.size.gb',
                                         docID: 'helpDiskOfferingDiskSize',
@@ -2227,6 +2231,12 @@
                                 if (args.data.isPublic != "on") {
                                     $.extend(data, {
                                         domainid: args.data.domainId
+                                    });
+                                }
+
+                                if (args.data.storagepolicy != null && args.data.storagepolicy.length > 0) {
+                                    $.extend(data, {
+                                        storagepolicy: args.data.storagepolicy
                                     });
                                 }
 

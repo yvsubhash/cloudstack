@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 import com.cloud.hypervisor.vmware.mo.DatacenterMO;
 import com.cloud.hypervisor.vmware.mo.DatastoreFile;
 import com.cloud.hypervisor.vmware.mo.DatastoreMO;
+import com.cloud.hypervisor.vmware.util.VmwareHelper;
 import com.cloud.utils.Pair;
 
 /**
@@ -32,7 +33,6 @@ import com.cloud.utils.Pair;
  */
 public class VmwareStorageLayoutHelper {
     private static final Logger s_logger = Logger.getLogger(VmwareStorageLayoutHelper.class);
-
     public static String[] getVmdkFilePairDatastorePath(DatastoreMO dsMo, String vmName, String vmdkName, VmwareStorageLayoutType layoutType, boolean linkedVmdk)
         throws Exception {
 
@@ -113,7 +113,10 @@ public class VmwareStorageLayoutHelper {
         String[] vmdkLinkedCloneModePair = getVmdkFilePairDatastorePath(ds, vmName, vmdkName, VmwareStorageLayoutType.VMWARE, true);
         String[] vmdkFullCloneModePair = getVmdkFilePairDatastorePath(ds, vmName, vmdkName, VmwareStorageLayoutType.VMWARE, false);
 
-        if (!ds.fileExists(vmdkLinkedCloneModeLegacyPair[0]) && !ds.fileExists(vmdkLinkedCloneModePair[0])) {
+        String vmdkVsanLayoutPath = VmwareStorageLayoutHelper.getVsanCloudStackVolumesFolderPath(ds, vmdkName);
+
+        if (!ds.fileExists(vmdkLinkedCloneModeLegacyPair[0]) && !ds.fileExists(vmdkLinkedCloneModePair[0]) &&
+                !ds.fileExists(vmdkVsanLayoutPath)) {
             // To protect against inconsistency caused by non-atomic datastore file management, detached disk may
             // be left over in its previous owner VM. We will do a fixup synchronization here by moving it to root
             // again.
@@ -133,9 +136,13 @@ public class VmwareStorageLayoutHelper {
             ds.moveDatastoreFile(vmdkLinkedCloneModeLegacyPair[1], dcMo.getMor(), ds.getMor(), vmdkLinkedCloneModePair[1], dcMo.getMor(), true);
         }
 
-        if (ds.fileExists(vmdkLinkedCloneModeLegacyPair[0])) {
-            s_logger.info("sync " + vmdkLinkedCloneModeLegacyPair[0] + "->" + vmdkLinkedCloneModePair[0]);
-            ds.moveDatastoreFile(vmdkLinkedCloneModeLegacyPair[0], dcMo.getMor(), ds.getMor(), vmdkLinkedCloneModePair[0], dcMo.getMor(), true);
+        String vmdkSrcPath = vmdkLinkedCloneModeLegacyPair[0];
+        if (VmwareStorageLayoutHelper.isVsanDatastore(ds)) {
+            vmdkSrcPath = VmwareStorageLayoutHelper.getVsanCloudStackVolumesFolderPath(ds, vmdkName);
+        }
+        if (ds.fileExists(vmdkSrcPath)) {
+            s_logger.info("sync " + vmdkSrcPath + "->" + vmdkLinkedCloneModePair[0]);
+            ds.moveDatastoreFile(vmdkSrcPath, dcMo.getMor(), ds.getMor(), vmdkLinkedCloneModePair[0], dcMo.getMor(), true);
         }
 
         // Note: we will always return a path
@@ -175,6 +182,9 @@ public class VmwareStorageLayoutHelper {
 
         // move the identity VMDK file the last
         String targetPath = getLegacyDatastorePathFromVmdkFileName(ds, vmdkName + ".vmdk");
+        if (VmwareStorageLayoutHelper.isVsanDatastore(ds)) {
+            targetPath = VmwareStorageLayoutHelper.getVsanCloudStackVolumesFolderPath(ds, vmdkName);
+        }
         s_logger.info("Fixup folder-synchronization. move " + fileDsFullPath + " -> " + targetPath);
         ds.moveDatastoreFile(fileDsFullPath, dcMo.getMor(), ds.getMor(), targetPath, dcMo.getMor(), true);
 
@@ -314,4 +324,24 @@ public class VmwareStorageLayoutHelper {
     public static String getVmwareDatastorePathFromVmdkFileName(DatastoreMO dsMo, String vmName, String vmdkFileName) throws Exception {
         return String.format("[%s] %s/%s", dsMo.getName(), vmName, vmdkFileName);
     }
+
+    public static boolean isVsanDatastore(DatastoreMO dsMo) throws Exception {
+        String datastoreType = dsMo.getType();
+        if (VmwareDatastoreType.getVmwareDatastoreType(datastoreType) == VmwareDatastoreType.VSAN) {
+            return true;
+        }
+        return false;
+    }
+
+    public static String getVsanCloudStackVolumesFolderPath(DatastoreMO dsMo, String vmdkName) throws Exception {
+        return getVmwareDatastorePathFromVmdkFileName(dsMo, VmwareHelper.VSAN_ROOT_FOLDER, vmdkName + ".vmdk");
+    }
+
+    public static String getDatastorePathFromVmdkFileName(DatastoreMO dsMo, String vmdkFileName) throws Exception {
+        if (isVsanDatastore(dsMo)) {
+            return getVmwareDatastorePathFromVmdkFileName(dsMo, VmwareHelper.VSAN_ROOT_FOLDER, vmdkFileName);
+        }
+        return getLegacyDatastorePathFromVmdkFileName(dsMo, vmdkFileName);
+    }
+
 }

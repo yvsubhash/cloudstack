@@ -17,8 +17,11 @@
 package com.cloud.hypervisor.vmware.util;
 
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -32,6 +35,10 @@ import javax.xml.ws.handler.MessageContext;
 
 import org.apache.log4j.Logger;
 
+import com.vmware.pbm.PbmAboutInfo;
+import com.vmware.pbm.PbmPortType;
+import com.vmware.pbm.PbmService;
+import com.vmware.pbm.PbmServiceInstanceContent;
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.InvalidCollectorVersionFaultMsg;
 import com.vmware.vim25.InvalidPropertyFaultMsg;
@@ -58,6 +65,8 @@ import com.vmware.vim25.UpdateSet;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
 
+import org.apache.cloudstack.utils.hypervisor.SoapHeaderHandlerResolver;
+import org.apache.cloudstack.utils.hypervisor.VcenterExtensionsSessionHandler;
 import org.apache.cloudstack.utils.security.SSLUtils;
 import org.apache.cloudstack.utils.security.SecureSSLSocketFactory;
 
@@ -100,6 +109,7 @@ public class VmwareClient {
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
 
             vimService = new VimService();
+            pbmService = new PbmService();
         } catch (Exception e) {
             s_logger.info("[ignored]"
                     + "failed to trust all certificates blindly: " + e.getLocalizedMessage());
@@ -125,7 +135,16 @@ public class VmwareClient {
     private final static String SVC_INST_NAME = "ServiceInstance";
     private int vCenterSessionTimeout = 1200000; // Timeout in milliseconds
 
+    private final ManagedObjectReference pbmSvcInstRef = new ManagedObjectReference();
+    private static final String PBM_SVC_INST_TYPE = "PbmServiceInstance";
+    private static final String PBM_SVC_INST_VALUE = "ServiceInstance";
+    private static final String MIN_PBM_VERSION = "6.0";
+    private static PbmService pbmService;
+    private PbmPortType pbmPort;
+    private PbmServiceInstanceContent pbmServiceContent;
+
     private boolean isConnected = false;
+    private boolean isPbmsConnected = false;
 
     public VmwareClient(String name) {
     }
@@ -176,7 +195,40 @@ public class VmwareClient {
         String pathData = "$" + tokenizer.nextToken();
         serviceCookie = "$Version=\"1\"; " + cookieValue + "; " + pathData;
 
+        Map<String, List<String>> map = new HashMap<String, List<String>>();
+        map.put("Cookie", Collections.singletonList(serviceCookie));
+        ((BindingProvider)vimPort).getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, map);
         isConnected = true;
+
+        String vCenterApiVersion = serviceContent.getAbout().getApiVersion();
+        if (vCenterApiVersion.compareTo(MIN_PBM_VERSION) >= 0) {
+            String vcSessionCookie = cookieValue.split("=")[1];
+            pbmConnect(url, vcSessionCookie);
+        }
+    }
+
+    private void pbmConnect(String url, String vcSessionCookie) throws Exception {
+        URI uri = new URI(url);
+        String spbmurl = "https://" + uri.getHost() + "/pbm";
+
+        SoapHeaderHandlerResolver headerResolver = new SoapHeaderHandlerResolver();
+        headerResolver.addHandler(new VcenterExtensionsSessionHandler(vcSessionCookie));
+        pbmService.setHandlerResolver(headerResolver);
+
+        pbmSvcInstRef.setType(PBM_SVC_INST_TYPE);
+        pbmSvcInstRef.setValue(PBM_SVC_INST_VALUE);
+        pbmPort = pbmService.getPbmPort();
+        Map<String, Object> pbmCtxt = ((BindingProvider)pbmPort).getRequestContext();
+        pbmCtxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
+        pbmCtxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, spbmurl);
+        pbmServiceContent = pbmPort.pbmRetrieveServiceContent(pbmSvcInstRef);
+
+        isPbmsConnected = true;
+        PbmAboutInfo pbmAboutInfo = pbmServiceContent.getAboutInfo();
+        if (s_logger.isTraceEnabled()) {
+            s_logger.trace("PBM connected : " + isPbmsConnected + "\nAbout info : uuid - " + pbmAboutInfo.getInstanceUuid() +
+                    ". name - " + pbmAboutInfo.getName() + ". version - " + pbmAboutInfo.getVersion());
+        }
     }
 
     /**
@@ -189,6 +241,7 @@ public class VmwareClient {
             vimPort.logout(getServiceContent().getSessionManager());
         }
         isConnected = false;
+        isPbmsConnected = false;
     }
 
     /**
@@ -696,4 +749,21 @@ public class VmwareClient {
         return vCenterSessionTimeout;
     }
 
+    /**
+     * @return PBM service instance
+     */
+    public PbmPortType getPbmService() {
+        return pbmPort;
+    }
+
+    /**
+     * @return Service instance content
+     */
+    public PbmServiceInstanceContent getPbmServiceContent() {
+        try {
+            return pbmPort.pbmRetrieveServiceContent(pbmSvcInstRef);
+        } catch (com.vmware.pbm.RuntimeFaultFaultMsg e) {
+        }
+        return null;
+    }
 }

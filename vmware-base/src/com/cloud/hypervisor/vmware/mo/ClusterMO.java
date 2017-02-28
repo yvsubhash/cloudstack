@@ -60,6 +60,7 @@ import com.vmware.vim25.VirtualMachineConfigSpec;
 
 import com.cloud.hypervisor.vmware.util.VmwareContext;
 import com.cloud.hypervisor.vmware.util.VmwareHelper;
+import com.cloud.storage.Storage.StoragePoolType;
 import com.cloud.utils.Pair;
 import com.cloud.utils.exception.CloudRuntimeException;
 
@@ -409,10 +410,10 @@ public class ClusterMO extends BaseMO implements VmwareHypervisorHost {
     }
 
     @Override
-    public ManagedObjectReference mountDatastore(boolean vmfsDatastore, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception {
+    public ManagedObjectReference mountDatastore(StoragePoolType poolType, String poolHostAddress, int poolHostPort, String poolPath, String poolUuid) throws Exception {
 
         if (s_logger.isTraceEnabled())
-            s_logger.trace("vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", vmfs: " + vmfsDatastore + ", poolHost: " + poolHostAddress +
+            s_logger.trace("vCenter API trace - mountDatastore(). target MOR: " + _mor.getValue() + ", poolType: " + poolType + ", poolHost: " + poolHostAddress +
                     ", poolHostPort: " + poolHostPort + ", poolPath: " + poolPath + ", poolUuid: " + poolUuid);
 
         ManagedObjectReference morDs = null;
@@ -421,7 +422,7 @@ public class ClusterMO extends BaseMO implements VmwareHypervisorHost {
         if (hosts != null && hosts.size() > 0) {
             for (ManagedObjectReference morHost : hosts) {
                 HostMO hostMo = new HostMO(_context, morHost);
-                morDs = hostMo.mountDatastore(vmfsDatastore, poolHostAddress, poolHostPort, poolPath, poolUuid);
+                morDs = hostMo.mountDatastore(poolType, poolHostAddress, poolHostPort, poolPath, poolUuid);
                 if (morDsFirst == null)
                     morDsFirst = morDs;
 

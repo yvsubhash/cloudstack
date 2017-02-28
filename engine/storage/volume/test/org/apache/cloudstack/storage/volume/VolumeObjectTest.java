@@ -19,9 +19,6 @@
 
 package org.apache.cloudstack.storage.volume;
 
-import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
-import org.apache.cloudstack.storage.datastore.ObjectInDataStoreManager;
-import org.apache.cloudstack.storage.datastore.db.VolumeDataStoreDao;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,11 +28,18 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
+import org.apache.cloudstack.storage.datastore.ObjectInDataStoreManager;
+import org.apache.cloudstack.storage.datastore.db.VolumeDataStoreDao;
+
+import com.cloud.hypervisor.Hypervisor.HypervisorType;
+import com.cloud.service.dao.ServiceOfferingDetailsDao;
 import com.cloud.storage.Storage;
 import com.cloud.storage.Volume;
 import com.cloud.storage.VolumeVO;
 import com.cloud.storage.dao.DiskOfferingDao;
 import com.cloud.storage.dao.VolumeDao;
+import com.cloud.vm.UserVmVO;
 import com.cloud.vm.dao.VMInstanceDao;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -56,12 +60,24 @@ public class VolumeObjectTest {
     @Mock
     DiskOfferingDao diskOfferingDao;
 
+    @Mock
+    ServiceOfferingDetailsDao serviceOfferingDetailsDao;
+
     @InjectMocks
     VolumeObject volumeObject;
+
+    @InjectMocks
+    VolumeObject rootVolumeObject;
+
+    @InjectMocks
+    UserVmVO vmVo;
 
     @Before
     public void setUp() throws Exception {
         volumeObject.configure(Mockito.mock(DataStore.class), new VolumeVO("name", 1l, 1l, 1l, 1l, 1l, "folder", "path", Storage.ProvisioningType.THIN, 1l, Volume.Type.DATADISK));
+        rootVolumeObject.configure(Mockito.mock(DataStore.class),
+                new VolumeVO("rootVolume", 1l, 1l, 1l, 1l, 1l, "folder", "path", Storage.ProvisioningType.THIN, 1l, Volume.Type.ROOT));
+        vmVo = new UserVmVO(1L, "vm", "vm", 1, HypervisorType.VMware, 1L, false, false, 1L, 1L, 1, 1L, null, "vm", null);
     }
 
     /**
@@ -74,4 +90,27 @@ public class VolumeObjectTest {
         boolean result = volumeObject.stateTransit(Volume.Event.OperationFailed);
         Assert.assertFalse("since the volume doesnt exist in the db, the operation should fail but, should not throw any exception", result);
     }
+
+    /**
+     * Tests fetching storage policy in case of a ROOT volume that attached to existing VM
+     */
+    @Test
+    public void testGetStoragePolicyVmExists() {
+        Mockito.when(serviceOfferingDetailsDao.getDetail(Mockito.anyLong(), Mockito.anyString())).thenReturn("");
+        Mockito.when(vmInstanceDao.findById(Mockito.anyLong())).thenReturn(vmVo);
+        Mockito.when(vmInstanceDao.findByIdIncludingRemoved(Mockito.anyLong())).thenReturn(vmVo);
+        rootVolumeObject.getStoragePolicy();
+    }
+
+    /**
+     * Tests fetching storage policy in case of a ROOT volume that is detached, and the VM it was attached to earlier was destroyed.
+     */
+    @Test
+    public void testGetStoragePolicyVmDestroyed() {
+        Mockito.when(serviceOfferingDetailsDao.getDetail(Mockito.anyLong(), Mockito.anyString())).thenReturn("");
+        Mockito.when(vmInstanceDao.findById(Mockito.anyLong())).thenReturn(null);
+        Mockito.when(vmInstanceDao.findByIdIncludingRemoved(Mockito.anyLong())).thenReturn(vmVo);
+        rootVolumeObject.getStoragePolicy();
+    }
+
 }

@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.vmware.pbm.PbmProfile;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.FileInfo;
@@ -37,6 +38,7 @@ import com.vmware.vim25.TraversalSpec;
 import com.cloud.exception.CloudException;
 import com.cloud.hypervisor.vmware.util.VmwareContext;
 import com.cloud.utils.Pair;
+import com.cloud.utils.StringUtils;
 
 public class DatastoreMO extends BaseMO {
     private static final Logger s_logger = Logger.getLogger(DatastoreMO.class);
@@ -62,6 +64,10 @@ public class DatastoreMO extends BaseMO {
 
     public DatastoreSummary getSummary() throws Exception {
         return (DatastoreSummary)_context.getVimClient().getDynamicProperty(_mor, "summary");
+    }
+
+    public String getType() throws Exception {
+        return getSummary().getType();
     }
 
     public HostDatastoreBrowserMO getHostDatastoreBrowserMO() throws Exception {
@@ -406,5 +412,80 @@ public class DatastoreMO extends BaseMO {
             }
         }
         return isAccessible;
+    }
+
+    public boolean deleteFolderIfEmpty(DatastoreFile folder, ManagedObjectReference morDc) throws Exception {
+        boolean folderIsEmpty = false;
+        boolean folderDeleted = false;
+
+        String folderPath = folder.getPath();
+        String folderName = folder.getRelativePath();
+        String folderdatastorename = '['+folder.getDatastoreName()+']';
+        if (folderName == null || folderName.isEmpty()) {
+            return false;
+        }
+
+        boolean folderexists = folderExists(folderdatastorename, folderName);
+        if (folderexists) {
+            folderIsEmpty = isFolderEmpty(folderPath);
+            // Delete folder if found empty
+            if (folderIsEmpty) {
+                folderDeleted = deleteFolder(folderPath, morDc);
+            }
+        }
+
+        return folderDeleted;
+    }
+
+    private boolean isFolderEmpty(String path) throws Exception {
+        boolean folderIsEmpty = true;
+
+        //Check If folder is empty
+        HostDatastoreBrowserMO browserMo = getHostDatastoreBrowserMO();
+        ArrayList<HostDatastoreBrowserSearchResults> results = browserMo.searchDatastoreSubFolders(path, "*", true);
+        if (results != null && results.size() > 0) {
+            for (HostDatastoreBrowserSearchResults result : results) {
+                if (result != null) {
+                    List<FileInfo> fileInfos = result.getFile();
+                    if (fileInfos != null && fileInfos.size() > 0) {
+                        folderIsEmpty = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (folderIsEmpty) {
+            s_logger.debug("Folder " + path + " is empty.");
+        }
+        return folderIsEmpty;
+    }
+
+    public boolean isStoragePoolPolicyCompliant(String storagePolicy) throws Exception {
+        if (!StringUtils.isNotBlank(storagePolicy)) {
+            return true;
+        }
+        boolean datastoreCompliantWithPolicy = false;
+
+        try {
+            datastoreCompliantWithPolicy = getDatastoreComplianceStatus(storagePolicy);
+        } catch (Exception e) {
+            s_logger.debug("Failed to check policy compliance of storage pool [" + getName() +
+                    "] against policy : [" + storagePolicy + "]. Exception : " + e);
+        }
+
+        if (s_logger.isDebugEnabled()) {
+            s_logger.debug("Compliance status of storage pool [" + getName() + "] against policy : " + storagePolicy + " is : " + datastoreCompliantWithPolicy);
+        }
+        return datastoreCompliantWithPolicy;
+    }
+
+    private boolean getDatastoreComplianceStatus(String policy) throws Exception {
+        boolean policyComplianceStatus = false;
+        ProfileManagerMO profMgrMo = new ProfileManagerMO(_context);
+        PbmPlacementSolverMO placementSolverMo = new PbmPlacementSolverMO(_context);
+        PbmProfile profile = profMgrMo.getPbmProfile(policy);
+        policyComplianceStatus = placementSolverMo.isDatastoreCompatible(_mor, profile);
+
+        return policyComplianceStatus;
     }
 }

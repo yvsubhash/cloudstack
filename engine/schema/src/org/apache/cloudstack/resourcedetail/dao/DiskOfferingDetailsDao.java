@@ -22,5 +22,5 @@ import org.apache.cloudstack.resourcedetail.ResourceDetailsDao;
 import com.cloud.utils.db.GenericDao;
 
 public interface DiskOfferingDetailsDao extends GenericDao<DiskOfferingDetailVO, Long>, ResourceDetailsDao<DiskOfferingDetailVO> {
-
+    String getDetail(Long diskOfferingId, String storagePolicy);
 }

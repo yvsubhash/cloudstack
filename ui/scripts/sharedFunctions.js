@@ -1477,6 +1477,16 @@ var processPropertiesInImagestoreObject = function(jsonObj) {
         return url;
     }
 
+    function vsanURL(server, path) {
+        var url;
+        if (server.indexOf("://") == -1)
+            url = "vsan://" + server + path;
+        else
+            url = server + path;
+        return url;
+    }
+
+
     function iscsiURL(server, iqn, lun) {
         var url;
         if (server.indexOf("://") == -1)
