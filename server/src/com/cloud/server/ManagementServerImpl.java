@@ -3416,6 +3416,9 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
         final long diskOffMinSize = VolumeOrchestrationService.CustomDiskOfferingMinSize.value();
         final long diskOffMaxSize = VolumeOrchestrationService.CustomDiskOfferingMaxSize.value();
+        final long rootDiskMaxSize = VolumeOrchestrationService.RootDiskMaxSize.value();
+        final boolean enableRootDiskResize = VolumeOrchestrationService.EnableRootDiskResize.value();
+
         KVMSnapshotEnabled = Boolean.parseBoolean(_configDao.getValue("KVM.snapshot.enabled"));
 
         final boolean userPublicTemplateEnabled = TemplateManager.AllowPublicUserTemplates.valueIn(caller.getId());
@@ -3443,6 +3446,8 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         capabilities.put("allowusercreateprojects", _projectMgr.allowUserToCreateProject());
         capabilities.put("customDiskOffMinSize", diskOffMinSize);
         capabilities.put("customDiskOffMaxSize", diskOffMaxSize);
+        capabilities.put("rootDiskMaxSize", rootDiskMaxSize);
+        capabilities.put("enableRootDiskResize", enableRootDiskResize);
         capabilities.put("regionSecondaryEnabled", regionSecondaryEnabled);
         capabilities.put("KVMSnapshotEnabled", KVMSnapshotEnabled);
         capabilities.put("allowUserViewDestroyedVM", allowUserViewDestroyedVM);

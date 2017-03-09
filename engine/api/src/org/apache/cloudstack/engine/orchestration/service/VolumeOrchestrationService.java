@@ -72,6 +72,21 @@ public interface VolumeOrchestrationService {
         "Maximum size in GB for custom disk offering.",
         true
     );
+    static final ConfigKey<Long> RootDiskMaxSize = new ConfigKey<Long>("Advanced",
+            Long.class,
+            "root.disk.size.max",
+            "50",
+            "Maximum size in GB for root disk.",
+            true
+    );
+    static final ConfigKey<Boolean> EnableRootDiskResize = new ConfigKey<Boolean>("Advanced",
+            Boolean.class,
+            "root.disk.resize.enable",
+            "true",
+            "Enable root disk resize.",
+            true
+    );
+
     VolumeInfo moveVolume(VolumeInfo volume, long destPoolDcId, Long destPoolPodId, Long destPoolClusterId, HypervisorType dataDiskHyperType)
         throws ConcurrentOperationException, StorageUnavailableException;
 
