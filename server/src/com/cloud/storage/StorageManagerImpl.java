@@ -2478,7 +2478,7 @@ public class StorageManagerImpl extends ManagerBase implements StorageManager, C
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {StorageCleanupInterval, StorageCleanupDelay, StorageCleanupEnabled};
+        return new ConfigKey<?>[] {StorageCleanupInterval, StorageCleanupDelay, StorageCleanupEnabled, VmPoolAllocationAlgorithm, ImageStoreAllocationAlgorithm};
     }
 
     @Override
