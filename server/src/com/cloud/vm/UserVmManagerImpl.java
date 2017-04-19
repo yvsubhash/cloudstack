@@ -223,6 +223,7 @@ import com.cloud.storage.GuestOSCategoryVO;
 import com.cloud.storage.GuestOSVO;
 import com.cloud.storage.SnapshotVO;
 import com.cloud.storage.Storage;
+import com.cloud.storage.Snapshot;
 import com.cloud.storage.Storage.ImageFormat;
 import com.cloud.storage.Storage.TemplateType;
 import com.cloud.storage.StorageManager;
@@ -5321,11 +5322,22 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             }
         }
 
+        final List<VolumeVO> volumes = _volsDao.findByInstance(cmd.getVmId());
+
+        for (VolumeVO volume : volumes) {
+            List<SnapshotVO> snapshots = _snapshotDao.listByStatusNotIn(volume.getId(), Snapshot.State.Destroyed,Snapshot.State.Error);
+            if (snapshots != null && snapshots.size() > 0) {
+                throw new InvalidParameterValueException(
+                        "Snapshots exists for volume: "+ volume.getName()+ ", Detach volume or remove snapshots for volume before assigning VM to another user.");
+            }
+        }
+
+
         DataCenterVO zone = _dcDao.findById(vm.getDataCenterId());
 
         // Get serviceOffering and Volumes for Virtual Machine
         final ServiceOfferingVO offering = _serviceOfferingDao.findByIdIncludingRemoved(vm.getId(), vm.getServiceOfferingId());
-        final List<VolumeVO> volumes = _volsDao.findByInstance(cmd.getVmId());
+
 
         //Remove vm from instance group
         removeInstanceFromInstanceGroup(cmd.getVmId());
