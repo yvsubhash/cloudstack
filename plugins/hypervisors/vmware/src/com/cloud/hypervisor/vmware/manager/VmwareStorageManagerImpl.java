@@ -1303,11 +1303,11 @@ public class VmwareStorageManagerImpl implements VmwareStorageManager {
             // get volume's chain size for this VM snapshot; exclude current volume vdisk
             DataStoreTO store = volumeTO.getDataStore();
             ManagedObjectReference morDs = getDatastoreAsManagedObjectReference(baseName, hyperHost, store);
-            long size = getVMSnapshotChainSize(context, hyperHost, baseName + "*.vmdk", morDs, newPath);
+            long size = getVMSnapshotChainSize(context, hyperHost, baseName + "-*.vmdk", morDs, newPath);
 
             if (volumeTO.getVolumeType()== Volume.Type.ROOT) {
                 // add memory snapshot size
-                size += getVMSnapshotChainSize(context, hyperHost, vmName + "*.vmsn", morDs, null);
+                size += getVMSnapshotChainSize(context, hyperHost, vmName + "-*.vmsn", morDs, null);
             }
 
             volumeTO.setSize(size);
