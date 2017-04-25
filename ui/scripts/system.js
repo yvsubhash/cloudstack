@@ -1811,6 +1811,10 @@
                                                                 id: 'project-specific',
                                                                 description: 'label.project'
                                                             });
+                                                            array1.push({
+                                                                id: 'domain-specific',
+                                                                description: 'label.domain'
+                                                            })
 
                                                             args.response.success({
                                                                 data: array1
@@ -1827,6 +1831,10 @@
                                                                     $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
                                                                     $form.find('.form-item[rel=account]').hide();
                                                                     $form.find('.form-item[rel=projectId]').css('display', 'inline-block');
+                                                                } else if ($(this).val() == "domain-specific") {
+                                                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                                                    $form.find('.form-item[rel=account]').hide();
+                                                                    
                                                                 }
 
                                                                 if (args.context.projects != null && args.context.projects.length > 0) {
@@ -1869,9 +1877,6 @@
                                                     },
                                                     account: {
                                                         label: 'label.account',
-                                                        validation: {
-                                                            required: true
-                                                        },
                                                         dependsOn: 'domainId',
                                                         select: function (args) {
                                                             $.ajax({
