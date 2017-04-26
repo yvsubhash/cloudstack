@@ -16,9 +16,12 @@
 // under the License.
 package com.cloud.api;
 
+import com.cloud.dc.DataCenterVO;
+import com.cloud.dc.HostPodVO;
 import com.cloud.domain.DomainVO;
 import com.cloud.usage.UsageVO;
 import com.cloud.user.AccountVO;
+import org.apache.cloudstack.api.response.PodResponse;
 import org.apache.cloudstack.api.response.UsageRecordResponse;
 import org.apache.cloudstack.usage.UsageService;
 import org.junit.Before;
@@ -34,6 +37,7 @@ import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
@@ -108,5 +112,45 @@ public class ApiResponseHelperTest {
 
         UsageRecordResponse MockResponse = helper.createUsageResponse(usage);
         assertEquals("DomainName",MockResponse.getDomainName());
+    }
+
+    @Test
+    public void testCreatePodResponse(){
+        String name = " ";
+        long dcId = 1l;
+        String gateway = " ";
+        String cidrAddress = " ";
+        int cidrSize = 1;
+        String description = " ";
+        List<String> startIp, endIp;
+        PodResponse mockResponse;
+
+        HostPodVO pod = new HostPodVO(name, dcId, gateway, cidrAddress, cidrSize, description);
+
+        DataCenterVO zone = null;
+        PowerMockito.mockStatic(ApiDBUtils.class);
+        when(ApiDBUtils.findZoneById(1l)).thenReturn(zone);
+
+        pod.setDescription("1-2,3-4");
+        mockResponse = helper.createPodResponse(pod, false);
+
+        startIp = mockResponse.getStartIp();
+        endIp = mockResponse.getEndIp();
+
+        //Multiple.
+        assertEquals("1", startIp.get(0));
+        assertEquals("2", endIp.get(0));
+        assertEquals("3", startIp.get(1));
+        assertEquals("4", endIp.get(1));
+
+        pod.setDescription("1-2");
+        mockResponse = helper.createPodResponse(pod, false);
+
+        startIp = mockResponse.getStartIp();
+        endIp = mockResponse.getEndIp();
+
+        //Single.
+        assertEquals("1", startIp.get(0));
+        assertEquals("2", endIp.get(0));
     }
 }
