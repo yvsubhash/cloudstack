@@ -24,6 +24,36 @@ fi
 
 ipsec status  vpn-$1 > /tmp/vpn-$1.status
 
+status=0
+isakmpMsg=""
+cat /tmp/vpn-$1.status | grep "ISAKMP SA established" > /dev/null
+isakmpok=$?
+if [ $isakmpok -ne 0 ]
+then
+    isakmpMsg="ISAKMP SA NOT found but checking IPsec;"
+else
+    isakmpMsg="ISAKMP SA found;"
+fi
+
+cat /tmp/vpn-$1.status | grep "IPsec SA established" > /dev/null
+ipsecok=$?
+
+if [ $ipsecok -eq 0 ]
+then
+    echo -n $isakmpMsg
+    echo -n "IPsec SA found;"
+    echo "Site-to-site VPN have connected"
+    exit 0
+else
+    if [ $isakmpok -eq 0 ]
+    then
+        echo -n $isakmpMsg
+        echo -n "IPsec SA not found;"
+        echo "Site-to-site VPN have not connected"
+        exit 11
+    fi
+fi
+
 cat /tmp/vpn-$1.status | grep -i "ESTABLISHED" > /dev/null
 ipsecok=$?
 if [ $ipsecok -ne 0 ]
@@ -32,6 +62,7 @@ then
     echo "Site-to-site VPN have not connected"
     exit 11
 fi
+
 echo -n "IPsec SA found;"
 echo "Site-to-site VPN have connected"
 exit 0
