@@ -133,6 +133,4 @@ public interface AsyncJobManager extends Manager {
     Object unmarshallResultObject(AsyncJob job);
 
     List<AsyncJobVO> findFailureAsyncJobs(String... cmds);
-
-
 }
