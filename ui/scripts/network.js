@@ -6302,9 +6302,6 @@
                         },
                         state: {
                             label: 'label.state'
-                        },
-                        indicator: {
-                            'Active': 'on'
                         }
                     },
 
