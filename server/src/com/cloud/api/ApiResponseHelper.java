@@ -69,6 +69,7 @@ import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.hypervisor.HypervisorCapabilities;
 import com.cloud.network.GuestVlan;
+import com.cloud.network.GuestVlanDomain;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
@@ -2434,6 +2435,20 @@ public class ApiResponseHelper implements ResponseGenerator {
         guestVlanRangeResponse.setGuestVlanRange(vlan.getGuestVlanRange());
         guestVlanRangeResponse.setPhysicalNetworkId(vlan.getPhysicalNetworkId());
         PhysicalNetworkVO physicalNetwork = ApiDBUtils.findPhysicalNetworkById(vlan.getPhysicalNetworkId());
+        guestVlanRangeResponse.setZoneId(physicalNetwork.getDataCenterId());
+
+        return guestVlanRangeResponse;
+    }
+
+    @Override
+    public GuestVlanRangeResponse createDedicatedGuestVlanResponseForDomain (GuestVlanDomain vlanDomain) {
+
+        GuestVlanRangeResponse guestVlanRangeResponse = new GuestVlanRangeResponse();
+        guestVlanRangeResponse.setId(vlanDomain.getUuid());
+        populateDomain(guestVlanRangeResponse, vlanDomain.getDomainId());
+        guestVlanRangeResponse.setGuestVlanRange(vlanDomain.getGuestVlanRange());
+        guestVlanRangeResponse.setPhysicalNetworkId(vlanDomain.getPhysicalNetworkId());
+        PhysicalNetworkVO physicalNetwork = ApiDBUtils.findPhysicalNetworkById(vlanDomain.getPhysicalNetworkId());
         guestVlanRangeResponse.setZoneId(physicalNetwork.getDataCenterId());
 
         return guestVlanRangeResponse;
