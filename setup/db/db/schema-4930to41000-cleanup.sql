@@ -20,3 +20,5 @@
 --;
 
 DELETE FROM `cloud`.`configuration` WHERE name='consoleproxy.loadscan.interval';
+
+DELETE FROM `cloud`.`configuration` WHERE `name`='vmware.ports.per.dvportgroup';
