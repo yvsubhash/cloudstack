@@ -43,6 +43,10 @@ import java.util.UUID;
 
 import javax.naming.ConfigurationException;
 
+import com.cloud.agent.api.CopyFileInVmAnswer;
+import com.cloud.agent.api.CopyFileInVmCommand;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.log4j.Logger;
 import org.apache.log4j.NDC;
 
@@ -497,6 +501,8 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 return execute((GetVmIpAddressCommand)cmd);
             } else if (clz == UnregisterNicCommand.class) {
                 answer = execute((UnregisterNicCommand)cmd);
+            } else if (clz == CopyFileInVmCommand.class ) {
+                return execute((CopyFileInVmCommand)cmd);
             } else {
                 answer = Answer.createUnsupportedCommandAnswer(cmd);
             }
@@ -1407,6 +1413,27 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             }
         }
         return null;
+    }
+
+    private CopyFileInVmAnswer execute(CopyFileInVmCommand cmd) {
+        VmwareManager mgr = getServiceContext().getStockObject(VmwareManager.CONTEXT_STOCK_NAME);
+        File keyFile = mgr.getSystemVMKeyFile();
+        try {
+            File file = new File(cmd.getSrc());
+            if(file.exists()) {
+                if(file.isDirectory()) {
+                    for (File f : FileUtils.listFiles(new File(cmd.getSrc()), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE)) {
+                        SshHelper.scpTo(cmd.getVmIp(), 3922, "root", keyFile, null, cmd.getDest(), f.getCanonicalPath(), null);
+                    }
+                } else {
+                    SshHelper.scpTo(cmd.getVmIp(), 3922, "root", keyFile, null, cmd.getDest(), file.getCanonicalPath(), null);
+                }
+            }
+        } catch (Exception e) {
+            s_logger.error("Fail to copy file " + cmd.getSrc() + " in VM " + cmd.getVmIp(), e);
+            return new CopyFileInVmAnswer(cmd, e);
+        }
+        return new CopyFileInVmAnswer(cmd);
     }
 
     protected ScaleVmAnswer execute(ScaleVmCommand cmd) {
