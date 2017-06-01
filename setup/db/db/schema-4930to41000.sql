@@ -246,3 +246,4 @@ CREATE TABLE `cloud`.`guest_os_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE `user_ip_address` ADD COLUMN `rule_state` VARCHAR(32) COMMENT 'static  rule state while removing';
+UPDATE   `cloud`.`network_offerings` set traffic_type='PrivateGw' where id=5;

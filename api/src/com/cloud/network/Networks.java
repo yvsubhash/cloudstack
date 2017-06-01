@@ -270,7 +270,7 @@ public class Networks {
      * Different types of network traffic in the data center.
      */
     public enum TrafficType {
-        None, Public, Guest, Storage, Management, Control, Vpn;
+        None, Public, Guest, Storage, Management, PrivateGw, Control, Vpn;
 
         public static boolean isSystemNetwork(TrafficType trafficType) {
             if (Storage.equals(trafficType) || Management.equals(trafficType) || Control.equals(trafficType)) {
@@ -292,6 +292,8 @@ public class Networks {
                 return Control;
             } else if ("Vpn".equals(type)) {
                 return Vpn;
+            } else if ("PrivateGw".equals(type)) {
+                return PrivateGw;
             } else {
                 return None;
             }
