@@ -781,20 +781,26 @@ NetworkMigrationResponder, AggregatedCommandExecutor, RedundantResource, DnsServ
         }
 
         final VirtualMachineProfile uservm = vm;
-
         final DataCenterVO dcVO = _dcDao.findById(network.getDataCenterId());
         final NetworkTopology networkTopology = networkTopologyContext.retrieveNetworkTopology(dcVO);
 
-        // If any router is running then send save password command otherwise
-        // save the password in DB
-        for (final VirtualRouter router : routers) {
-            if (router.getState() == State.Running) {
-                return networkTopology.savePasswordToRouter(network, nic, uservm, router);
-            }
+        if (!network.isRedundant()) {
+            return networkTopology.savePasswordToRouter(network, nic, uservm, routers.get(0));
         }
+
+        for (final VirtualRouter router : routers) {
+                if (router.getState() == State.Running && router.getRedundantState() == VirtualRouter.RedundantState.MASTER) {
+                    return networkTopology.savePasswordToRouter(network, nic, uservm, router);
+                }
+        }
+       return savePassword(uservm);
+    }
+
+    private boolean savePassword(VirtualMachineProfile uservm) {
+        //save password
         final String password = (String) uservm.getParameter(VirtualMachineProfile.Param.VmPassword);
         final String password_encrypted = DBEncryptionUtil.encrypt(password);
-        final UserVmVO userVmVO = _userVmDao.findById(vm.getId());
+        final UserVmVO userVmVO = _userVmDao.findById(uservm.getId());
 
         _userVmDao.loadDetails(userVmVO);
         userVmVO.setDetail("password", password_encrypted);
@@ -802,7 +808,6 @@ NetworkMigrationResponder, AggregatedCommandExecutor, RedundantResource, DnsServ
 
         userVmVO.setUpdateParameters(true);
         _userVmDao.update(userVmVO.getId(), userVmVO);
-
         return true;
     }
 
