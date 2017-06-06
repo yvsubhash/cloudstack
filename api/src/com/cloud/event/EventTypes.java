@@ -558,6 +558,9 @@ public class EventTypes {
     public static final String EVENT_NETSCALER_SERVICEPACKAGE_ADD = "NETSCALER.SERVICEPACKAGE.ADD";
     public static final String EVENT_NETSCALER_SERVICEPACKAGE_DELETE = "NETSCALER.SERVICEPACKAGE.DELETE";
 
+    //cancel async job
+    public static final String EVENT_JOB_CANCEL = "JOB.CANCEL";
+
     public static final String EVENT_NETSCALER_VM_START = "NETSCALERVM.START";
     public static final String EVENT_NETSCALER_VM_STOP = "NETSCALERVM.STOP";
 

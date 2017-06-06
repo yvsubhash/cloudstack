@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.exception.OperationCancelledException;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
@@ -75,12 +76,12 @@ public class XenServerFencer extends AdapterBase implements FenceBuilder {
                         continue;
                     }
                     answer = (FenceAnswer)ans;
-                } catch (AgentUnavailableException e) {
+                }  catch (OperationCancelledException e) {
                     if (s_logger.isDebugEnabled()) {
-                        s_logger.debug("Moving on to the next host because " + h.toString() + " is unavailable");
+                        s_logger.debug("cancelling because " + h.toString() + " is unavailable(operation cancelled)");
                     }
-                    continue;
-                } catch (OperationTimedoutException e) {
+                    break;
+                } catch (AgentUnavailableException | OperationTimedoutException e) {
                     if (s_logger.isDebugEnabled()) {
                         s_logger.debug("Moving on to the next host because " + h.toString() + " is unavailable");
                     }

@@ -46,6 +46,7 @@ public class SyncQueueItemDaoImpl extends GenericDaoBase<SyncQueueItemVO, Long> 
     final GenericSearchBuilder<SyncQueueItemVO, Long> queueIdSearch;
     final GenericSearchBuilder<SyncQueueItemVO, Integer> queueActiveItemSearch;
     final SearchBuilder<SyncQueueItemVO> queueActiveItemsSearch;
+    final SearchBuilder<SyncQueueItemVO> queuedItemsSearch;
 
     public SyncQueueItemDaoImpl() {
         super();
@@ -61,6 +62,9 @@ public class SyncQueueItemDaoImpl extends GenericDaoBase<SyncQueueItemVO, Long> 
         queueActiveItemSearch.select(null, Func.COUNT, queueActiveItemSearch.entity().getId());
         queueActiveItemSearch.done();
 
+        queuedItemsSearch = createSearchBuilder();
+        queuedItemsSearch.and("queueId", queuedItemsSearch.entity().getQueueId(), SearchCriteria.Op.EQ);
+        queuedItemsSearch.done();
         queueActiveItemsSearch = createSearchBuilder();
         queueActiveItemsSearch.and("queueId", queueActiveItemsSearch.entity().getQueueId(), SearchCriteria.Op.EQ);
         queueActiveItemsSearch.and("processNumber", queueActiveItemsSearch.entity().getLastProcessNumber(), SearchCriteria.Op.NNULL);
@@ -93,6 +97,16 @@ public class SyncQueueItemDaoImpl extends GenericDaoBase<SyncQueueItemVO, Long> 
 
         List<Integer> count = customSearch(sc, null);
         return count.get(0);
+    }
+
+    @Override
+    public List<SyncQueueItemVO> getQueuedItems(long queueId) {
+        SearchCriteria<SyncQueueItemVO> sc = queuedItemsSearch.create();
+        sc.setParameters("queueId", queueId);
+
+        Filter filter = new Filter(SyncQueueItemVO.class, "created", true, null, null);
+        List<SyncQueueItemVO> queueItems = search(sc, filter);
+        return queueItems;
     }
 
     @Override
