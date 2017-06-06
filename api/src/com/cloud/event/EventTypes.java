@@ -16,6 +16,14 @@
 // under the License.
 package com.cloud.event;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.cloudstack.acl.Role;
+import org.apache.cloudstack.acl.RolePermission;
+import org.apache.cloudstack.config.Configuration;
+import org.apache.cloudstack.usage.Usage;
+
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.Pod;
 import com.cloud.dc.StorageNetworkIpRange;
@@ -54,10 +62,10 @@ import com.cloud.offering.NetworkOffering;
 import com.cloud.offering.ServiceOffering;
 import com.cloud.projects.Project;
 import com.cloud.server.ResourceTag;
-import com.cloud.storage.StoragePool;
 import com.cloud.storage.GuestOS;
 import com.cloud.storage.GuestOSHypervisor;
 import com.cloud.storage.Snapshot;
+import com.cloud.storage.StoragePool;
 import com.cloud.storage.Volume;
 import com.cloud.storage.snapshot.SnapshotPolicy;
 import com.cloud.template.VirtualMachineTemplate;
@@ -66,13 +74,6 @@ import com.cloud.user.User;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicSecondaryIp;
 import com.cloud.vm.VirtualMachine;
-import org.apache.cloudstack.acl.Role;
-import org.apache.cloudstack.acl.RolePermission;
-import org.apache.cloudstack.config.Configuration;
-import org.apache.cloudstack.usage.Usage;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class EventTypes {
 
@@ -564,6 +565,8 @@ public class EventTypes {
     public static final String EVENT_NETSCALER_VM_START = "NETSCALERVM.START";
     public static final String EVENT_NETSCALER_VM_STOP = "NETSCALERVM.STOP";
 
+    public static final String EVENT_TEMPLATE_FROM_VM_SNAPSHOT_CREATE = "VMSNAPSHOT.TEMPLATE.CREATE";
+    public static final String EVENT_TEMPLATE_FROM_VM_SNAPSHOT_REMOVE = "VMSNAPSHOT.TEMPLATE.REMOVE";
 
     static {
 
@@ -941,9 +944,13 @@ public class EventTypes {
 
         //Usage
         entityEventDetails.put(EVENT_USAGE_REMOVE_USAGE_RECORDS, Usage.class);
+
         // Netscaler Service Packages
         entityEventDetails.put(EVENT_NETSCALER_SERVICEPACKAGE_ADD, "NETSCALER.SERVICEPACKAGE.CREATE");
         entityEventDetails.put(EVENT_NETSCALER_SERVICEPACKAGE_DELETE, "NETSCALER.SERVICEPACKAGE.DELETE");
+
+        entityEventDetails.put(EVENT_TEMPLATE_FROM_VM_SNAPSHOT_CREATE, "VmSnapshotTemplate");
+        entityEventDetails.put(EVENT_TEMPLATE_FROM_VM_SNAPSHOT_REMOVE, "VmSnapshotTemplate");
 
     }
 

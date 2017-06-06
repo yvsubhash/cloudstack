@@ -22,6 +22,9 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
+
 import org.apache.cloudstack.affinity.dao.AffinityGroupVMMapDao;
 import org.apache.cloudstack.engine.cloud.entity.api.db.VMEntityVO;
 import org.apache.cloudstack.engine.cloud.entity.api.db.VMReservationVO;
@@ -29,8 +32,6 @@ import org.apache.cloudstack.engine.cloud.entity.api.db.dao.VMEntityDao;
 import org.apache.cloudstack.engine.cloud.entity.api.db.dao.VMReservationDao;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
-import org.apache.log4j.Logger;
-import org.springframework.stereotype.Component;
 
 import com.cloud.dc.DataCenter;
 import com.cloud.deploy.DataCenterDeployment;
@@ -278,7 +279,7 @@ public class VMEntityManagerImpl implements VMEntityManager {
 
     @Inject
     public void setPlanners(List<DeploymentPlanner> planners) {
-        this._planners = planners;
+        _planners = planners;
     }
 
 }

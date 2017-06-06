@@ -112,6 +112,7 @@ import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.api.response.VMSnapshotResponse;
 import org.apache.cloudstack.api.response.VirtualRouterProviderResponse;
 import org.apache.cloudstack.api.response.VlanIpRangeResponse;
+import org.apache.cloudstack.api.response.VmSnapshotTemplateResponse;
 import org.apache.cloudstack.api.response.VolumeResponse;
 import org.apache.cloudstack.api.response.VpcOfferingResponse;
 import org.apache.cloudstack.api.response.VpcResponse;
@@ -457,4 +458,7 @@ public interface ResponseGenerator {
     ListResponse<UpgradeRouterTemplateResponse> createUpgradeRouterTemplateResponse(List<Long> jobIds);
 
     SSHKeyPairResponse createSSHKeyPairResponse(SSHKeyPair sshkeyPair, boolean privatekey);
+
+    VmSnapshotTemplateResponse createVmSnapshotTemplateResponse(Long vmSnapshotId, Long storageId);
+
 }

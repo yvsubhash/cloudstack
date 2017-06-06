@@ -55,5 +55,5 @@ public enum ApiCommandJobType {
     GuestOs,
     GuestOsMapping,
     Network,
-    Job
+    Job, VmSnapshot
 }

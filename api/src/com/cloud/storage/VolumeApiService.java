@@ -18,8 +18,11 @@
  */
 package com.cloud.storage;
 
+import java.net.MalformedURLException;
+
 import org.apache.cloudstack.api.command.user.volume.AttachVolumeCmd;
 import org.apache.cloudstack.api.command.user.volume.CreateVolumeCmd;
+import org.apache.cloudstack.api.command.user.volume.CreateVolumeFromVmSnapshotCmd;
 import org.apache.cloudstack.api.command.user.volume.DetachVolumeCmd;
 import org.apache.cloudstack.api.command.user.volume.ExtractVolumeCmd;
 import org.apache.cloudstack.api.command.user.volume.GetUploadParamsForVolumeCmd;
@@ -32,8 +35,6 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.user.Account;
 import org.apache.cloudstack.api.response.GetUploadParamsResponse;
 import org.apache.cloudstack.framework.config.ConfigKey;
-
-import java.net.MalformedURLException;
 
 public interface VolumeApiService {
     static final ConfigKey<Long> ConcurrentSnapshotsThresholdPerHost =
@@ -112,6 +113,8 @@ public interface VolumeApiService {
     boolean isDisplayResourceEnabled(Long id);
 
     void updateDisplay(Volume volume, Boolean displayVolume);
+
+    Volume createVolumeFromVmSnapshot(CreateVolumeFromVmSnapshotCmd createVolumeFromVmSnapshotCmd);
 
     Snapshot allocSnapshotForVm(Long vmId, Long volumeId, String snapshotName) throws ResourceAllocationException;
 }
