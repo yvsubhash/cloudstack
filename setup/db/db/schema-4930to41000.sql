@@ -249,3 +249,17 @@ ALTER TABLE `user_ip_address` ADD COLUMN `rule_state` VARCHAR(32) COMMENT 'stati
 UPDATE   `cloud`.`network_offerings` set traffic_type='PrivateGw' where id=5;
 
 INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'vmware.snapshot.backup.session.timeout', '1200', 'VMware client timeout in seconds for snapshot backup', '1200');
+
+DROP TABLE IF EXISTS `cloud`.`cluster_physical_network_traffic_info`;
+CREATE TABLE `cloud`.`cluster_physical_network_traffic_info` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `uuid` varchar(40),
+  `cluster_id` bigint unsigned NOT NULL COMMENT 'cluster id',
+  `physical_network_traffic_id` bigint unsigned NOT NULL COMMENT 'id of physical network traffic in the zone of the cluster',
+  `vmware_network_label` varchar(255) COMMENT 'network label of the physical device dedicated to this traffic on a VMware host at cluster level',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_cluster_physical_network_traffic_info__cluster_id` FOREIGN KEY (`cluster_id`) REFERENCES `cluster`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cluster_physical_network_traffic_info__traffic_id` FOREIGN KEY (`physical_network_traffic_id`) REFERENCES `physical_network_traffic_types`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `uc_cluster_physical_network_traffic_info__uuid` UNIQUE (`uuid`),
+  UNIQUE KEY (`cluster_id`, `physical_network_traffic_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

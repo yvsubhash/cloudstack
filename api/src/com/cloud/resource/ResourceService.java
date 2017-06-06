@@ -17,6 +17,7 @@
 package com.cloud.resource;
 
 import java.util.List;
+import java.util.Map;
 
 import com.cloud.exception.AgentUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -67,7 +68,7 @@ public interface ResourceService {
 
     boolean deleteCluster(DeleteClusterCmd cmd);
 
-    Cluster updateCluster(Cluster cluster, String clusterType, String hypervisor, String allocationState, String managedstate);
+    Cluster updateCluster(Cluster cluster, String clusterType, String hypervisor, String allocationState, String managedstate, Map<String, String> physicalNetworkTrafficLabels);
 
     List<? extends Host> discoverHosts(AddHostCmd cmd) throws IllegalArgumentException, DiscoveryException, InvalidParameterValueException;
 
