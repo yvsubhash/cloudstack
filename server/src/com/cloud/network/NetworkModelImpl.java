@@ -2455,6 +2455,12 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel, Confi
     }
 
     @Override
+    public String getValidNetworkCidr(Network guestNetwork) {
+        String networkCidr = guestNetwork.getNetworkCidr();
+        return networkCidr == null ? guestNetwork.getCidr() : networkCidr;
+    }
+
+    @Override
     public String getConfigComponentName() {
         return NetworkModel.class.getSimpleName();
     }
