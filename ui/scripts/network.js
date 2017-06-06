@@ -1414,6 +1414,11 @@
                                                 label: 'label.cidr.list',
                                                 isOptional: true
                                             },
+                                            'destcidrlist': {
+                                                 edit: true,
+                                                 label: 'label.cidr.destination.list',
+                                                 isOptional: true
+                                             },
                                             'protocol': {
                                                 label: 'label.protocol',
                                                 select: function(args) {
@@ -1431,6 +1436,7 @@
                                                             var name = $(this).attr('rel');
 
                                                             return name != 'cidrlist' &&
+                                                                name != 'destcidrlist' &&
                                                                 name != 'icmptype' &&
                                                                 name != 'icmpcode' &&
                                                                 name != 'protocol' &&
@@ -1499,6 +1505,7 @@
                                                 var data = {
                                                     protocol: args.data.protocol,
                                                     cidrlist: args.data.cidrlist,
+                                                    destcidrlist: args.data.destcidrlist,
                                                     networkid: args.context.networks[0].id
                                                 };
 
@@ -1599,7 +1606,9 @@
                                                                     rule.endport = ' ';
                                                                 }
                                                             }
-
+                                                            if(!rule.destcidrlist){
+                                                                rule.destcidrlist = ' ';
+                                                            }
                                                             return rule;
                                                         })
                                                     });
