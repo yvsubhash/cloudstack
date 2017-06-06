@@ -202,6 +202,7 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
     private int _additionalPortRangeSize;
     private int _routerExtraPublicNics = 2;
     private int _vCenterSessionTimeout = 1200000; // Timeout in milliseconds
+    private int _snapshotBackupSessionTimeout = 1200000; // Timeout in milliseconds
 
     private String _rootDiskController = DiskControllerType.ide.toString();
 
@@ -311,6 +312,9 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
 
         _vCenterSessionTimeout = NumbersUtil.parseInt(_configDao.getValue(Config.VmwareVcenterSessionTimeout.key()), 1200) * 1000;
         s_logger.info("VmwareManagerImpl config - vmware.vcenter.session.timeout: " + _vCenterSessionTimeout);
+
+        _snapshotBackupSessionTimeout = NumbersUtil.parseInt(_configDao.getValue(Config.VmwareSnapshotBackupSessionTimeout.key()), 1200) * 1000;
+        s_logger.info("VmwareManagerImpl config - vmware.snapshot.backup.session.timeout: " + _snapshotBackupSessionTimeout);
 
         _recycleHungWorker = _configDao.getValue(Config.VmwareRecycleHungWorker.key());
         if (_recycleHungWorker == null || _recycleHungWorker.isEmpty()) {
@@ -558,6 +562,8 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
         params.put("vmware.data.disk.controller", _dataDiskController);
         params.put("vmware.recycle.hung.wokervm", _recycleHungWorker);
         params.put("ports.per.dvportgroup", _portsPerDvPortGroup);
+        params.put("vmware.vcenter.session.timeout", _vCenterSessionTimeout);
+        params.put("vmware.snapshot.backup.session.timeout", _snapshotBackupSessionTimeout);
     }
 
     @Override
@@ -1059,6 +1065,11 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
     }
 
     @Override
+    public int getSnapshotBackupSessionTimeout() {
+        return _snapshotBackupSessionTimeout;
+    }
+
+    @Override
     public List<Class<?>> getCommands() {
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(AddVmwareDcCmd.class);
@@ -1138,7 +1149,7 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
         String guid;
         ManagedObjectReference dcMor;
         try {
-            context = VmwareContextFactory.create(vCenterHost, userName, password);
+            context = VmwareContextFactory.create(vCenterHost, userName, password, _vCenterSessionTimeout);
 
             // Check if DC exists on vCenter
             dcMo = new DatacenterMO(context, vmwareDcName);
@@ -1235,7 +1246,7 @@ public class VmwareManagerImpl extends ManagerBase implements VmwareManager, Vmw
         // Construct context
         VmwareContext context = null;
         try {
-            context = VmwareContextFactory.create(vCenterHost, userName, password);
+            context = VmwareContextFactory.create(vCenterHost, userName, password, _vCenterSessionTimeout);
 
             // Check if DC exists on vCenter
             try {

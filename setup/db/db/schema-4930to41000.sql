@@ -247,3 +247,5 @@ CREATE TABLE `cloud`.`guest_os_details` (
 
 ALTER TABLE `user_ip_address` ADD COLUMN `rule_state` VARCHAR(32) COMMENT 'static  rule state while removing';
 UPDATE   `cloud`.`network_offerings` set traffic_type='PrivateGw' where id=5;
+
+INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'vmware.snapshot.backup.session.timeout', '1200', 'VMware client timeout in seconds for snapshot backup', '1200');
