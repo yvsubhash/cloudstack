@@ -22,39 +22,38 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import javax.ejb.Local;
 import javax.inject.Inject;
 
 import org.apache.log4j.Logger;
 
 import com.cloud.baremetal.database.BaremetalDhcpVO;
 import com.cloud.dc.DataCenter.NetworkType;
-import com.cloud.dc.Pod;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.host.Host;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
-import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.Network.Service;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.element.DhcpServiceProvider;
+import com.cloud.network.element.NetworkElement;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.QueryBuilder;
 import com.cloud.utils.db.SearchCriteria.Op;
 import com.cloud.vm.NicProfile;
-import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine.Type;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 
+@Local(value = NetworkElement.class)
 public class BaremetalDhcpElement extends AdapterBase implements DhcpServiceProvider {
     private static final Logger s_logger = Logger.getLogger(BaremetalDhcpElement.class);
     private static final Map<Service, Map<Capability, String>> capabilities;
@@ -83,11 +82,10 @@ public class BaremetalDhcpElement extends AdapterBase implements DhcpServiceProv
         return BaremetalDhcpManager.BAREMETAL_DHCP_SERVICE_PROVIDER;
     }
 
-    private boolean canHandle(DeployDestination dest, TrafficType trafficType, GuestType networkType) {
-        Pod pod = dest.getPod();
-        if (pod != null && dest.getDataCenter().getNetworkType() == NetworkType.Basic && trafficType == TrafficType.Guest) {
+    private boolean canHandle(DeployDestination dest, TrafficType trafficType, Long physicalNetworkId) {
+        if (physicalNetworkId != null && dest.getDataCenter().getNetworkType() == NetworkType.Basic && trafficType == TrafficType.Guest) {
             QueryBuilder<BaremetalDhcpVO> sc = QueryBuilder.create(BaremetalDhcpVO.class);
-            sc.and(sc.entity().getPodId(), Op.EQ, pod.getId());
+            sc.and(sc.entity().getPhysicalNetworkId(), Op.EQ, physicalNetworkId);
             return sc.find() != null;
         }
 
@@ -97,7 +95,7 @@ public class BaremetalDhcpElement extends AdapterBase implements DhcpServiceProv
     @Override
     public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
         ResourceUnavailableException, InsufficientCapacityException {
-        if (offering.isSystemOnly() || !canHandle(dest, offering.getTrafficType(), network.getGuestType())) {
+        if (offering.isSystemOnly() || !canHandle(dest, offering.getTrafficType(), network.getPhysicalNetworkId())) {
             s_logger.debug("BaremetalDhcpElement can not handle networkoffering: " + offering.getName());
             return false;
         }
@@ -108,16 +106,10 @@ public class BaremetalDhcpElement extends AdapterBase implements DhcpServiceProv
     @DB
     public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile vm, DeployDestination dest, ReservationContext context)
         throws ConcurrentOperationException, ResourceUnavailableException, InsufficientCapacityException {
-        Host host = dest.getHost();
         if (vm.getType() != Type.User || vm.getHypervisorType() != HypervisorType.BareMetal) {
             return false;
         }
 
-        nic.setMacAddress(host.getPrivateMacAddress());
-        NicVO vo = _nicDao.findById(nic.getId());
-        assert vo != null : "Where ths nic " + nic.getId() + " going???";
-        vo.setMacAddress(nic.getMacAddress());
-        _nicDao.update(vo.getId(), vo);
         return true;
     }
 
@@ -161,7 +153,7 @@ public class BaremetalDhcpElement extends AdapterBase implements DhcpServiceProv
     @Override
     public boolean addDhcpEntry(Network network, NicProfile nic, VirtualMachineProfile vm, DeployDestination dest, ReservationContext context)
         throws ConcurrentOperationException, InsufficientCapacityException, ResourceUnavailableException {
-        if (vm.getHypervisorType() != HypervisorType.BareMetal || !canHandle(dest, network.getTrafficType(), network.getGuestType())) {
+        if (vm.getHypervisorType() != HypervisorType.BareMetal || !canHandle(dest, network.getTrafficType(), network.getPhysicalNetworkId())) {
             return false;
         }
         return _dhcpMgr.addVirtualMachineIntoNetwork(network, nic, vm, dest, context);

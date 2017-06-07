@@ -15814,6 +15814,7 @@
                                                     $form.find('.form-item[rel=baremetalCpu]').hide();
                                                     $form.find('.form-item[rel=baremetalMemory]').hide();
                                                     $form.find('.form-item[rel=baremetalMAC]').hide();
+                                                    $form.find('.form-item[rel=baremetalAdditionalMACs]').hide();
 
                                                     //$('li[input_group="Ovm"]', $dialogAddHost).hide();
                                                     $form.find('.form-item[rel=agentUsername]').hide();
@@ -15837,6 +15838,7 @@
                                                     $form.find('.form-item[rel=baremetalCpu]').css('display', 'inline-block');
                                                     $form.find('.form-item[rel=baremetalMemory]').css('display', 'inline-block');
                                                     $form.find('.form-item[rel=baremetalMAC]').css('display', 'inline-block');
+                                                    $form.find('.form-item[rel=baremetalAdditionalMACs]').css('display', 'inline-block');
 
                                                     //$('li[input_group="vmware"]', $dialogAddHost).hide();
                                                     $form.find('.form-item[rel=vcenterHost]').hide();
@@ -15866,6 +15868,7 @@
                                                     $form.find('.form-item[rel=baremetalCpu]').hide();
                                                     $form.find('.form-item[rel=baremetalMemory]').hide();
                                                     $form.find('.form-item[rel=baremetalMAC]').hide();
+                                                    $form.find('.form-item[rel=baremetalAdditionalMACs]').hide();
 
                                                     //$('li[input_group="Ovm"]', $dialogAddHost).show();
                                                     $form.find('.form-item[rel=agentUsername]').css('display', 'inline-block');
@@ -15893,6 +15896,7 @@
                                                     $form.find('.form-item[rel=baremetalCpu]').hide();
                                                     $form.find('.form-item[rel=baremetalMemory]').hide();
                                                     $form.find('.form-item[rel=baremetalMAC]').hide();
+                                                    $form.find('.form-item[rel=baremetalAdditionalMACs]').hide();
 
                                                      //$('li[input_group="Ovm3"]', $dialogAddHost).show();
                                                     $form.find('.form-item[rel=agentUsername]').css('display', 'inline-block');
@@ -15917,6 +15921,7 @@
                                                     $form.find('.form-item[rel=baremetalCpu]').hide();
                                                     $form.find('.form-item[rel=baremetalMemory]').hide();
                                                     $form.find('.form-item[rel=baremetalMAC]').hide();
+                                                    $form.find('.form-item[rel=baremetalAdditionalMACs]').hide();
 
                                                     //$('li[input_group="Ovm"]', $dialogAddHost).hide();
                                                     $form.find('.form-item[rel=agentUsername]').hide();
@@ -16057,6 +16062,15 @@
                                         },
                                         isHidden: true
                                     },
+                                    baremetalAdditionalMACs: {
+                                        label: 'label.additional.macs',
+                                        docID: 'helpAdditionalMacs',
+                                        validation: {
+                                            required: false
+                                        },
+                                        isHidden: true,
+                                        isTextarea: true
+                                    },
                                     //input_group="BareMetal" ends here
 
                                     //input_group="OVM" starts here
@@ -16177,7 +16191,8 @@
                                             cpunumber: args.data.baremetalCpuCores,
                                             cpuspeed: args.data.baremetalCpu,
                                             memory: args.data.baremetalMemory,
-                                            hostmac: args.data.baremetalMAC
+                                            hostmac: args.data.baremetalMAC,
+                                            additionalmacs: args.data.baremetalAdditionalMACs
                                         });
                                     } else if (selectedClusterObj.hypervisortype == "Ovm") {
                                         $.extend(data, {

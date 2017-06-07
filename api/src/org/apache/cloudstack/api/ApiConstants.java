@@ -659,6 +659,8 @@ public class ApiConstants {
     public static final String DURATION_RUNNING = "duration";
     public static final String NETSCALER_CONTROLCENTER_ID = "netscalercontrolcenterid";
     public static final String NETSCALER_SERVICEPACKAGE_ID = "netscalerservicepackageid";
+    public static final String ADDITIONAL_MACS = "additionalmacs";
+
     public static final String ADMIN = "admin";
 
     public enum HostDetails {

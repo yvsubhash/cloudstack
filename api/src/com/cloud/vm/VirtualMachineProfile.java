@@ -75,7 +75,7 @@ public interface VirtualMachineProfile {
 
         @Override
         public int hashCode() {
-            return this.getName() != null ? this.getName().hashCode() : 0;
+            return getName() != null ? getName().hashCode() : 0;
         }
 
         @Override
@@ -87,7 +87,7 @@ public interface VirtualMachineProfile {
             if (getClass() != obj.getClass())
                 return false;
             Param other = (Param) obj;
-            return (other.getName().equals(this.getName()));
+            return (other.getName().equals(getName()));
         }
     }
 
@@ -174,4 +174,5 @@ public interface VirtualMachineProfile {
 
     Float getMemoryOvercommitRatio();
 
+    List<Nic> getBareVmNics();
 }

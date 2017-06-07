@@ -16,18 +16,8 @@
 // under the License.
 package com.cloud.baremetal.manager;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.inject.Inject;
-import javax.naming.ConfigurationException;
-
-import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
-import org.apache.log4j.Logger;
-
 import com.cloud.capacity.CapacityManager;
 import com.cloud.dc.ClusterDetailsDao;
-import com.cloud.dc.ClusterDetailsVO;
 import com.cloud.dc.ClusterVO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.Pod;
@@ -44,11 +34,25 @@ import com.cloud.host.dao.HostDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.offering.ServiceOffering;
 import com.cloud.org.Cluster;
-import com.cloud.resource.ResourceManager;
 import com.cloud.utils.component.AdapterBase;
+import com.cloud.utils.exception.CloudRuntimeException;
+import com.cloud.vm.Nic;
+import com.cloud.vm.NicVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.NicDao;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.log4j.Logger;
 
+import javax.ejb.Local;
+import javax.inject.Inject;
+import javax.naming.ConfigurationException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+@Local(value = DeploymentPlanner.class)
 public class BareMetalPlanner extends AdapterBase implements DeploymentPlanner {
     private static final Logger s_logger = Logger.getLogger(BareMetalPlanner.class);
     @Inject
@@ -64,19 +68,34 @@ public class BareMetalPlanner extends AdapterBase implements DeploymentPlanner {
     @Inject
     protected CapacityManager _capacityMgr;
     @Inject
-    protected ResourceManager _resourceMgr;
-    @Inject
     protected ClusterDetailsDao _clusterDetailsDao;
+    @Inject
+    protected NicDao _nicDao;
+
+    private boolean markHostAsUsed(HostVO host, VirtualMachineProfile vm) {
+        // Note: if vm fails to start, the cleanup code is in
+        // BaremetalManagerImpl.postStateTransitionEvent
+        _hostDao.acquireInLockTable(host.getId(), 600);
+        try {
+            if (host.getDetail("vmName") != null) {
+                return false;
+            }
+
+            host.setDetail("vmName", vm.getInstanceName());
+            _hostDao.saveDetails(host);
+            return true;
+        } finally {
+            _hostDao.releaseFromLockTable(host.getId());
+        }
+    }
 
     @Override
     public DeployDestination plan(VirtualMachineProfile vmProfile, DeploymentPlan plan, ExcludeList avoid) throws InsufficientServerCapacityException {
         VirtualMachine vm = vmProfile.getVirtualMachine();
         ServiceOffering offering = vmProfile.getServiceOffering();
-        String hostTag = null;
+        List<Nic> vmNics = vmProfile.getBareVmNics();
 
-        String haVmTag = (String)vmProfile.getParameter(VirtualMachineProfile.Param.HaTag);
-
-        if (vm.getLastHostId() != null && haVmTag == null) {
+        if (vm.getLastHostId() != null) {
             HostVO h = _hostDao.findById(vm.getLastHostId());
             DataCenter dc = _dcDao.findById(h.getDataCenterId());
             Pod pod = _podDao.findById(h.getPodId());
@@ -85,67 +104,74 @@ public class BareMetalPlanner extends AdapterBase implements DeploymentPlanner {
             return new DeployDestination(dc, pod, c, h);
         }
 
-        if (haVmTag != null) {
-            hostTag = haVmTag;
-        } else if (offering.getHostTag() != null) {
-            String[] tags = offering.getHostTag().split(",");
-            if (tags.length > 0) {
-                hostTag = tags[0];
-            }
+        if (offering.getHostTag() == null) {
+            throw new CloudRuntimeException("baremetal computing offering must have a host tag");
         }
 
+        String[] tags = offering.getHostTag().split(",");
+        if (tags.length == 0) {
+            throw new CloudRuntimeException("baremetal computing offering must have a host tag");
+        }
+
+        String hostTag = tags[0];
         List<ClusterVO> clusters = _clusterDao.listByDcHyType(vm.getDataCenterId(), HypervisorType.BareMetal.toString());
-        int cpu_requested;
-        long ram_requested;
-        HostVO target = null;
         List<HostVO> hosts;
         for (ClusterVO cluster : clusters) {
-            hosts = _resourceMgr.listAllUpAndEnabledHosts(Host.Type.Routing, cluster.getId(), cluster.getPodId(), cluster.getDataCenterId());
-            if (hostTag != null) {
-                for (HostVO h : hosts) {
-                    _hostDao.loadDetails(h);
-                    if (h.getDetail("hostTag") != null && h.getDetail("hostTag").equalsIgnoreCase(hostTag)) {
-                        target = h;
-                        break;
+            hosts = _hostDao.listByHostTag(Host.Type.Routing, cluster.getId(), cluster.getPodId(), cluster.getDataCenterId(), hostTag);
+            for (HostVO h : hosts) {
+                _hostDao.loadDetails(h);
+                if (h.getDetail("vmName") != null) {
+                    s_logger.debug(String.format("skip baremetal host[id:%s] as it already has vm[%s]", h.getId(), h.getDetail("vmName")));
+                    continue;
+                }
+
+                List <String> macsList = new ArrayList<String>();
+
+                String macs = h.getDetail("additionalmacs");
+                if (macs != null) {
+                    macsList.addAll(Arrays.asList(macs.split(",")));
+                }
+
+                int nicsCount = vmNics.size();
+                // host nics should be less than or equal to the vm nics
+                s_logger.debug(String.format("Baremetal host[id:%s] has %d additional macs and vm nics count %d excluding default nic", h.getId(), macsList.size(), nicsCount -1));
+
+
+                if (nicsCount > 1) {
+                    if (!(nicsCount - 1 <= macsList.size())) {
+                        s_logger.debug(String.format("skip baremetal host[id:%s] as it has only %d additional nics but the required vm nics are %d excluding default nic", h.getId(), macsList.size(),
+                                nicsCount - 1));
+                        continue;
                     }
                 }
-            }
-        }
 
-        if (target == null) {
-            s_logger.warn("Cannot find host with tag " + hostTag + " use capacity from service offering");
-            cpu_requested = offering.getCpu() * offering.getSpeed();
-            ram_requested = offering.getRamSize() * 1024L * 1024L;
-        } else {
-            cpu_requested = target.getCpus() * target.getSpeed().intValue();
-            ram_requested = target.getTotalMemory();
-        }
+                s_logger.debug("Found host " + h.getId() + " has enough capacity");
+                DataCenter dc = _dcDao.findById(h.getDataCenterId());
+                Pod pod = _podDao.findById(h.getPodId());
+                if (!markHostAsUsed(h, vmProfile)) {
+                    s_logger.debug(String.format("failed to take host[id:%s], someone else took it; let's find another one", h.getId()));
+                    continue;
+                } //add the nic details here
+                List<NicVO> nicLIst = _nicDao.listByVmId(vmProfile.getId());
 
-        for (ClusterVO cluster : clusters) {
-            if (haVmTag == null) {
-                hosts = _resourceMgr.listAllUpAndEnabledNonHAHosts(Host.Type.Routing, cluster.getId(), cluster.getPodId(), cluster.getDataCenterId());
-            } else {
-                s_logger.warn("Cannot find HA host with tag " + haVmTag + " in cluster id=" + cluster.getId() + ", pod id=" + cluster.getPodId() + ", data center id=" +
-                    cluster.getDataCenterId());
-                return null;
-            }
-            for (HostVO h : hosts) {
-                long cluster_id = h.getClusterId();
-                ClusterDetailsVO cluster_detail_cpu = _clusterDetailsDao.findDetail(cluster_id, "cpuOvercommitRatio");
-                ClusterDetailsVO cluster_detail_ram = _clusterDetailsDao.findDetail(cluster_id, "memoryOvercommitRatio");
-                Float cpuOvercommitRatio = Float.parseFloat(cluster_detail_cpu.getValue());
-                Float memoryOvercommitRatio = Float.parseFloat(cluster_detail_ram.getValue());
+                int i = 0;
+                for (NicVO nic: nicLIst) {
 
-                if (_capacityMgr.checkIfHostHasCapacity(h.getId(), cpu_requested, ram_requested, false, cpuOvercommitRatio, memoryOvercommitRatio, true)) {
-                    s_logger.debug("Find host " + h.getId() + " has enough capacity");
-                    DataCenter dc = _dcDao.findById(h.getDataCenterId());
-                    Pod pod = _podDao.findById(h.getPodId());
-                    return new DeployDestination(dc, pod, cluster, h);
+                    if (nic.isDefaultNic()) {
+                        //set the hostmac to nic
+                        nic.setMacAddress(h.getPrivateMacAddress());
+                    } else {
+                        //set the mac from the additional macs;
+                        nic.setMacAddress(macsList.get(i));
+                        i++;
+                    }
+                    _nicDao.update(nic.getId(), nic);
                 }
+                return new DeployDestination(dc, pod, cluster, h);
             }
         }
 
-        s_logger.warn(String.format("Cannot find enough capacity(requested cpu=%1$s memory=%2$s)", cpu_requested, ram_requested));
+        s_logger.warn("Cannot find host with tag " + hostTag + " use capacity from service offering");
         return null;
     }
 

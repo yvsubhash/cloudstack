@@ -25,6 +25,8 @@ import javax.inject.Inject;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.vm.NicVO;
+import com.cloud.vm.dao.NicDao;
 import org.apache.cloudstack.affinity.dao.AffinityGroupVMMapDao;
 import org.apache.cloudstack.engine.cloud.entity.api.db.VMEntityVO;
 import org.apache.cloudstack.engine.cloud.entity.api.db.VMReservationVO;
@@ -116,6 +118,8 @@ public class VMEntityManagerImpl implements VMEntityManager {
     protected AffinityGroupVMMapDao _affinityGroupVMMapDao;
     @Inject
     DeploymentPlanningManager _planningMgr;
+    @Inject
+    protected NicDao _nicDao;
 
     @Override
     public VMEntityVO loadVirtualMachine(String vmId) {
@@ -191,6 +195,10 @@ public class VMEntityManagerImpl implements VMEntityManager {
         while (true) {
             DeployDestination dest = null;
             try {
+                List<NicVO> nics = _nicDao.listByVmId(vmProfile.getVirtualMachine().getId());
+
+                vmProfile.getBareVmNics().addAll(nics);
+
                 dest = _dpMgr.planDeployment(vmProfile, plan, exclude, plannerToUse);
             } catch (AffinityConflictException e) {
                 throw new CloudRuntimeException("Unable to create deployment, affinity rules associated to the VM conflict");

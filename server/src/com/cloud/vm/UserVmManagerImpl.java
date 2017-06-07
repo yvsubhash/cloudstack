@@ -3335,6 +3335,14 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             }
         }
 
+        if (affinityGroupIdList != null) {
+            if (hypervisorType == HypervisorType.BareMetal) {
+                throw new InvalidParameterValueException("Affinity groups is not supported for the Hypervisor type of Baremetal");
+            }
+        }
+
+        // for baremetal validate the additional mac
+
         if (template.getTemplateType().equals(TemplateType.SYSTEM)) {
             throw new InvalidParameterValueException("Unable to use system template " + template.getId() + " to deploy a user vm");
         }
