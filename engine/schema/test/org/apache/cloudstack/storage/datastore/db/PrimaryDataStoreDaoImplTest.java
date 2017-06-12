@@ -17,14 +17,11 @@
 package org.apache.cloudstack.storage.datastore.db;
 
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDaoImpl.ValueType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,20 +32,11 @@ import org.mockito.Spy;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.cloud.storage.ScopeType;
-import com.cloud.storage.dao.StoragePoolHostDao;
-import com.cloud.storage.dao.StoragePoolTagsDao;
 
 import junit.framework.TestCase;
 
 @RunWith(PowerMockRunner.class)
 public class PrimaryDataStoreDaoImplTest extends TestCase {
-
-    @Mock
-    StoragePoolDetailsDao _detailsDao;
-    @Mock
-    StoragePoolHostDao _hostDao;
-    @Mock
-    StoragePoolTagsDao _tagsDao;
 
     @Spy
     @InjectMocks
@@ -72,10 +60,6 @@ public class PrimaryDataStoreDaoImplTest extends TestCase {
     private static final String SQL_SUFFIX = "ZZZZZZZZZZZZZZZZ";
     private static final String SQL_VALUES = "YYYYYYYYYYYYYYYY";
 
-    private static final Long DATACENTER_ID = 1l;
-    private static final Long POD_ID = 1l;
-    private static final Long CLUSTER_ID = null;
-    private static final ScopeType SCOPE = ScopeType.ZONE;
 
     @Before
     public void setup() {
