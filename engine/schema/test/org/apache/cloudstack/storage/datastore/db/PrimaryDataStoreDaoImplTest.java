@@ -128,24 +128,4 @@ public class PrimaryDataStoreDaoImplTest extends TestCase {
         String sqlPreparedStatement = primaryDataStoreDao.getSqlPreparedStatement(SQL_PREFIX, SQL_SUFFIX, SQL_VALUES, 1l, null);
         assertEquals(SQL_PREFIX + clusterSql + SQL_VALUES + SQL_SUFFIX, sqlPreparedStatement);
     }
-
-    @Test
-    public void testFindPoolsByDetailsOrTagsInternalStorageTagsType() {
-        List<StoragePoolVO> storagePools = primaryDataStoreDao.findPoolsByDetailsOrTagsInternal(DATACENTER_ID, POD_ID, CLUSTER_ID, SCOPE, SQL_VALUES, ValueType.TAGS, STORAGE_TAGS_ARRAY.length);
-        assertEquals(Arrays.asList(storagePoolVO), storagePools);
-        verify(primaryDataStoreDao).getSqlPreparedStatement(
-                primaryDataStoreDao.TagsSqlPrefix, primaryDataStoreDao.TagsSqlSuffix, SQL_VALUES, CLUSTER_ID, null);
-        String expectedSql = primaryDataStoreDao.TagsSqlPrefix + SQL_VALUES + primaryDataStoreDao.TagsSqlSuffix;
-        verify(primaryDataStoreDao).searchStoragePoolsPreparedStatement(expectedSql, DATACENTER_ID, POD_ID, CLUSTER_ID, SCOPE, STORAGE_TAGS_ARRAY.length);
-    }
-
-    @Test
-    public void testFindPoolsByDetailsOrTagsInternalDetailsType() {
-        List<StoragePoolVO> storagePools = primaryDataStoreDao.findPoolsByDetailsOrTagsInternal(DATACENTER_ID, POD_ID, CLUSTER_ID, SCOPE, SQL_VALUES, ValueType.DETAILS, STORAGE_POOL_DETAILS.size());
-        assertEquals(Arrays.asList(storagePoolVO), storagePools);
-        verify(primaryDataStoreDao).getSqlPreparedStatement(
-                primaryDataStoreDao.DetailsSqlPrefix, primaryDataStoreDao.DetailsSqlSuffix, SQL_VALUES, CLUSTER_ID, null);
-        String expectedSql = primaryDataStoreDao.DetailsSqlPrefix + SQL_VALUES + primaryDataStoreDao.DetailsSqlSuffix;
-        verify(primaryDataStoreDao).searchStoragePoolsPreparedStatement(expectedSql, DATACENTER_ID, POD_ID, CLUSTER_ID, SCOPE, STORAGE_POOL_DETAILS.size());
-    }
 }
