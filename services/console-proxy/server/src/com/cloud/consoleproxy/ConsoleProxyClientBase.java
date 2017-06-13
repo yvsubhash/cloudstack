@@ -126,6 +126,11 @@ public abstract class ConsoleProxyClientBase implements ConsoleProxyClient, Cons
     }
 
     @Override
+    public String getLocale() {
+        return clientParam.getLocale();
+    }
+
+    @Override
     public String getClientTag() {
         if (clientParam.getClientTag() != null)
             return clientParam.getClientTag();

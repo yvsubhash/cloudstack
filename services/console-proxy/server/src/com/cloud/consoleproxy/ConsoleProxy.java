@@ -477,6 +477,11 @@ public class ConsoleProxy {
                         !param.getClientHostPassword().equals(viewer.getClientHostPassword()))
                     throw new AuthenticationException("Cannot use the existing viewer " + viewer + ": bad sid");
 
+                if (param.getLocale() != null && !param.getLocale().equals(viewer.getLocale())) {
+                    viewer.initClient(param);
+                    reportLoadChange = true;
+                }
+
                 if (!viewer.isFrontEndAlive()) {
 
                     authenticationExternally(param);

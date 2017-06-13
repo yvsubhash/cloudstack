@@ -72,6 +72,8 @@ public interface ConsoleProxyClient {
 
     String getClientTag();
 
+    String getLocale();
+
     //
     // Setup/house-keeping
     //
