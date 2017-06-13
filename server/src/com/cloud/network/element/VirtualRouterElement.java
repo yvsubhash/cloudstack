@@ -100,7 +100,7 @@ import com.cloud.utils.crypt.DBEncryptionUtil;
 import com.cloud.utils.db.QueryBuilder;
 import com.cloud.utils.db.SearchCriteria.Op;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.cloud.utils.net.NetUtils;
+import com.cloud.configuration.Config;
 import com.cloud.vm.DomainRouterVO;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
@@ -338,11 +338,14 @@ NetworkMigrationResponder, AggregatedCommandExecutor, RedundantResource, DnsServ
         return true;
     }
 
-    public static boolean validateHAProxyLBRule(final LoadBalancingRule rule) {
+    public boolean validateHAProxyLBRule(final LoadBalancingRule rule) {
         final String timeEndChar = "dhms";
 
-        if (rule.getSourcePortStart() == NetUtils.HAPROXY_STATS_PORT) {
-            s_logger.debug("Can't create LB on port 8081, haproxy is listening for  LB stats on this port");
+        int haproxy_stats_port = Integer.parseInt(_configDao.getValue(Config.NetworkLBHaproxyStatsPort.key()));
+        if (rule.getSourcePortStart() == haproxy_stats_port) {
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Can't create LB on port "+ haproxy_stats_port +", haproxy is listening for  LB stats on this port");
+            }
             return false;
         }
 
