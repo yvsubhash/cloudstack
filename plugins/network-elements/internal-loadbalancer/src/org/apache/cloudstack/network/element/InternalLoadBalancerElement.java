@@ -413,7 +413,8 @@ public class InternalLoadBalancerElement extends AdapterBase implements LoadBala
             if (routers == null || routers.isEmpty()) {
                 return true;
             }
-            return VirtualRouterElement.validateHAProxyLBRule(rule);
+            VirtualRouterElement virtualRouterElement = new VirtualRouterElement();
+            return virtualRouterElement.validateHAProxyLBRule(rule);
         }
         return true;
     }
