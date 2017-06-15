@@ -1,4 +1,4 @@
-// Licensed to the Apache Software Foundation (ASF) under one
+    // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
 // regarding copyright ownership.  The ASF licenses this file
@@ -2174,6 +2174,7 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
     @ActionEvent(eventType = EventTypes.EVENT_SNAPSHOT_CREATE, eventDescription = "taking snapshot", async = true)
     public Snapshot takeSnapshot(Long volumeId, Long policyId, Long snapshotId, Account account, boolean quiescevm, Snapshot.LocationType locationType)
             throws ResourceAllocationException {
+
         VolumeInfo volume = getVolumeInfoToTakeSnapshot(volumeId);
 
         StoragePoolVO storagePoolVO = _storagePoolDao.findById(volume.getPoolId());
@@ -2301,11 +2302,11 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
             throw new InvalidParameterValueException("Creating snapshot failed due to volume: " + volumeId + " doesn't exist");
         }
 
-        if (volume.getState() != Volume.State.Ready && volume.getState() != Volume.State.Snapshotting) {
+        if ((volume.getState() != Volume.State.Ready && volume.getState() != Volume.State.Snapshotting) ||
+                    ((volume.getInstanceId() != null && volume.getState() != Volume.State.Ready))) {
             throw new InvalidParameterValueException("VolumeId: " + volumeId + " is not in " + Volume.State.Ready + " or " + Volume.State.Snapshotting + " state but "
                     + volume.getState() + ". Cannot take snapshot.");
         }
-
         return volume;
     }
 
