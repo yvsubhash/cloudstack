@@ -6596,6 +6596,284 @@
                         }
                     }
                 }
+            },
+            vpnuser: {
+                type: 'select',
+                title: 'label.vpn.users',
+                listView: {
+                    id: 'vpnUsers',
+                    label: 'label.vpn.users',
+                    fields: {
+                        username: {
+                            label: 'label.name'
+                        },
+                        domain: {
+                            label: 'label.domain'
+                        },
+                        state: {
+                            label: 'label.state'
+                        }
+                    },
+
+                    dataProvider: function(args) {
+                        var data = {};
+                        listViewDataProvider(args, data);
+
+                        $.ajax({
+                            url: createURL('listVpnUsers'),
+                            data: data,
+                            dataType: 'json',
+                            success: function(json) {
+                                var items = json.listvpnusersresponse.vpnuser;
+                                args.response.success({
+                                    data: items
+                                });
+                            }
+                        });
+                    },
+
+                    actions:{
+                        destroy: {
+                            label: 'label.action.delete.user',
+                            messages: {
+                                confirm: function(args) {
+                                    return 'message.action.delete.vpn.user'
+                                },
+                                notification: function(args) {
+                                    return 'label.delete.vpn.user'
+                                }
+                            },
+                            action: function(args) {
+                                console.log(args.context);
+                                $.ajax({
+                                    url: createURL('removeVpnUser'),
+                                    data: {
+                                        domainid: args.context.vpnuser[0].domainid,
+                                        account: args.context.vpnuser[0].account,
+                                        username: args.context.vpnuser[0].username
+                                    },
+                                    dataType: 'json',
+                                    async: true,
+                                    success: function(json) {
+                                        var jobID = json.removevpnuserresponse.jobid;
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: jobID
+                                            }
+                                        });
+                                    }
+                                });
+                            },
+                            notification: {
+                                poll: pollAsyncJobResult
+                            }
+                        },
+                        add: {
+                            label: 'label.add.user',
+                            messages: {
+                                notification: function(args) {
+                                    return 'label.add.vpn.user';
+                                }
+                            },
+                            createForm:{
+                                title: 'label.add.vpn.user',
+                                fields: {
+                                    username: {
+                                        edit: true,
+                                        label: 'label.username',
+                                        validation: {
+                                            required: true
+                                        }
+                                    },
+                                    password: {
+                                        edit: true,
+                                        isPassword: true,
+                                        label: 'label.password',
+                                        validation: {
+                                            required: true
+                                        }
+                                    },
+                                    domain: {
+                                        label: 'label.domain',
+                                        isHidden: function(args) {
+                                            if (isAdmin() || isDomainAdmin())
+                                                return false;
+                                            else
+                                                return true;
+                                        },
+                                        select: function(args) {
+                                            if (isAdmin() || isDomainAdmin()) {
+                                                $.ajax({
+                                                    url: createURL("listDomains&listAll=true"),
+                                                    success: function(json) {
+                                                        var items = [];
+                                                        items.push({
+                                                            id: "",
+                                                            description: ""
+                                                        });
+                                                        var domainObjs = json.listdomainsresponse.domain;
+                                                        $(domainObjs).each(function() {
+                                                            items.push({
+                                                                id: this.id,
+                                                                description: this.path
+                                                            });
+                                                        });
+                                                        items.sort(function(a, b) {
+                                                            return a.description.localeCompare(b.description);
+                                                        });
+                                                        args.response.success({
+                                                            data: items
+                                                        });
+                                                    }
+                                                });
+                                                args.$select.change(function() {
+                                                    var $form = $(this).closest('form');
+                                                    if ($(this).val() == "") {
+                                                        $form.find('.form-item[rel=account]').hide();
+                                                    } else {
+                                                        $form.find('.form-item[rel=account]').css('display', 'inline-block');
+                                                    }
+                                                });
+                                            } else {
+                                                args.response.success({
+                                                    data: null
+                                                });
+                                            }
+                                        }
+                                    },
+                                    account: {
+                                        label: 'label.account',
+                                        validation: {
+                                            required: true
+                                        },
+                                        isHidden: function(args) {
+                                            if (isAdmin() || isDomainAdmin()) {
+                                                return false;
+                                            } else {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            action: function(args) {
+                                var data = {
+                                    username: args.data.username,
+                                    password: args.data.password
+                                };
+
+                                if (args.data.domain != null && args.data.domain.length > 0) {
+                                    $.extend(data, {
+                                        domainid: args.data.domain
+                                    });
+                                    if (args.data.account != null && args.data.account.length > 0) {
+                                        $.extend(data, {
+                                            account: args.data.account
+                                        });
+                                    }
+                                }
+
+                                $.ajax({
+                                    url: createURL('addVpnUser'),
+                                    data: data,
+                                    dataType: 'json',
+                                    async: true,
+                                    success: function(json) {
+                                        var jid = json.addvpnuserresponse.jobid;
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: jid,
+                                                getUpdatedItem: function(json) {
+                                                    return json.queryasyncjobresultresponse.jobresult.vpnuser;
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            },
+                            notification: {
+                                poll: pollAsyncJobResult
+                            }
+                        }
+                    },
+
+                    detailView: {
+                        name: 'label.details',
+                        actions: {
+                            destroy: {
+                                label: 'label.action.delete.user',
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.action.delete.vpn.user';
+                                    },
+                                    notification: function(args) {
+                                        return 'label.delete.vpn.user';
+                                    }
+                                },
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("removeVpnUser"),
+                                        data: {
+                                            domainid: args.context.vpnuser[0].domainid,
+                                            account: args.context.vpnuser[0].account,
+                                            username: args.context.vpnuser[0].username
+                                        },
+                                        dataType: 'json',
+                                        async: true,
+                                        success: function(json) {
+                                            var jid = json.removevpnuserresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            }
+                        },
+
+                        tabs: {
+                            details: {
+                                title: 'label.details',
+                                fields: [{
+                                    username: {
+                                        label: 'label.name',
+                                        validation: {
+                                            required: true
+                                        }
+                                    }
+                                }, {
+                                    domain: {
+                                        label: 'label.domain'
+                                    },
+                                    state: {
+                                        label: 'label.state'
+                                    },
+                                }],
+
+                                dataProvider: function(args) {
+                                    $.ajax({
+                                        url: createURL("listVpnUsers"),
+                                        data: {
+                                            id: args.context.vpnuser[0].id
+                                        },
+                                        success: function(json) {
+                                            var item = json.listvpnusersresponse.vpnuser[0];
+
+                                            args.response.success({
+                                                data: item
+                                            });
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     };
