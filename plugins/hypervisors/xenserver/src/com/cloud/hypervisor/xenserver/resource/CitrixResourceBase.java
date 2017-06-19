@@ -4951,10 +4951,17 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
         return null;
     }
 
-    public void shutdownVM(final Connection conn, final VM vm, final String vmName) throws XmlRpcException {
+    public void shutdownVM(final Connection conn, final VM vm, final String vmName, boolean isForcedStop) throws XmlRpcException {
         Task task = null;
+        String shutDownType = "shutdown";
         try {
-            task = vm.cleanShutdownAsync(conn);
+            if (isForcedStop) {
+                task = vm.hardShutdownAsync(conn);
+                shutDownType = "asynchronous hardshutdown";
+            }  else {
+                 task = vm.cleanShutdownAsync(conn);
+                 shutDownType = "asynchronous cleanshutdown";
+            }
             try {
                 // poll every 1 seconds , timeout after 10 minutes
                 waitForTask(conn, task, 1000, 10 * 60 * 1000);
@@ -4967,14 +4974,14 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
                 throw new CloudRuntimeException("Shutdown VM catch HandleInvalid and VM is not in HALTED state");
             }
         } catch (final XenAPIException e) {
-            s_logger.debug("Unable to cleanShutdown VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString());
+            s_logger.debug("Unable to do " + shutDownType + " on VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString());
             try {
                 VmPowerState state = vm.getPowerState(conn);
                 if (state == VmPowerState.RUNNING) {
                     try {
                         vm.hardShutdown(conn);
                     } catch (final Exception e1) {
-                        s_logger.debug("Unable to hardShutdown VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString());
+                        s_logger.debug("Unable to synchronously hardShutdown VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString());
                         state = vm.getPowerState(conn);
                         if (state == VmPowerState.RUNNING) {
                             forceShutdownVM(conn, vm);
@@ -4984,12 +4991,12 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
                 } else if (state == VmPowerState.HALTED) {
                     return;
                 } else {
-                    final String msg = "After cleanShutdown the VM status is " + state.toString() + ", that is not expected";
+                    final String msg = "After " + shutDownType + " the VM status is " + state.toString() + ", that is not expected";
                     s_logger.warn(msg);
                     throw new CloudRuntimeException(msg);
                 }
             } catch (final Exception e1) {
-                final String msg = "Unable to hardShutdown VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString();
+                final String msg = "Unable to synchronously hardShutdown VM(" + vmName + ") on host(" + _host.getUuid() + ") due to " + e.toString();
                 s_logger.warn(msg, e1);
                 throw new CloudRuntimeException(msg);
             }
