@@ -453,6 +453,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         VolumeObjectTO volume = (VolumeObjectTO)destData;
         DataStoreTO primaryStore = volume.getDataStore();
         DataStoreTO srcStore = template.getDataStore();
+        String searchExcludedFolders = cmd.getContextParam("searchexludefolders");
 
         try {
             VmwareContext context = hostService.getServiceContext(null);
@@ -484,7 +485,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                     String volumeDatastorePath = vmdkFilePair[0];
                     synchronized (this) {
                         s_logger.info("Delete file if exists in datastore to clear the way for creating the volume. file: " + volumeDatastorePath);
-                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vmdkName, dcMo);
+                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vmdkName, dcMo, searchExcludedFolders);
                         vmMo.createDisk(volumeDatastorePath, (int)(volume.getSize() / (1024L * 1024L)), morDatastore, -1);
                         vmMo.detachDisk(volumeDatastorePath, false);
                     }
@@ -530,14 +531,14 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 vmMo.destroy();
 
                 String srcFile = dsMo.getDatastorePath(vmdkName, true);
-                dsMo.deleteFile(srcFile, dcMo.getMor(), true);
+                dsMo.deleteFile(srcFile, dcMo.getMor(), true, searchExcludedFolders);
             }
             // restoreVM - move the new ROOT disk into corresponding VM folder
             VirtualMachineMO restoreVmMo = dcMo.findVm(volume.getVmName());
             if (restoreVmMo != null) {
                 String vmNameInVcenter = restoreVmMo.getName(); // VM folder name in datastore will be VM's name in vCenter.
                 if (dsMo.folderExists(String.format("[%s]", dsMo.getName()), vmNameInVcenter)) {
-                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmNameInVcenter, dsMo, vmdkFileBaseName);
+                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmNameInVcenter, dsMo, vmdkFileBaseName, searchExcludedFolders);
                 }
             }
 
@@ -634,8 +635,8 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
     }
 
-    private String getVolumePathInDatastore(DatastoreMO dsMo, String volumeFileName) throws Exception {
-        String datastoreVolumePath = dsMo.searchFileInSubFolders(volumeFileName, true);
+    private String getVolumePathInDatastore(DatastoreMO dsMo, String volumeFileName, String searchExcludedFolders) throws Exception {
+        String datastoreVolumePath = dsMo.searchFileInSubFolders(volumeFileName, true, searchExcludedFolders);
         assert (datastoreVolumePath != null) : "Virtual disk file missing from datastore.";
         return datastoreVolumePath;
     }
@@ -645,6 +646,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         VirtualMachineMO workerVm = null;
         VirtualMachineMO vmMo = null;
         String exportName = UUID.randomUUID().toString().replace("-", "");
+        String searchExcludedFolders = cmd.getContextParam("searchexludefolders");
 
         try {
             ManagedObjectReference morDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost, poolId);
@@ -668,7 +670,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 }
 
                 // attach volume to worker VM
-                String datastoreVolumePath = getVolumePathInDatastore(dsMo, volumePath + ".vmdk");
+                String datastoreVolumePath = getVolumePathInDatastore(dsMo, volumePath + ".vmdk", searchExcludedFolders);
                 workerVm.attachDisk(new String[] {datastoreVolumePath}, morDs);
                 vmMo = workerVm;
             }
@@ -693,6 +695,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         VolumeObjectTO srcVolume = (VolumeObjectTO)cmd.getSrcTO();
         VolumeObjectTO destVolume = (VolumeObjectTO)cmd.getDestTO();
         String vmName = srcVolume.getVmName();
+        String searchExcludedFolders = cmd.getContextParam("searchexludefolders");
 
         VmwareContext context = hostService.getServiceContext(cmd);
         try {
@@ -1384,7 +1387,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 if (isManaged) {
                     datastoreVolumePath = dsMo.getDatastorePath(dsMo.getName() + ".vmdk");
                 } else {
-                    datastoreVolumePath = VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dsMo.getOwnerDatacenter().first(), vmName, dsMo, volumeTO.getPath());
+                    datastoreVolumePath = VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dsMo.getOwnerDatacenter().first(), vmName, dsMo, volumeTO.getPath(), VmwareManager.s_vmwareSearchExcludeFolder.value());
                 }
             } else {
                 if (isManaged) {
@@ -1419,7 +1422,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 if (isManaged) {
                     handleDatastoreAndVmdkDetachManaged(diskUuid, iScsiName, storageHost, storagePort);
                 } else {
-                    VmwareStorageLayoutHelper.syncVolumeToRootFolder(dsMo.getOwnerDatacenter().first(), dsMo, volumeTO.getPath(), vmName);
+                    VmwareStorageLayoutHelper.syncVolumeToRootFolder(dsMo.getOwnerDatacenter().first(), dsMo, volumeTO.getPath(), vmName, VmwareManager.s_vmwareSearchExcludeFolder.value());
                 }
             }
 
@@ -1595,7 +1598,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                     }
                     catch (Exception e) {
                         s_logger.error("Deleting file " + volumeDatastorePath + " due to error: " + e.getMessage());
-                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, volumeUuid.toString(), dcMo);
+                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, volumeUuid.toString(), dcMo, VmwareManager.s_vmwareSearchExcludeFolder.value());
                         throw new CloudRuntimeException("Unable to create volume due to: " + e.getMessage());
                     }
                 }
@@ -1757,7 +1760,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 }
             }
 
-            VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vol.getPath(), new DatacenterMO(context, morDc));
+            VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vol.getPath(), new DatacenterMO(context, morDc), VmwareManager.s_vmwareSearchExcludeFolder.value());
 
             return new Answer(cmd, true, "Success");
         } catch (Throwable e) {
@@ -2433,7 +2436,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                     String volumeDatastorePath = vmdkFilePair[0];
                     synchronized (this) {
                         s_logger.info("Delete file if exists in datastore to clear the way for creating the volume. file: " + volumeDatastorePath);
-                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vmdkName, dcMo);
+                        VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vmdkName, dcMo, searchExcludedFolders);
                         vmMo.createDisk(volumeDatastorePath, (int)(volume.getSize() / (1024L * 1024L)), morDatastore, -1);
                         vmMo.detachDisk(volumeDatastorePath, false);
                     }
@@ -2481,13 +2484,13 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 vmMo.destroy();
 
                 String srcFile = dsMo.getDatastorePath(vmdkName, true);
-                dsMo.deleteFile(srcFile, dcMo.getMor(), true);
+                dsMo.deleteFile(srcFile, dcMo.getMor(), true, searchExcludedFolders);
             }
             VirtualMachineMO volVmMo = dcMo.findVm(volume.getVmName());
             if (volVmMo != null) {
                 String vmNameInVcenter = volVmMo.getName(); // VM folder name in datastore will be VM's name in vCenter.
                 if (dsMo.folderExists(String.format("[%s]", dsMo.getName()), vmNameInVcenter)) {
-                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmNameInVcenter, dsMo, vmdkFileBaseName);
+                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmNameInVcenter, dsMo, vmdkFileBaseName, searchExcludedFolders);
                 }
             }
 
