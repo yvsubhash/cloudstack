@@ -37,6 +37,7 @@ import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
+import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiConstants.HostDetails;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
 import org.apache.cloudstack.api.ResponseGenerator;
@@ -3145,6 +3146,7 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setEspLifetime(result.getEspLifetime());
         response.setDpd(result.getDpd());
         response.setEncap(result.getEncap());
+        response.setIkeVersion(result.getDetail(ApiConstants.IKE_VERSION) !=null ? Integer.parseInt(result.getDetail(ApiConstants.IKE_VERSION)) : null);
         response.setRemoved(result.getRemoved());
         response.setObjectName("vpncustomergateway");
 
