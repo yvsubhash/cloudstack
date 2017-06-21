@@ -61,7 +61,7 @@ public class NicDaoImpl extends GenericDaoBase<NicVO, Long> implements NicDao {
         AllFieldsSearch.and("network", AllFieldsSearch.entity().getNetworkId(), Op.EQ);
         AllFieldsSearch.and("gateway", AllFieldsSearch.entity().getIPv4Gateway(), Op.EQ);
         AllFieldsSearch.and("vmType", AllFieldsSearch.entity().getVmType(), Op.EQ);
-        AllFieldsSearch.and("address", AllFieldsSearch.entity().getIPv4Address(), Op.EQ);
+        AllFieldsSearch.and("address", AllFieldsSearch.entity().getIPv4Address(), Op.LIKE);
         AllFieldsSearch.and("isDefault", AllFieldsSearch.entity().isDefaultNic(), Op.EQ);
         AllFieldsSearch.and("broadcastUri", AllFieldsSearch.entity().getBroadcastUri(), Op.EQ);
         AllFieldsSearch.and("secondaryip", AllFieldsSearch.entity().getSecondaryIp(), Op.EQ);
@@ -330,5 +330,13 @@ public class NicDaoImpl extends GenericDaoBase<NicVO, Long> implements NicDao {
             return nicVo.getInstanceId();
         }
         return null;
+    }
+
+    @Override
+    public List<NicVO> listByVmIdAndKeyword(long instanceId, String keyword) {
+        SearchCriteria<NicVO> sc = AllFieldsSearch.create();
+        sc.setParameters("instance", instanceId);
+        sc.setParameters("address", "%" + keyword + "%");
+        return listBy(sc);
     }
 }
