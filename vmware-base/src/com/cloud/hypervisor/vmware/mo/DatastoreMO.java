@@ -166,7 +166,10 @@ public class DatastoreMO extends BaseMO {
     }
 
     public boolean deleteFile(String path, ManagedObjectReference morDc, boolean testExistence) throws Exception {
-        String datastoreName = getName();
+        return deleteFile(path, morDc, testExistence, null);
+    }
+
+    public boolean deleteFile(String path, ManagedObjectReference morDc, boolean testExistence, String excludeFolders) throws Exception {        String datastoreName = getName();
         ManagedObjectReference morFileManager = _context.getServiceContent().getFileManager();
 
         String fullPath = path;
@@ -180,7 +183,7 @@ public class DatastoreMO extends BaseMO {
 
         try {
             if (testExistence && !fileExists(fullPath)) {
-                String searchResult = searchFileInSubFolders(file.getFileName(), true);
+                String searchResult = searchFileInSubFolders(file.getFileName(), true, excludeFolders);
                 if (searchResult == null) {
                     return true;
                 } else {
@@ -352,6 +355,10 @@ public class DatastoreMO extends BaseMO {
     }
 
     public String searchFileInSubFolders(String fileName, boolean caseInsensitive) throws Exception {
+        return searchFileInSubFolders(fileName,caseInsensitive,null);
+    }
+
+    public String searchFileInSubFolders(String fileName, boolean caseInsensitive, String excludeFolders) throws Exception {
         String datastorePath = "[" + getName() + "]";
         String rootDirectoryFilePath = String.format("%s %s", datastorePath, fileName);
         if (fileExists(rootDirectoryFilePath)) {
