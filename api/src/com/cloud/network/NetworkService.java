@@ -189,7 +189,10 @@ public interface NetworkService {
     IpAddress updateIP(Long id, String customId, Boolean displayIp);
 
     boolean configureNicSecondaryIp(NicSecondaryIp secIp, boolean isZoneSgEnabled);
+
     AcquirePodIpCmdResponse allocatePodIp(Account account, String zoneId, String podId) throws ResourceAllocationException, ConcurrentOperationException;
 
     public boolean releasePodIp(ReleasePodIpCmdByAdmin ip) throws CloudRuntimeException;
+
+    List<? extends NicSecondaryIp> listVmNicSecondaryIps(ListNicsCmd listNicsCmd);
 }

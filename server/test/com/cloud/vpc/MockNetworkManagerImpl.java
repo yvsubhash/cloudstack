@@ -820,7 +820,7 @@ public class MockNetworkManagerImpl extends ManagerBase implements NetworkOrches
     }
 
     @Override
-    public List<? extends Nic> listVmNics(long vmId, Long nicId, Long networkId) {
+    public List<? extends Nic> listVmNics(long vmId, Long nicId, Long networkId, String keyword) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -934,6 +934,11 @@ public class MockNetworkManagerImpl extends ManagerBase implements NetworkOrches
     @Override
     public AcquirePodIpCmdResponse allocatePodIp(Account account, String zoneId, String podId) throws ResourceAllocationException, ConcurrentOperationException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public List<? extends NicSecondaryIp> listVmNicSecondaryIps(ListNicsCmd listNicsCmd) {
         return null;
     }
 
