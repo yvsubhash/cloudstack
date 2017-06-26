@@ -30,6 +30,7 @@ import com.cloud.user.AccountManager;
 import com.cloud.utils.db.EntityManager;
 import com.cloud.utils.db.UUIDManager;
 import com.cloud.utils.exception.CloudRuntimeException;
+import org.apache.cloudstack.api.Identity;
 
 @Local(value = {UUIDManager.class})
 public class UUIDManagerImpl implements UUIDManager {
@@ -107,4 +108,15 @@ public class UUIDManagerImpl implements UUIDManager {
         }
     }
 
+
+    @Override
+     public <T> String getUuid(Class<T> entityType, Long customId){
+         Identity identity = (Identity) this._entityMgr.findById(entityType, customId);
+         if (identity == null) {
+             throw new InvalidParameterValueException("Unable to find UUID for id "+customId);
+         }
+        return identity.getUuid();
+     }
+
 }
+

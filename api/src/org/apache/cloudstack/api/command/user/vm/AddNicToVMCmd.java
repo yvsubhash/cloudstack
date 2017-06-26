@@ -35,7 +35,7 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.context.CallContext;
-
+import com.cloud.network.Network;
 import com.cloud.event.EventTypes;
 import com.cloud.user.Account;
 import com.cloud.uservm.UserVm;
@@ -97,7 +97,7 @@ public class AddNicToVMCmd extends BaseAsyncCmd implements CancellableCmd{
 
     @Override
     public String getEventDescription() {
-        return  "Adding network " + getNetworkId() + " to user vm: " + getVmId();
+        return  "Adding network " + this._uuidMgr.getUuid(Network.class, getNetworkId()) + " to user vm: " + this._uuidMgr.getUuid(VirtualMachine.class, getVmId());
     }
 
     @Override
@@ -111,7 +111,7 @@ public class AddNicToVMCmd extends BaseAsyncCmd implements CancellableCmd{
 
     @Override
     public void execute() {
-        CallContext.current().setEventDetails("Vm Id: " + getVmId() + " Network Id: " + getNetworkId());
+        CallContext.current().setEventDetails("Vm Id: " + this._uuidMgr.getUuid(VirtualMachine.class, getVmId()) + " Network Id: " + this._uuidMgr.getUuid(Network.class, getNetworkId()));
         UserVm result = _userVmService.addNicToVirtualMachine(this);
         ArrayList<VMDetails> dc = new ArrayList<VMDetails>();
         dc.add(VMDetails.valueOf("nics"));

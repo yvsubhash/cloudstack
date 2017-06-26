@@ -434,7 +434,7 @@ public class DeployVMCmd extends BaseAsyncCreateCustomIdCmd implements SecurityG
 
     @Override
     public String getEventDescription() {
-        return "starting Vm. Vm Id: " + getEntityId();
+        return "starting Vm. Vm Id: " + getEntityUuid();
     }
 
     @Override
@@ -448,7 +448,7 @@ public class DeployVMCmd extends BaseAsyncCreateCustomIdCmd implements SecurityG
 
         if (getStartVm()) {
             try {
-                CallContext.current().setEventDetails("Vm Id: " + getEntityId());
+                CallContext.current().setEventDetails("Vm Id: " + getEntityUuid());
                 result = _userVmService.startVirtualMachine(this);
             } catch (ResourceUnavailableException ex) {
                 s_logger.warn("Exception: ", ex);

@@ -87,7 +87,7 @@ public class RebootVMCmd extends BaseAsyncCmd implements CancellableCmd{
 
     @Override
     public String getEventDescription() {
-        return  "rebooting user vm: " + getId();
+        return  "rebooting user vm: " + this._uuidMgr.getUuid(VirtualMachine.class, getId());
     }
 
     @Override
@@ -102,7 +102,7 @@ public class RebootVMCmd extends BaseAsyncCmd implements CancellableCmd{
 
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException {
-        CallContext.current().setEventDetails("Vm Id: " + getId());
+        CallContext.current().setEventDetails("Vm Id: " + this._uuidMgr.getUuid(VirtualMachine.class, getId()));
         UserVm result;
         result = _userVmService.rebootVirtualMachine(this);
         if (result !=null){

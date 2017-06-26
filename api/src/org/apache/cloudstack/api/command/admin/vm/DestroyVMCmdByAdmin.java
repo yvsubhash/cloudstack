@@ -43,7 +43,7 @@ public class DestroyVMCmdByAdmin extends DestroyVMCmd implements CancellableCmd 
 
     @Override
     public void execute() throws ResourceUnavailableException, ConcurrentOperationException{
-        CallContext.current().setEventDetails("Vm Id: "+getId());
+        CallContext.current().setEventDetails("Vm Id: "+ this._uuidMgr.getUuid(VirtualMachine.class, getId()));
         UserVm result = _userVmService.destroyVm(this);
 
         UserVmResponse response = new UserVmResponse();

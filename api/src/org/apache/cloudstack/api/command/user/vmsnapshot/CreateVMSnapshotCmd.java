@@ -31,7 +31,7 @@ import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.api.response.VMSnapshotResponse;
 import org.apache.cloudstack.api.CancellableCmd;
 import org.apache.cloudstack.context.CallContext;
-
+import com.cloud.vm.VirtualMachine;
 import com.cloud.event.EventTypes;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.uservm.UserVm;
@@ -100,7 +100,7 @@ public class CreateVMSnapshotCmd extends BaseAsyncCreateCmd implements Cancellab
 
     @Override
     public String getEventDescription() {
-        return "creating snapshot for VM: " + getVmId();
+        return "creating snapshot for VM: " + this._uuidMgr.getUuid(VirtualMachine.class, getVmId());
     }
 
     @Override
@@ -110,7 +110,7 @@ public class CreateVMSnapshotCmd extends BaseAsyncCreateCmd implements Cancellab
 
     @Override
     public void execute() {
-        CallContext.current().setEventDetails("VM Id: " + getVmId());
+        CallContext.current().setEventDetails("VM Id: " + this._uuidMgr.getUuid(VirtualMachine.class, getVmId()));
         VMSnapshot result = _vmSnapshotService.createVMSnapshot(getVmId(), getEntityId(), getQuiescevm());
         if (result != null) {
             VMSnapshotResponse response = _responseGenerator.createVMSnapshotResponse(result);
