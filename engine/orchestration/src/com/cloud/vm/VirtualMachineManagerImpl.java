@@ -1395,7 +1395,7 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
                     }
                 }
 
-                final GPUDeviceTO gpuDevice = stop.getGpuDevice();
+                final GPUDeviceTO gpuDevice = stopAns.getGpuDevice();
                 if (gpuDevice != null) {
                     _resourceMgr.updateGPUDetails(vm.getHostId(), gpuDevice.getGroupDetails());
                 }
@@ -1672,7 +1672,7 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
                     throw new CloudRuntimeException("Unable to stop the virtual machine due to " + answer.getDetails());
                 }
                 vmGuru.finalizeStop(profile, answer);
-                final GPUDeviceTO gpuDevice = stop.getGpuDevice();
+                final GPUDeviceTO gpuDevice = ((StopAnswer)answer).getGpuDevice();
                 if (gpuDevice != null) {
                     _resourceMgr.updateGPUDetails(vm.getHostId(), gpuDevice.getGroupDetails());
                 }

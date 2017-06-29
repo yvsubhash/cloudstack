@@ -130,9 +130,10 @@ public final class CitrixStopCommandWrapper extends CommandWrapper<StopCommand, 
                             } catch (final XenAPIException e2) {
                                 s_logger.debug("VM " + vmName + " does not have GPU support.");
                             }
+
+                            HashMap<String, HashMap<String, VgpuTypesInfo>> groupDetails = null;
                             if (vGPUs != null && !vGPUs.isEmpty()) {
-                                final HashMap<String, HashMap<String, VgpuTypesInfo>> groupDetails = citrixResourceBase.getGPUGroupDetails(conn);
-                                command.setGpuDevice(new GPUDeviceTO(null, null, groupDetails));
+                                groupDetails = citrixResourceBase.getGPUGroupDetails(conn);
                             }
 
                             final Set<VIF> vifs = vm.getVIFs(conn);
@@ -154,7 +155,12 @@ public final class CitrixStopCommandWrapper extends CommandWrapper<StopCommand, 
                                     // network might be destroyed by other host
                                 }
                             }
-                            return new StopAnswer(command, "Stop VM " + vmName + " Succeed", platformstring, true);
+                            if (groupDetails != null) {
+                                return new StopAnswer(command, "Stop VM " + vmName + " Succeed", platformstring,
+                                        new GPUDeviceTO(null, null, groupDetails), true);
+                            } else {
+                                return new StopAnswer(command, "Stop VM " + vmName + " Succeed", platformstring, true);
+                            }
                         }
                     } catch (final Exception e) {
                         final String msg = "VM destroy failed in Stop " + vmName + " Command due to " + e.getMessage();
