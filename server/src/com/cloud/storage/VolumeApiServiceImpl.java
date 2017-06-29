@@ -974,6 +974,16 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
                             "customizable or it must be a root volume (if providing a disk offering, make sure it is different from the current disk offering).");
                 }
 
+                if (volume.getVolumeType().equals(Volume.Type.ROOT)) {
+                    if (!VolumeOrchestrationService.EnableRootDiskResize.value()) {
+                        throw new InvalidParameterValueException("Root disk resize is not enabled");
+                    }
+                    Long rootMaxSize = VolumeOrchestrationService.RootDiskMaxSize.value();
+                    if (rootMaxSize < newSize) {
+                        throw new InvalidParameterValueException("Root disk size greater than " + rootMaxSize + " is not allowed. Please specify size less than that.");
+                    }
+                }
+
                 // convert from bytes to GiB
                 newSize = newSize << 30;
             }

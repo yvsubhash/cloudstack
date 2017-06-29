@@ -1836,6 +1836,73 @@
                             poll: pollAsyncJobResult
                         }
                     },
+                    changeKeyboard: {
+                        label: 'label.change.keyboard',
+                        createForm: {
+                            title: 'label.change.keyboard',
+                            fields: {
+                                keyboard: {
+                                    label: 'label.keyboard.language',
+                                    select: function(args) {
+                                        var items = []
+                                        items.push({
+                                            id: "us",
+                                            description: 'label.standard.us.keyboard'
+                                        },
+                                        {
+                                            id: "uk",
+                                            description: 'label.uk.keyboard'
+                                        },
+                                        {
+                                            id: "jp",
+                                            description: 'label.japanese.keyboard'
+                                        },
+
+                                        {
+                                            id: "sc",
+                                            description: 'label.simplified.chinese.keyboard'
+                                        },
+                                        {
+                                            id: "fr",
+                                            description: 'label.french.azerty.keyboard'
+                                        });
+                                        args.response.success({
+                                            data: items
+                                        });
+
+                                        args.$select.change(function(){
+                                            var $form = $(this).closest('form');
+                                            var keyboard = $(this).val();
+                                        });
+                                    }
+                                }
+                            }
+                        },
+
+                        messages: {
+                            notification: function(args) {
+                                return 'label.change.keyboard.response';
+                            }
+                        },
+
+                        action: function(args) {
+                            var data = {
+                                id: args.context.instances[0].id,
+                                'details[0].keyboard': args.data.keyboard
+                            };
+
+                            $.ajax({
+                                url: createURL('updateVirtualMachine'),
+                                data: data,
+                                success: function(json) {
+                                    var vm = json.updatevirtualmachineresponse.virtualmachine;
+                                    args.response.success({
+                                        data: vm
+                                    });
+                                }
+                            });
+                        }
+                    },
 
                     resetSSHKeyForVirtualMachine: {
                         label: 'label.reset.ssh.key.pair',
@@ -3144,7 +3211,7 @@
             if (jsonObj.hypervisor == "BareMetal") {
                 allowedActions.push("createTemplate");
             }
-
+            allowedActions.push("changeKeyboard");
             allowedActions.push("viewConsole");
         } else if (jsonObj.state == 'Stopped') {
             allowedActions.push("edit");
@@ -3179,6 +3246,7 @@
                 allowedActions.push("assignVmToAnotherAccount");
             }
             allowedActions.push("resetSSHKeyForVirtualMachine");
+            allowedActions.push("changeKeyboard");
         } else if (jsonObj.state == 'Starting') {
             //  allowedActions.push("stop");
         } else if (jsonObj.state == 'Error') {

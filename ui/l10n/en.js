@@ -2326,4 +2326,6 @@ var dictionary = {"ICMP.code":"ICMP Code",
 "state.detached":"Detached",
 "title.upload.volume":"Upload Volume",
 "ui.listView.filters.all":"All",
-"ui.listView.filters.mine":"Mine"};
+"ui.listView.filters.mine":"Mine",
+"label.change.keyboard":"Change keyboard language",
+"label.change.keyboard.response":"Keyboard language changed"};

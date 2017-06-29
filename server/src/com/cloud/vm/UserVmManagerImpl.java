@@ -3723,10 +3723,22 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
     public void validateRootDiskResize(final HypervisorType hypervisorType, Long rootDiskSize, VMTemplateVO templateVO, UserVmVO vm, final Map<String, String> customParameters) throws InvalidParameterValueException
     {
+        if (!VolumeOrchestrationService.EnableRootDiskResize.value()) {
+            String error = "Root disk resize is not allowed";
+            s_logger.error(error);
+            throw new InvalidParameterValueException(error);
+        }
+
         // rootdisksize must be larger than template.
         if ((rootDiskSize << 30) < templateVO.getSize()) {
             Long templateVOSizeGB = templateVO.getSize() / GB_TO_BYTES;
             String error = "Unsupported: rootdisksize override is smaller than template size " + templateVO.getSize() + "B (" + templateVOSizeGB + "GB)";
+            s_logger.error(error);
+            throw new InvalidParameterValueException(error);
+        }
+        Long rootDiskMaxSize = VolumeOrchestrationService.RootDiskMaxSize.value();
+        if (rootDiskSize > rootDiskMaxSize) {
+            String error = "Root disk size greater than " + rootDiskMaxSize + " is not allowed. Please specify size less than that.";
             s_logger.error(error);
             throw new InvalidParameterValueException(error);
         } else if ((rootDiskSize << 30) > templateVO.getSize()) {
