@@ -225,10 +225,10 @@ if [ "%{_ossnoss}" == "NOREDIST" -o "%{_ossnoss}" == "noredist" ] ; then
 else
    if [ "%{_sim}" == "SIMULATOR" -o "%{_sim}" == "simulator" ] ; then 
       echo "Executing mvn default packaging simulator ..."
-      mvn -Psystemvm,developer -Dsimulator clean package
+      mvn -Psystemvm,developer -Dsimulator -Dnoredist  clean package
    else
       echo "Executing mvn default packaging without simulator ..."
-      mvn -Psystemvm,developer clean package
+      mvn -Psystemvm,developer  -Dnoredist clean package
    fi
 fi 
 

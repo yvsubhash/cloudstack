@@ -26,6 +26,14 @@
         <client.config.conf>${client.config.base}/classes</client.config.conf>
     </properties>
 
+  <repositories>
+    <repository>
+      <id>juniper-contrail</id>
+      <url>http://juniper.github.io/contrail-maven/snapshots</url>
+    </repository>
+  </repositories>
+
+
     <dependencies>
       <dependency>
         <groupId>org.apache.cloudstack</groupId>

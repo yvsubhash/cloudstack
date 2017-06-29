@@ -20,6 +20,14 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
+  <repositories>
+    <repository>
+      <id>juniper-contrail</id>
+      <url>http://juniper.github.io/contrail-maven/snapshots</url>
+    </repository>
+  </repositories>
+
+
   <dependencies>
     <dependency>
       <groupId>org.apache.cloudstack</groupId>
