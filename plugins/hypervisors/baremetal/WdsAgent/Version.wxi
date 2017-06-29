@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Include>
+  <?define ProductName = "CloudStack WDS Agent"?>
+  <?define ProductCode = "*"?>
+  <?define UpgradeCode = "b371be44-22ba-46c1-9359-bb6046690c96"?>
+  <?define ProductVersion = "1.0.0.0"?>
+  <?define PackageCode = "*"?>
+  <?define Company = "Citrix Systems, Inc."?>
+</Include>
+

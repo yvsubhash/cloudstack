@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:fire="http://schemas.microsoft.com/wix/FirewallExtension"  xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <?include Version.wxi ?>
+  <Product Id="$(var.ProductCode)" Name="$(var.ProductName)" Language="1033" Version="$(var.ProductVersion)" Manufacturer="$(var.Company)" UpgradeCode="$(var.UpgradeCode)">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated"/>
+    <Property Id="MSIUSEREALADMINDETECTION" Value="1" />
+    <Media Id="1" Cabinet="Cab1.cab" EmbedCab="yes" />
+
+    <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes" />
+    <Property Id="NEWERVERSIONSINSTALLED" Secure="yes" />
+    <Property Id="SAMEVERSIONSINSTALLED" Secure="yes" />
+    <Upgrade Id="$(var.UpgradeCode)">
+      <UpgradeVersion Minimum="0.1.0.0" Maximum="$(var.ProductVersion)"
+                      Property="PREVIOUSVERSIONSINSTALLED"
+                      IncludeMinimum="yes" IncludeMaximum="no" />
+      <UpgradeVersion Minimum="$(var.ProductVersion)" Maximum="99.0.0.0"
+                      Property="NEWERVERSIONSINSTALLED"
+                      IncludeMinimum="yes" IncludeMaximum="yes" />
+      <UpgradeVersion Minimum="$(var.ProductVersion)" Maximum="$(var.ProductVersion)"
+                      Property="SAMEVERSIONSINSTALLED"
+                      IncludeMinimum="yes" IncludeMaximum="yes" />
+    </Upgrade>
+
+    <Property Id="CSUPDOWNGRADE" Value="Update"/>
+    <Property Id="INSTALL_CERTIFICATE" Value="True"/>
+    <Property Id="UI" Value="noUi"/>
+
+    <!--MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." /-->
+
+    <Property Id="PYTHON" Value="-1">
+      <RegistrySearch Id="PYTHONSearch" Root="HKLM" Key="SOFTWARE\Python\PythonCore\2.7\InstallPath" Type="raw" Win64="yes" />
+    </Property>
+    <Condition Message="This application requires Python 2.7.10 or above. Please install it and run this installer again."><![CDATA[Installed OR PYTHON <> "-1"]]></Condition>
+
+    <Property Id="PYWIN32_PATH">
+      <DirectorySearch Path="[PYTHON]Lib\site-packages\pythonwin\pywin" Depth="0" AssignToProperty="no" Id="Pywin32FolderSearch" />
+    </Property>
+    <Condition Message="Pywin32 library is not installed or not in path. Please install or check the library is in - [PYTHON]Lib\site-packages\pythonwin\pywin"><![CDATA[Installed OR PYWIN32_PATH <> null ]]></Condition>
+
+    <Property Id="FLASK_PATH">
+      <DirectorySearch Path="[PYTHON]Lib\site-packages\flask" Depth="0" AssignToProperty="no" Id="FlaskFolderSearch" />
+    </Property>
+    
+    <Condition Message="Flask library is not installed or not in path. Please install or check the library is in - [PYTHON]Lib\site-packages\flask"><![CDATA[Installed OR FLASK_PATH <> null ]]></Condition>
+
+    <Property Id="OPENSSL_PATH">
+      <DirectorySearch Path="[PYTHON]Lib\site-packages\OpenSSL" Depth="0" AssignToProperty="no" Id="OpenSSLFolderSearch" />
+    </Property>
+
+    <Condition Message=" OPENSSL library is not installed or not in path. Please install or check the library is in - [PYTHON]Lib\site-packages\OpenSSL"><![CDATA[Installed OR OPENSSL_PATH <> null ]]></Condition>
+
+
+    <!--CustomAction - @Add Custom action to  verify python version 2.7.9 and above / site-packages\OpenSSL check-->
+
+
+    <Property Id="PYTHONEXE">
+      <DirectorySearch Id="PythonFolders" Path="[PYTHON]" Depth="1">
+        <FileSearch Id="PythonExe" Name="python.exe" />
+      </DirectorySearch>
+    </Property>
+
+    
+    <InstallExecuteSequence>
+      <RemoveExistingProducts Before="InstallInitialize" />
+      <Custom Action='InstallCertificate' After='InstallFiles'>INSTALL_CERTIFICATE = "True" AND NOT Installed AND NOT PREVIOUSVERSIONSINSTALLED AND NOT NEWERVERSIONSINSTALLED AND NOT SAMEVERSIONSINSTALLED AND UI="noUi"</Custom>
+      <!--Custom Action="installWDSAgentService"  Before="InstallFinalize" /-->
+      <Custom Action='installWDSAgentService' After='InstallCertificate'>NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action='StartWDSAgentService' After='installWDSAgentService'>NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action='StopWDSAgentService' After='InstallInitialize'>UPGRADINGPRODUCTCODE OR REMOVE</Custom>
+      <Custom Action='uninstallWDSAgentService' After='StopWDSAgentService'>UPGRADINGPRODUCTCODE OR REMOVE="ALL"</Custom>
+      <!--Custom Action='DeleteAgent' After='uninstallWDSAgentService'>REMOVE="ALL"</Custom-->
+      <!--Custom Action='BeforeUninstall01' After='InstallInitialize'>Installed AND NOT UPGRADINGPRODUCTCODE</Custom-->
+        
+    </InstallExecuteSequence>
+
+    
+
+		<Feature Id="ProductFeature" Title="Apache CloudStack WDS Agent" Level="1" AllowAdvertise='no' Absent='disallow' Description="This component will help the CloudStack management server to communicate and manage the WDS server.">
+			<ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="updateImageBcd"/>
+		</Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="EULA.rtf" />
+    <UIRef Id="WixUI_ErrorProgressText"/>
+    <UIRef Id="WixUI_Common" />
+    <UIRef Id="CSUI_FeatureTree"/>
+  </Product>
+  
+    
+  <Fragment>
+    <Binary Id="ACS.CA.dll" SourceFile="..\..\hyperv\DotNet\InstallerSetup\ACS\bin\Debug\ACS.CA.dll" />
+    <CustomAction Id="InstallCertificate" Return="check" Execute="immediate" BinaryKey="ACS.CA.dll" DllEntry="InstallCertificate"/>
+    <CustomAction Id="installWDSAgentService" Directory="INSTALLFOLDER" ExeCommand='"[SystemFolder]cmd" /c "[PYTHON]python.exe CloudStackWDSAgent.py install"' Execute="deferred" Return="check"/>
+    <CustomAction Id="StartWDSAgentService" Directory="INSTALLFOLDER" ExeCommand='"[SystemFolder]cmd" /c "[PYTHON]python.exe CloudStackWDSAgent.py start"' Execute="deferred" Return="check"/>
+  </Fragment>
+  
+  <Fragment>
+    <CustomAction Id="StopWDSAgentService" Directory="INSTALLFOLDER" ExeCommand='"[SystemFolder]cmd" /c "[PYTHON]python.exe CloudStackWDSAgent.py stop"' Execute="deferred"/>    
+    <CustomAction Id="uninstallWDSAgentService" Directory="INSTALLFOLDER" ExeCommand='"[SystemFolder]cmd" /c "[PYTHON]python.exe CloudStackWDSAgent.py remove"' Execute="deferred" Return="check"/>
+    <CustomAction Id="DeleteAgent" Directory="ProgramFilesFolder" ExeCommand='/c rmdir /S /Q "[INSTALLFOLDER]"' Execute="deferred" Return="check" />
+  </Fragment>
+  
+  
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="CloudStack WDS Agent" >
+          <Directory Id="INSTANCE" Name="instance">
+        </Directory>                          
+        </Directory>
+      </Directory>
+      <Directory Id="PYTHON" Name="Phyton Installation Dir" />
+		</Directory>
+	</Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="ProductComponent" Guid="4FD8E17B-60E3-4DF4-B70D-171A4B2824CE">
+        <File Id="CloudStackWDSAgent.py" Name="CloudStackWDSAgent.py" Source="CloudStackWDSAgent.py" Vital="yes" KeyPath="yes" DiskId="1"/>
+        <fire:FirewallException Id="FWX3" Name="CloudStack WDS Agent" Port="8251" Protocol="tcp"  Scope="localSubnet"/>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <DirectoryRef Id="INSTANCE" >
+    <Component Id="updateImageBcd" Guid="4FD8E17B-60E3-4DF4-B70D-171A4B2824CA">
+      <File Id="updateImageBcd.ps1" Name="updateImageBcd.ps1" Source="updateImageBcd.ps1" Vital="yes" KeyPath="yes" DiskId="1"/>
+    </Component>
+    </DirectoryRef>
+  </Fragment>
+   
+  
+</Wix>
