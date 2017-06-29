@@ -19,30 +19,46 @@
 
 package com.cloud.agent.api;
 
+import com.cloud.agent.api.to.GPUDeviceTO;
+
 public class StopAnswer extends RebootAnswer {
 
     private String platform;
 
+    private GPUDeviceTO gpuDevice;
+
     protected StopAnswer() {
+    }
+
+    public StopAnswer(StopCommand cmd, String details, String platform, GPUDeviceTO gpuDevice, boolean success) {
+        super(cmd, details, success);
+        this.platform = platform;
+        this.gpuDevice = gpuDevice;
     }
 
     public StopAnswer(StopCommand cmd, String details, String platform, boolean success) {
         super(cmd, details, success);
         this.platform = platform;
+        this.gpuDevice = null;
     }
 
     public StopAnswer(StopCommand cmd, String details, boolean success) {
         super(cmd, details, success);
         this.platform = null;
+        this.gpuDevice = null;
     }
 
     public StopAnswer(StopCommand cmd, Exception e) {
         super(cmd, e);
         this.platform = null;
+        this.gpuDevice = null;
     }
 
     public String getPlatform() {
         return platform;
     }
 
+    public GPUDeviceTO getGpuDevice() {
+        return gpuDevice;
+    }
 }
