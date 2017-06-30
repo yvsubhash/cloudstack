@@ -27,15 +27,15 @@ arch = ENV['VM_ARCH'] || 'i386'
 architectures = {
     :i386 => {
         :os_type_id => 'Debian',
-        :iso_file => 'debian-7.11.0-i386-netinst.iso',
-        :iso_src => 'http://cdimage.debian.org/cdimage/archive/7.11.0/i386/iso-cd/debian-7.11.0-i386-netinst.iso',
-        :iso_md5 => '75055a694508f5b891038ec12d703c9e',
+        :iso_file => 'debian-8.8.0-i386-netinst.iso',
+        :iso_src => 'http://cdimage.debian.org/cdimage/archive/8.8.0/i386/iso-cd/debian-8.8.0-i386-netinst.iso',
+        :iso_md5 => '37e4f6f40d09fdf25c248153ca64ea64',
     },
     :amd64 => {
         :os_type_id => 'Debian_64',
-        :iso_file => 'debian-7.11.0-amd64-netinst.iso',
-        :iso_src => 'http://cdimage.debian.org/cdimage/archive/7.11.0/amd64/iso-cd/debian-7.11.0-amd64-netinst.iso',
-        :iso_md5 => '096c1c18b44c269808bd815d58c53c8f'
+        :iso_file => 'debian-8.8.0-amd64-netinst.iso',
+        :iso_src => 'http://cdimage.debian.org/cdimage/archive/8.8.0/amd64/iso-cd/debian-8.8.0-amd64-netinst.iso',
+        :iso_md5 => 'f8963c5b9f8b679cfc6b4939e4897eac'
     }
 }
 
