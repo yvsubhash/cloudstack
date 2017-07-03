@@ -419,18 +419,6 @@
                                         });
                                     });
 
-                                    var custom = args.customHidden({
-                                        context: context,
-                                        data: args.data
-                                    });
-
-                                    $step.find('.custom-size-label').remove();
-
-                                    if (custom) {
-                                        $step.find('.section.custom-size').hide();
-                                        $step.removeClass('custom-disk-size');
-                                    }
-
                                     $step.find('input[type=radio]').bind('change', function() {
                                         var $target = $(this);
                                         var val = $target.val();
@@ -551,6 +539,14 @@
                         return {
                             response: {
                                 success: function(args) {
+
+
+                                    if (args.data.rootResizeAllow == false) {
+                                      $step.find('.root-custom-size-label').remove();
+                                      $step.find('.section.root-custom-size').hide();
+                                      $step.removeClass('root-custom-disk-size');
+                                    }
+
                                     var multiDisk = args.multiDisk;
 
                                     $step.find('.multi-disk-select-container').remove();

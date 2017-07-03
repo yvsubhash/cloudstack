@@ -278,13 +278,6 @@
                         templates: templatesObj,
                         hypervisors: hypervisorObjs
                     },
-                    customHidden: function(args) {
-                        if (selectedTemplateOrIso == 'select-template') {
-                            return false; //show Root Disk Size field
-                        } else { //selectedTemplateOrIso == 'select-iso'
-                            return true;  //hide Root Disk Size field
-                        }
-                    }
                 });
             },
 
@@ -393,6 +386,32 @@
                             multiDisk: false
                         });
                     }
+                });
+
+                var rootResizeAllow = false;
+                if(args.currentData.templateid != null) {
+                   $.ajax({
+                      url: createURL("listConfigurations"),
+                      dataType: "json",
+                      async: false,
+                      success: function(json) {
+                        if (json.listconfigurationsresponse != null) {
+                          var configDetails = json.listconfigurationsresponse.configuration;
+                          for (i in configDetails) {
+                            if(configDetails[i].name == "root.disk.resize.enable" && configDetails[i].value == "true") {
+                              rootResizeAllow = true;
+                              break;
+                            }
+                          }
+                        }
+                      }
+                   });
+                }
+
+                args.response.success({
+                   data: {
+                       rootResizeAllow: rootResizeAllow
+                   },
                 });
             },
 
