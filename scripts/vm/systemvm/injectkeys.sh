@@ -24,6 +24,7 @@
 #set -x
 set -e
 
+$SUDO losetup -f
 TMP=/tmp
 MOUNTPATH=${HOME}/systemvm_mnt
 TMPDIR=${TMP}/cloud/systemvm
