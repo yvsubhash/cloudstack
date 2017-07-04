@@ -669,7 +669,7 @@ ALTER TABLE `cloud`.`physical_network_traffic_types` ADD COLUMN `lxc_network_lab
 UPDATE configuration SET value='KVM,XenServer,VMware,BareMetal,Ovm,LXC' WHERE name='hypervisor.list';
  
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type)
-     VALUES (10, UUID(), 'routing-10', 'SystemVM Template (LXC)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/templates/acton/acton-systemvm-02062012.qcow2.bz2', '2755de1f9ef2ce4d6f2bee2efbb4da92', 0, 'SystemVM Template (LXC)', 'QCOW2', 15, 0, 1, 'LXC');
+     VALUES (10, UUID(), 'routing-10', 'SystemVM Template (LXC)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloud.com/templates/acton/acton-systemvm-02062012.qcow2.bz2', '2755de1f9ef2ce4d6f2bee2efbb4da92', 0, 'SystemVM Template (LXC)', 'QCOW2', 15, 0, 1, 'LXC');
 
 ALTER TABLE `cloud`.`user_vm` MODIFY user_data TEXT(32768);
 
@@ -2102,18 +2102,6 @@ CREATE TABLE `cloud`.`vm_disk_statistics` (
 
 insert into `cloud`.`vm_disk_statistics`(data_center_id,account_id,vm_id,volume_id) 
 select volumes.data_center_id, volumes.account_id, vm_instance.id, volumes.id from volumes,vm_instance where vm_instance.vm_type="User" and vm_instance.state<>"Expunging" and volumes.instance_id=vm_instance.id order by vm_instance.id;
-
-DROP TABLE IF EXISTS `cloud`.`ovs_providers`;
-CREATE TABLE `cloud`.`ovs_providers` (
-  `id` bigint unsigned NOT NULL auto_increment COMMENT 'id',
-  `nsp_id` bigint unsigned NOT NULL COMMENT 'Network Service Provider ID',
-  `uuid` varchar(40),
-  `enabled` int(1) NOT NULL COMMENT 'Enabled or disabled',
-  `removed` datetime COMMENT 'date removed if not null',
-  PRIMARY KEY  (`id`),
-  CONSTRAINT `fk_ovs_providers__nsp_id` FOREIGN KEY (`nsp_id`) REFERENCES `physical_network_service_providers` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `uc_ovs_providers__uuid` UNIQUE (`uuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `cloud_usage`.`vm_disk_statistics`;
 CREATE TABLE `cloud_usage`.`vm_disk_statistics` (

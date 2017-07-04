@@ -26,7 +26,6 @@ ALTER TABLE `cloud`.`disk_offering` ADD `cache_mode` VARCHAR( 16 ) DEFAULT 'none
 
 UPDATE `cloud`.`hypervisor_capabilities` set max_guests_limit='150' WHERE hypervisor_version='6.1.0';
 UPDATE `cloud`.`hypervisor_capabilities` set max_guests_limit='500' WHERE hypervisor_version='6.2.0';
-UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE hypervisor_version='6.2' AND hypervisor_type="Hyperv";
 
 DROP VIEW IF EXISTS `cloud`.`disk_offering_view`;
 CREATE VIEW `cloud`.`disk_offering_view` AS
@@ -597,6 +596,17 @@ CREATE TABLE `cloud`.`autoscale_vmgroup_details` (
   CONSTRAINT `fk_autoscale_vmgroup_details__autoscale_vmgroup_id` FOREIGN KEY `fk_autoscale_vmgroup_details__autoscale_vmgroup_id`(`autoscale_vmgroup_id`) REFERENCES `autoscale_vmgroups`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
+CREATE TABLE `cloud`.`autoscale_vmgroup_vm_map` (
+  `id` bigint unsigned NOT NULL auto_increment,
+  `vmgroup_id` bigint unsigned NOT NULL,
+  `instance_id` bigint unsigned NOT NULL,
+  PRIMARY KEY  (`id`),
+  CONSTRAINT `fk_autoscale_vmgroup_vm_map__vmgroup_id` FOREIGN KEY `fk_autoscale_vmgroup_vm_map__vmgroup_id` (`vmgroup_id`) REFERENCES `autoscale_vmgroups` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_autoscale_vmgroup_vm_map__instance_id` FOREIGN KEY `fk_autoscale_vmgroup_vm_map__instance_id` (`instance_id`) REFERENCES `vm_instance` (`id`),
+  INDEX `i_autoscale_vmgroup_vm_map__vmgroup_id`(`vmgroup_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 ALTER TABLE `cloud`.`snapshot_details` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the detail can be displayed to the end user';
 ALTER TABLE `cloud`.`vm_snapshot_details` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the detail can be displayed to the end user';
 
@@ -663,6 +673,7 @@ ALTER TABLE `cloud`.`firewall_rules` ADD COLUMN `display` tinyint(1) NOT NULL DE
 ALTER TABLE `cloud`.`autoscale_vmgroups` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the entry can be displayed to the end user';
 ALTER TABLE `cloud`.`autoscale_vmprofiles` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the entry can be displayed to the end user';
 ALTER TABLE `cloud`.`autoscale_vmgroups` ADD COLUMN `last_interval` datetime NULL DEFAULT NULL COMMENT 'last updated time';
+ALTER TABLE `cloud`.`autoscale_policies` ADD COLUMN `last_quiet_time` datetime NULL DEFAULT NULL COMMENT 'last quite time';
 ALTER TABLE `cloud`.`network_acl_item` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the entry can be displayed to the end user';
 ALTER TABLE `cloud`.`network_acl` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the entry can be displayed to the end user';
 ALTER TABLE `cloud`.`remote_access_vpn` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the entry can be displayed to the end user';
@@ -779,8 +790,6 @@ ALTER TABLE `cloud`.`guest_os` ADD COLUMN `is_user_defined` INT(1) UNSIGNED DEFA
 ALTER TABLE `cloud`.`vm_reservation` ADD COLUMN `deployment_planner` varchar(40) DEFAULT NULL COMMENT 'Preferred deployment planner for the vm';
 ALTER TABLE `cloud`.`vpc_offerings` ADD COLUMN supports_distributed_router boolean default false;
 ALTER TABLE `cloud`.`vpc` ADD COLUMN uses_distributed_router  boolean default false;
-INSERT INTO `cloud`.`storage_pool_details` (pool_id,name,value,display) SELECT storage_pool.id,data_center_details.name,data_center_details.value,data_center_details.display FROM `cloud`.`storage_pool` JOIN `cloud`.`data_center_details` ON data_center_details.dc_id=storage_pool.data_center_id WHERE data_center_details.name = "storage.overprovisioning.factor";
-DELETE FROM `cloud`.`data_center_details` WHERE name="storage.overprovisioning.factor";
 ALTER TABLE `cloud`.`load_balancer_vm_map` ADD COLUMN instance_ip VARCHAR(40);
 ALTER TABLE `cloud`.`load_balancer_vm_map` DROP KEY `load_balancer_id`, ADD UNIQUE KEY load_balancer_id (`load_balancer_id`, `instance_id`, `instance_ip`);
 ALTER TABLE `cloud`.`vpc_offerings` ADD COLUMN supports_region_level_vpc boolean default false;

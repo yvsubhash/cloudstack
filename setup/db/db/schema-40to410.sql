@@ -345,7 +345,6 @@ CREATE TABLE `cloud`.`autoscale_policies` (
   `account_id` bigint unsigned NOT NULL,
   `duration` int unsigned NOT NULL,
   `quiet_time` int unsigned NOT NULL,
-  `last_quiet_time` datetime DEFAULT NULL,
   `action` varchar(15),
   `created` datetime NOT NULL COMMENT 'date created',
   `removed` datetime COMMENT 'date removed if not null',
@@ -400,16 +399,6 @@ CREATE TABLE `cloud`.`autoscale_vmgroup_policy_map` (
   CONSTRAINT `fk_autoscale_vmgroup_policy_map__vmgroup_id` FOREIGN KEY `fk_autoscale_vmgroup_policy_map__vmgroup_id` (`vmgroup_id`) REFERENCES `autoscale_vmgroups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_autoscale_vmgroup_policy_map__policy_id` FOREIGN KEY `fk_autoscale_vmgroup_policy_map__policy_id` (`policy_id`) REFERENCES `autoscale_policies` (`id`),
   INDEX `i_autoscale_vmgroup_policy_map__vmgroup_id`(`vmgroup_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `cloud`.`autoscale_vmgroup_vm_map` (
-  `id` bigint unsigned NOT NULL auto_increment,
-  `vmgroup_id` bigint unsigned NOT NULL,
-  `instance_id` bigint unsigned NOT NULL,
-  PRIMARY KEY  (`id`),
-  CONSTRAINT `fk_autoscale_vmgroup_vm_map__vmgroup_id` FOREIGN KEY `fk_autoscale_vmgroup_vm_map__vmgroup_id` (`vmgroup_id`) REFERENCES `autoscale_vmgroups` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_autoscale_vmgroup_vm_map__instance_id` FOREIGN KEY `fk_autoscale_vmgroup_vm_map__instance_id` (`instance_id`) REFERENCES `vm_instance` (`id`),
-  INDEX `i_autoscale_vmgroup_vm_map__vmgroup_id`(`vmgroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `cloud`.`counter` (id, uuid, source, name, value,created) VALUES (1, UUID(), 'snmp','Linux User CPU - percentage', '1.3.6.1.4.1.2021.11.9.0', now());

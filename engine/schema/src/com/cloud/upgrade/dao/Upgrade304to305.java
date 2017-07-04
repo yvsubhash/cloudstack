@@ -33,7 +33,7 @@ import com.cloud.utils.crypt.DBEncryptionUtil;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.script.Script;
 
-public class Upgrade304to305 extends Upgrade30xBase {
+public class Upgrade304to305 extends Upgrade30xBase implements DbUpgrade {
     final static Logger s_logger = Logger.getLogger(Upgrade304to305.class);
 
     @Override
@@ -173,8 +173,16 @@ public class Upgrade304to305 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable add VPC physical network service provider ", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
         s_logger.debug("Done adding VPC physical network service providers to all physical networks");
     }
@@ -212,8 +220,16 @@ public class Upgrade304to305 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Failed to update the router/network reference ", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
         s_logger.debug("Done updating router/network references");
     }
@@ -238,8 +254,16 @@ public class Upgrade304to305 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Failed to check/update the host_details unique key ", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
     }
 
@@ -383,8 +407,15 @@ public class Upgrade304to305 extends Upgrade30xBase {
             } catch (SQLException e) {
                 throw new CloudRuntimeException("Unable create a mapping for the networks in network_external_lb_device_map and network_external_firewall_device_map", e);
             } finally {
-                closeAutoCloseable(rs);
-                closeAutoCloseable(pstmt);
+                try {
+                    if (rs != null) {
+                        rs.close();
+                    }
+                    if (pstmt != null) {
+                        pstmt.close();
+                    }
+                } catch (SQLException e) {
+                }
             }
             s_logger.info("Successfully upgraded network using F5 and SRX devices to have a entry in the network_external_lb_device_map and network_external_firewall_device_map");
         }
@@ -446,18 +477,29 @@ public class Upgrade304to305 extends Upgrade30xBase {
                     continue;
                 }
                 String encryptedValue = DBEncryptionUtil.encrypt(value);
-                pstmt = conn.prepareStatement("update `cloud`.`cluster_details` set value=? where id=?");
-                pstmt.setBytes(1, encryptedValue.getBytes("UTF-8"));
-                pstmt.setLong(2, id);
-                pstmt.executeUpdate();
+                try(PreparedStatement update_cluster_pstmt = conn.prepareStatement("update `cloud`.`cluster_details` set value=? where id=?");) {
+                    update_cluster_pstmt.setBytes(1, encryptedValue.getBytes("UTF-8"));
+                    update_cluster_pstmt.setLong(2, id);
+                    update_cluster_pstmt.executeUpdate();
+                } catch (SQLException e) {
+                    throw new CloudRuntimeException("UpdateClusterDetails:Exception:" + e.getMessage(), e);
+                }
             }
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable encrypt cluster_details values ", e);
         } catch (UnsupportedEncodingException e) {
             throw new CloudRuntimeException("Unable encrypt cluster_details values ", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
         s_logger.debug("Done encrypting cluster_details");
     }

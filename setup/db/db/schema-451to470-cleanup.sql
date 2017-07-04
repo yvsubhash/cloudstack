@@ -15,6 +15,9 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
---;
--- Schema cleanup from 4.6.1 to 4.7.0;
---;
+--
+-- Schema cleanup from 4.6.0 to 4.7.0
+--
+
+DELETE FROM `cloud`.`configuration` where name='router.reboot.when.outofband.migrated';
+DELETE FROM `cloud`.`configuration` WHERE name='consoleproxy.loadscan.interval';

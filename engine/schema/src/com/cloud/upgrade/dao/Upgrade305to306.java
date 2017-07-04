@@ -31,7 +31,7 @@ import org.apache.log4j.Logger;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.script.Script;
 
-public class Upgrade305to306 extends Upgrade30xBase {
+public class Upgrade305to306 extends Upgrade30xBase implements DbUpgrade {
     final static Logger s_logger = Logger.getLogger(Upgrade305to306.class);
 
     @Override
@@ -82,33 +82,55 @@ public class Upgrade305to306 extends Upgrade30xBase {
         DbUpgradeUtils.dropKeysIfExist(conn, "alert", indexList, false);
 
         //Now add index.
-        try (PreparedStatement pstmt = conn.prepareStatement("ALTER TABLE `cloud`.`alert` ADD INDEX `i_alert__last_sent`(`last_sent`)");) {
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = conn.prepareStatement("ALTER TABLE `cloud`.`alert` ADD INDEX `i_alert__last_sent`(`last_sent`)");
             pstmt.executeUpdate();
             s_logger.debug("Added index i_alert__last_sent for table alert");
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to add index i_alert__last_sent to alert table for the column last_sent", e);
+        } finally {
+            try {
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
 
     }
 
     private void upgradeEIPNetworkOfferings(Connection conn) {
-        try (
-                PreparedStatement pstmt = conn.prepareStatement("select id, elastic_ip_service from `cloud`.`network_offerings` where traffic_type='Guest'");
-                PreparedStatement pstmt1 = conn.prepareStatement("UPDATE `cloud`.`network_offerings` set eip_associate_public_ip=? where id=?");
-                ResultSet rs = pstmt.executeQuery();
-            ){
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            pstmt = conn.prepareStatement("select id, elastic_ip_service from `cloud`.`network_offerings` where traffic_type='Guest'");
+            rs = pstmt.executeQuery();
             while (rs.next()) {
                 long id = rs.getLong(1);
                 // check if elastic IP service is enabled for network offering
                 if (rs.getLong(2) != 0) {
                     //update network offering with eip_associate_public_ip set to true
-                    pstmt1.setBoolean(1, true);
-                    pstmt1.setLong(2, id);
-                    pstmt1.executeUpdate();
+                    pstmt = conn.prepareStatement("UPDATE `cloud`.`network_offerings` set eip_associate_public_ip=? where id=?");
+                    pstmt.setBoolean(1, true);
+                    pstmt.setLong(2, id);
+                    pstmt.executeUpdate();
                 }
             }
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to set eip_associate_public_ip for network offerings with EIP service enabled.", e);
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
     }
 
@@ -121,11 +143,20 @@ public class Upgrade305to306 extends Upgrade30xBase {
         DbUpgradeUtils.dropKeysIfExist(conn, "host_details", indexList, false);
 
         //Now add index.
-        try (PreparedStatement pstmt = conn.prepareStatement("ALTER TABLE `cloud`.`host_details` ADD INDEX `fk_host_details__host_id`(`host_id`)");) {
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = conn.prepareStatement("ALTER TABLE `cloud`.`host_details` ADD INDEX `fk_host_details__host_id`(`host_id`)");
             pstmt.executeUpdate();
             s_logger.debug("Added index fk_host_details__host_id for table host_details");
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to add index fk_host_details__host_id to host_details table for the column host_id", e);
+        } finally {
+            try {
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
 
     }
@@ -187,8 +218,15 @@ public class Upgrade305to306 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to set egress firewall rules ", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
     }
 
@@ -209,8 +247,16 @@ public class Upgrade305to306 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to remove Firewall service for SG shared network offering.", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
     }
 
@@ -242,8 +288,16 @@ public class Upgrade305to306 extends Upgrade30xBase {
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to update backup id for KVM snapshots", e);
         } finally {
-            closeAutoCloseable(rs);
-            closeAutoCloseable(pstmt);
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
     }
 
