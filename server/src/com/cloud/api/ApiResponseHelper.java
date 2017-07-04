@@ -1700,8 +1700,15 @@ public class ApiResponseHelper implements ResponseGenerator {
             capacityResponses.add(capacityResponse);
         }
 
+        boolean flag=false;
+        if(result.size()>1){
+            if(result.get(0).getCapacityType()!=result.get(1).getCapacityType()){
+                flag=true;
+            }
+        }
+
         List<VgpuTypesInfo> gpuCapacities;
-        if (result.size() > 1 && (gpuCapacities = ApiDBUtils.getGpuCapacites(result.get(0).getDataCenterId(), result.get(0).getPodId(), result.get(0).getClusterId())) != null) {
+        if ((flag) > 1 && (gpuCapacities = ApiDBUtils.getGpuCapacites(result.get(0).getDataCenterId(), result.get(0).getPodId(), result.get(0).getClusterId())) != null) {
             HashMap<String, Long> vgpuVMs = ApiDBUtils.getVgpuVmsCount(result.get(0).getDataCenterId(), result.get(0).getPodId(), result.get(0).getClusterId());
 
             float capacityUsed = 0;

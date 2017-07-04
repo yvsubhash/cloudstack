@@ -37,6 +37,8 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.agent.api.VgpuTypesInfo;
+import com.cloud.dc.*;
 import com.cloud.storage.ScopeType;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.affinity.AffinityGroupProcessor;
@@ -517,6 +519,7 @@ import org.apache.cloudstack.api.command.user.vpn.UpdateVpnConnectionCmd;
 import org.apache.cloudstack.api.command.user.vpn.UpdateVpnCustomerGatewayCmd;
 import org.apache.cloudstack.api.command.user.vpn.UpdateVpnGatewayCmd;
 import org.apache.cloudstack.api.command.user.zone.ListZonesCmd;
+import org.apache.cloudstack.api.response.CapacityResponse;
 import org.apache.cloudstack.config.Configuration;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.VolumeOrchestrationService;
@@ -556,15 +559,7 @@ import com.cloud.cluster.ClusterManager;
 import com.cloud.configuration.Config;
 import com.cloud.consoleproxy.ConsoleProxyManagementState;
 import com.cloud.consoleproxy.ConsoleProxyManager;
-import com.cloud.dc.AccountVlanMapVO;
-import com.cloud.dc.ClusterVO;
-import com.cloud.dc.DataCenterVO;
-import com.cloud.dc.HostPodVO;
-import com.cloud.dc.Pod;
-import com.cloud.dc.PodVlanMapVO;
-import com.cloud.dc.Vlan;
 import com.cloud.dc.Vlan.VlanType;
-import com.cloud.dc.VlanVO;
 import com.cloud.dc.dao.AccountVlanMapDao;
 import com.cloud.dc.dao.ClusterDao;
 import com.cloud.dc.dao.DataCenterDao;
@@ -2433,6 +2428,53 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
             summedCapacities.addAll(summedCapacitiesForSecStorage);
         }
 
+        //Calculating VGPU capacity info
+        List<VgpuTypesInfo> gpuCapacities;
+        if(capacityType!=null) {
+            if ((capacityType.shortValue() == Capacity.CAPACITY_TYPE_GPU) && ((gpuCapacities = ApiDBUtils.getGpuCapacites(zoneId, podId, clusterId)) != null)) {
+                HashMap<String, Long> vgpuVMs = ApiDBUtils.getVgpuVmsCount(zoneId, podId, clusterId);
+
+                float capacityUsed = 0;
+                long capacityMax = 0;
+                for (VgpuTypesInfo capacity : gpuCapacities) {
+                    if (vgpuVMs.containsKey(capacity.getGroupName().concat(capacity.getModelName()))) {
+                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVpuPerGpu();
+                    }
+                    if (capacity.getModelName().equals(GPU.GPUType.passthrough.toString())) {
+                        capacityMax += capacity.getMaxCapacity();
+                    }
+                }
+
+                DataCenter zone = ApiDBUtils.findZoneById(zoneId);
+                CapacityResponse capacityResponse = new CapacityResponse();
+                if (zone != null) {
+                    capacityResponse.setZoneId(zone.getUuid());
+                    capacityResponse.setZoneName(zone.getName());
+                }
+                if (podId != null) {
+                    HostPodVO pod = ApiDBUtils.findPodById(podId);
+                    capacityResponse.setPodId(pod.getUuid());
+                    capacityResponse.setPodName(pod.getName());
+                }
+                if (clusterId != null) {
+                    ClusterVO cluster = ApiDBUtils.findClusterById(clusterId);
+                    capacityResponse.setClusterId(cluster.getUuid());
+                    capacityResponse.setClusterName(cluster.getName());
+                }
+                capacityResponse.setCapacityType(Capacity.CAPACITY_TYPE_GPU);
+                capacityResponse.setCapacityUsed((long) Math.ceil(capacityUsed));
+                capacityResponse.setCapacityTotal(capacityMax);
+
+                if (capacityMax > 0) {
+                    SummedCapacity sc = new SummedCapacity(capacityResponse.getCapacityUsed(), capacityResponse.getCapacityTotal(), (capacityResponse.getCapacityUsed() / capacityResponse.getCapacityTotal()), capacityResponse.getCapacityType(), zoneId, podId, clusterId);
+                    summedCapacities.add(sc);
+                } else {
+                    SummedCapacity sc = new SummedCapacity(capacityResponse.getCapacityUsed(), capacityResponse.getCapacityTotal(), 0.0f, capacityResponse.getCapacityType(), zoneId, podId, clusterId);
+                    summedCapacities.add(sc);
+                }
+            }
+        }
+
         // Sort Capacities
         Collections.sort(summedCapacities, new Comparator<SummedCapacity>() {
             @Override
@@ -2561,6 +2603,56 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
                 capacities.add(_storageMgr.getStoragePoolUsedStats(null, clusterId, podId, zoneId));
             }
         }
+
+        //Calaculating VGPU capacity info percentage
+        List<VgpuTypesInfo> gpuCapacities;
+        if(capacityType!=null) {
+            if ((capacityType.shortValue() == Capacity.CAPACITY_TYPE_GPU) && (gpuCapacities = ApiDBUtils.getGpuCapacites(zoneId, podId, clusterId)) != null) {
+                HashMap<String, Long> vgpuVMs = ApiDBUtils.getVgpuVmsCount(zoneId, podId, clusterId);
+
+                float capacityUsed = 0;
+                long capacityMax = 0;
+                for (VgpuTypesInfo capacity : gpuCapacities) {
+                    if (vgpuVMs.containsKey(capacity.getGroupName().concat(capacity.getModelName()))) {
+                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVpuPerGpu();
+                    }
+                    if (capacity.getModelName().equals(GPU.GPUType.passthrough.toString())) {
+                        capacityMax += capacity.getMaxCapacity();
+                    }
+                }
+
+                DataCenter zone = ApiDBUtils.findZoneById(zoneId);
+                CapacityResponse capacityResponse = new CapacityResponse();
+                if (zone != null) {
+                    capacityResponse.setZoneId(zone.getUuid());
+                    capacityResponse.setZoneName(zone.getName());
+                }
+                if (podId != null) {
+                    HostPodVO pod = ApiDBUtils.findPodById(podId);
+                    capacityResponse.setPodId(pod.getUuid());
+                    capacityResponse.setPodName(pod.getName());
+                }
+                if (clusterId != null) {
+                    ClusterVO cluster = ApiDBUtils.findClusterById(clusterId);
+                    capacityResponse.setClusterId(cluster.getUuid());
+                    capacityResponse.setClusterName(cluster.getName());
+                }
+                capacityResponse.setCapacityType(Capacity.CAPACITY_TYPE_GPU);
+                capacityResponse.setCapacityUsed((long) Math.ceil(capacityUsed));
+                capacityResponse.setCapacityTotal(capacityMax);
+
+                CapacityVO capacityVO = new CapacityVO(null, zoneId, podId, clusterId, capacityResponse.getCapacityUsed(), capacityResponse.getCapacityTotal(), (short) capacityResponse.getCapacityType());
+
+                if (capacityMax > 0) {
+                    capacityVO.setUsedCapacity(capacityResponse.getCapacityUsed() / capacityResponse.getCapacityTotal());
+                } else {
+                    capacityVO.setUsedCapacity(0);
+                }
+                capacities.add(capacityVO);
+
+            }
+        }
+
         return capacities;
     }
 
