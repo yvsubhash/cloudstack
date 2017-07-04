@@ -19,8 +19,6 @@
 -- Schema upgrade from 4.7.1 to 4.8.0;
 --;
 
-ALTER TABLE `cloud`.`nicira_nvp_router_map` DROP INDEX `logicalrouter_uuid` ;
-
 ALTER TABLE `cloud`.`volume_host_ref` MODIFY COLUMN `url` varchar(2048);
 ALTER TABLE `cloud`.`object_datastore_ref` MODIFY COLUMN `url` varchar(2048);
 ALTER TABLE `cloud`.`image_store` MODIFY COLUMN `url` varchar(2048);

@@ -36,17 +36,6 @@ CREATE VIEW `cloud`.`storage_tag_view` AS
 ALTER TABLE `cloud`.`volumes` ADD COLUMN `provisioning_type` VARCHAR(32) NOT NULL DEFAULT 'thin' COMMENT 'pre allocation setting of the volume';
 ALTER TABLE `cloud`.`disk_offering` ADD COLUMN `provisioning_type` VARCHAR(32) NOT NULL DEFAULT 'thin' COMMENT 'pre allocation setting of the volume';
 
--- Have primary keys of following table AUTO_INCREMENT
-SET foreign_key_checks = 0;
-ALTER TABLE `cloud`.`region` MODIFY `id` int unsigned AUTO_INCREMENT UNIQUE NOT NULL;
-ALTER TABLE `cloud`.`vm_instance` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
-ALTER TABLE `cloud`.`user_vm` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
-ALTER TABLE `cloud`.`domain_router` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
-ALTER TABLE `cloud`.`service_offering` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
-ALTER TABLE `cloud`.`load_balancing_rules` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
-ALTER TABLE `cloud`.`port_forwarding_rules` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
-SET foreign_key_checks = 1;
-
 DROP VIEW IF EXISTS `cloud`.`disk_offering_view`;
 CREATE VIEW `cloud`.`disk_offering_view` AS
     select
@@ -765,7 +754,7 @@ INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, crea
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (238, UUID(), 4, 'Red Hat Enterprise Linux 5 (64-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (239, UUID(), 4, 'Red Hat Enterprise Linux 6 (32-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (240, UUID(), 4, 'Red Hat Enterprise Linux 6 (64-bit)', utc_timestamp());
-INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (241, UUID(), 10, 'Ubuntu 14.04 (32-bit)', utc_timestamp());
+INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (241, UUID(), 10, 'Ubuntu 14.04', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (244, UUID(), 5, 'SUSE Linux Enterprise Server 12 (64-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (245, UUID(), 4, 'Red Hat Enterprise Linux 7', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (246, UUID(), 1, 'CentOS 7', utc_timestamp());
@@ -774,7 +763,6 @@ INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, crea
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (249, UUID(), 1, 'CentOS 6 (64-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (250, UUID(), 3, 'Oracle Enterprise Linux 6.5 (32-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (251, UUID(), 3, 'Oracle Enterprise Linux 6.5 (64-bit)', utc_timestamp());
-INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (254, UUID(), 10, 'Ubuntu 14.04 (64-bit)', utc_timestamp());
 
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'CentOS 4.5 (32-bit)', 1, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'CentOS 4.6 (32-bit)', 2, utc_timestamp(), 0);
@@ -939,7 +927,6 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervis
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Ubuntu Precise Pangolin 12.04 (32-bit)', 163, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Ubuntu Precise Pangolin 12.04 (64-bit)', 164, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Ubuntu Trusty Tahr 14.04', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Ubuntu Trusty Tahr 14.04', 254, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Other install media', 169, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Other install media', 170, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Other install media', 98, utc_timestamp(), 0);
@@ -954,8 +941,7 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervis
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.5.0', 'Other install media', 203, utc_timestamp(), 0);
 
 
-
-INSERT IGNORE INTO `cloud`.`hypervisor_capabilities`(uuid, hypervisor_type, hypervisor_version, max_guests_limit, security_group_enabled, max_data_volumes_limit, storage_motion_supported) VALUES (UUID(), 'XenServer', '6.5.0', 500, 1, 13, 1);
+INSERT IGNORE INTO `cloud`.`hypervisor_capabilities`(uuid, hypervisor_type, hypervisor_version, max_guests_limit, security_group_enabled, max_data_volumes_limit, storage_motion_supported, vm_snapshot_enabled) VALUES (UUID(), 'XenServer', '6.5.0', 500, 1, 13, 1, 1);
 
 update vlan set vlan_id=concat('vlan://', vlan_id) where vlan_type = "VirtualNetwork" and vlan_id not like "vlan://%";
 
@@ -967,21 +953,25 @@ CREATE TABLE `cloud`.`baremetal_rct` (
    PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
---Remove duplicates from guest_os_hypervisor table
-DELETE t1 FROM guest_os_hypervisor t1, guest_os_hypervisor t2 WHERE (t1.hypervisor_type = t2.hypervisor_type AND t1.hypervisor_version = t2.hypervisor_version AND t1.guest_os_id = t2.guest_os_id AND t1.id > t2.id AND t1.is_user_defined=0);
-
--- Set as removed built-in CentOS 5.3 template (if any) for XenServer, since CentOS 5.6 template already exists
-UPDATE `cloud`.`vm_template` SET removed=NOW() WHERE unique_name="centos53-x86_64" AND hypervisor_type="XenServer";
+UPDATE `cloud`.`host` SET resource = REPLACE(resource, 'com.cloud.hypervisor.xen.resource', 'com.cloud.hypervisor.xenserver.resource') WHERE hypervisor_type='XenServer' AND REMOVED IS NULL;
 
 ALTER TABLE `cloud_usage`.`usage_vpn_user` CHANGE `user_name` `user_name` VARCHAR(255);
+--Remove duplicates from guest_os_hypervisor table
+DELETE t1 FROM guest_os_hypervisor t1, guest_os_hypervisor t2 WHERE (t1.hypervisor_type = t2.hypervisor_type AND t1.hypervisor_version = t2.hypervisor_version AND t1.guest_os_id = t2.guest_os_id AND t1.id > t2.id AND t1.is_user_defined=0);
 
 --Increase key value size generated from RSA-8192 to be stored.
 ALTER TABLE `cloud`.`user_vm_details` MODIFY `value` VARCHAR(5120);
 
-UPDATE `cloud`.`host` SET resource = REPLACE(resource, 'com.cloud.hypervisor.xen.resource', 'com.cloud.hypervisor.xenserver.resource') WHERE hypervisor_type='XenServer' AND REMOVED IS NULL;
-
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text,  format, guest_os_id, featured, cross_zones, hypervisor_type, extractable, state)
-    VALUES (11, UUID(), 'centos7-x86_64-lxc', 'CentOS 7(64-bit) no GUI (LXC)', 1, now(), 'BUILTIN', 0, 64, 1, 'http://download.cloudstack.org/templates/builtin/centos-7-x86_64.tar.gz', 'c2c4fa2d0978121c7977db571f132d6e', 0, 'CentOS 7(64-bit) no GUI (LXC)', 'TAR', 246, 1, 1, 'LXC', 1, 'Active');
+    VALUES (11, UUID(), 'centos7-x86_64-lxc', 'CentOS 7(64-bit) no GUI (LXC)', 1, now(), 'BUILTIN', 0, 64, 1, 'http://download.cloud.com/templates/builtin/centos-7-x86_64.tar.gz', 'c2c4fa2d0978121c7977db571f132d6e', 0, 'CentOS 7(64-bit) no GUI (LXC)', 'TAR', 246, 1, 1, 'LXC', 1, 'Active');
+
+ALTER TABLE `cloud`.`user` ADD COLUMN `source` varchar(40) NOT NULL DEFAULT 'UNKNOWN';
+
+UPDATE IGNORE `cloud`.`configuration` SET `default_value`='PBKDF2,SHA256SALT,MD5,LDAP,SAML2,PLAINTEXT' WHERE name='user.authenticators.order';
+UPDATE IGNORE `cloud`.`configuration` SET `value`='PBKDF2,SHA256SALT,MD5,LDAP,SAML2,PLAINTEXT' WHERE name='user.authenticators.order';
+UPDATE IGNORE `cloud`.`configuration` SET `default_value`='PBKDF2,SHA256SALT,MD5,LDAP,SAML2,PLAINTEXT' WHERE name='user.password.encoders.order';
+UPDATE IGNORE `cloud`.`configuration` SET `value`='PBKDF2,SHA256SALT,MD5,LDAP,SAML2,PLAINTEXT' WHERE name='user.password.encoders.order';
+UPDATE IGNORE `cloud`.`configuration` SET `value`="MD5,LDAP,PLAINTEXT" WHERE `name`="user.password.encoders.exclude";
 
 --Support for RHEL 6.5 in relevant hypervisor versions
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (252, UUID(), 4, 'Red Hat Enterprise Linux 6.5 (32-bit)', utc_timestamp());
@@ -1000,30 +990,64 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervis
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.1', 'rhel6Guest', 252, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.1', 'rhel6_64Guest', 253, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'rhel6Guest', 252, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'rhel6_64Guest', 253, utc_timestamp(), 0);
+INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5,5', 'rhel6_64Guest', 253, utc_timestamp(), 0);
 
---Support for Debian 7 on KVM/LXC
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Debian GNU/Linux 7(32-bit)', 183, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Debian GNU/Linux 7(64-bit)', 184, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Debian GNU/Linux 7(32-bit)', 183, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Debian GNU/Linux 7(64-bit)', 184, utc_timestamp(), 0);
+-- Have primary keys of following table AUTO_INCREMENT
+ALTER TABLE `cloud`.`vm_instance` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
+ALTER TABLE `cloud`.`user_vm` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
+ALTER TABLE `cloud`.`domain_router` MODIFY `id` bigint unsigned AUTO_INCREMENT UNIQUE NOT NULL;
+ALTER TABLE `cloud`.`service_offering` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
+ALTER TABLE `cloud`.`load_balancing_rules` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
+ALTER TABLE `cloud`.`port_forwarding_rules` MODIFY `id` bigint unsigned AUTO_INCREMENT NOT NULL;
+
+CREATE TABLE IF NOT EXISTS `cloud`.`ovs_providers` (
+  `id` bigint unsigned NOT NULL auto_increment COMMENT 'id',
+  `nsp_id` bigint unsigned NOT NULL COMMENT 'Network Service Provider ID',
+  `uuid` varchar(40),
+  `enabled` int(1) NOT NULL COMMENT 'Enabled or disabled',
+  `removed` datetime COMMENT 'date removed if not null',
+  PRIMARY KEY  (`id`),
+  CONSTRAINT `fk_ovs_providers__nsp_id` FOREIGN KEY (`nsp_id`) REFERENCES `physical_network_service_providers` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `uc_ovs_providers__uuid` UNIQUE (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.default.accountname', 'admin', 'The name of the default account to use when creating users from SAML SSO', 'admin');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.default.domainid', '1', 'The default domain UUID to use when creating users from SAML SSO', '1');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.enabled', 'false', 'Set it to true to enable SAML SSO plugin', 'false');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.idp.id', 'https://openidp.feide.no', 'SAML2 Identity Provider Identifier String', 'https://openidp.feide.no');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.idp.metadata.url', 'https://openidp.feide.no/simplesaml/saml2/idp/metadata.php', 'SAML2 Identity Provider Metadata XML Url', 'https://openidp.feide.no/simplesaml/saml2/idp/metadata.php');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.redirect.url', 'http://localhost:8080/client', 'The CloudStack UI url the SSO should redirected to when successful', 'http://localhost:8080/client');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.sp.id', 'org.apache.cloudstack', 'SAML2 Service Provider Identifier String', 'org.apache.cloudstack');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.sp.slo.url', 'http://localhost:8080/client/api?command=samlslo', 'SAML2 CloudStack Service Provider Single Log Out URL', 'http://localhost:8080/client/api?command=samlslo');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.sp.sso.url', 'http://localhost:8080/client/api?command=samlsso', 'SAML2 CloudStack Service Provider Single Sign On URL', 'http://localhost:8080/client/api?command=samlsso');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'saml2.timeout', '3000', 'SAML2 IDP Metadata Downloading and parsing etc. activity timeout in milliseconds', '3000');
 
 
---Support for Ubuntu 14.04
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.0', 'ubuntuGuest', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.1', 'ubuntuGuest', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'ubuntuGuest', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.0', 'ubuntu64Guest', 254, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.1', 'ubuntu64Guest', 254, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'ubuntu64Guest', 254, utc_timestamp(), 0);
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server','publish.action.events', 'true', 'enable or disable publishing of action events on the event bus','true');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server','publish.alert.events', 'true', 'enable or disable publishing of alert events on the event bus', 'true');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server','publish.resource.state.events', 'true', 'enable or disable publishing of alert events on the event bus', 'true');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'publish.usage.events', 'true', 'enable or disable publishing of usage events on the event bus', 'true');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'publish.async.job.events', 'true', 'enable or disable publishing of usage events on the event bus', 'true');
 
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Ubuntu 14.04', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Ubuntu 14.04', 254, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Ubuntu 14.04', 241, utc_timestamp(), 0);
-INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Ubuntu 14.04', 254, utc_timestamp(), 0);
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server','baremetal.internal.storage.server.ip', null, 'the ip address of server that stores kickstart file, kernel, initrd, ISO for advanced networking baremetal provisioning', null);
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'baremetal.provision.done.notification.enabled', 'true', 'whether to enable baremetal provison done notification', 'true');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server','baremetal.provision.done.notification.port', '8080', 'the port that listens baremetal provision done notification. Should be the same to port management server listening on for now. Please change it to management server port if its not default 8080', '8080');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'baremetal.provision.done.notification.timeout', '1800', 'the max time to wait before treating a baremetal provision as failure if no provision done notification is not received, in secs', '1800');
 
-INSERT IGNORE INTO `cloud`.`configuration` (`category`, `instance`, `component`, `name`, `value`, `default_value`, `description`) VALUES ('Advanced', 'DEFAULT', 'ManagementServer', 'xen.heartbeat.timeout' , '180', '120', 'Timeout value to send to the xenheartbeat script for guarding the self fencing functionality');
 
-UPDATE `cloud`.`configuration` SET description='Uuid of the service offering used by secondary storage; if NULL - system offering will be used' where name='secstorage.service.offering';
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'router.ram.size', '256', 'Default RAM for router VM (in MB).', '256');
 
-ALTER TABLE `cloud`.`guest_os_hypervisor` ADD FOREIGN KEY (`guest_os_id`) REFERENCES `cloud`.`guest_os`(`id`);
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'xenserver.heartbeat.timeout', '120', 'heartbeat timeout to use when implementing XenServer Self Fencing', '120');
+INSERT IGNORE INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'xenserver.hotfix.enabled', 'false', 'Enable/Disable XenServer hot fix', 'false');
+
+
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.bond.storage.nics' where name='xen.bond.storage.nics';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.create.pools.in.pod' where name='xen.create.pools.in.pod';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.guest.network.device' where name='xen.guest.network.device';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.heartbeat.interval' where name='xen.heartbeat.interval';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.private.network.device' where name='xen.private.network.device';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.public.network.device' where name='xen.public.network.device';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.pvdriver.version' where name='xen.pvdriver.version';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.setup.multipath' where name='xen.setup.multipath';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.storage.network.device1' where name='xen.storage.network.device1';
+UPDATE IGNORE `cloud`.`configuration` SET name='xenserver.storage.network.device2' where name='xen.storage.network.device2';

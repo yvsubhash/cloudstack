@@ -16,23 +16,6 @@
 -- under the License.
 
 --;
--- Schema upgrade from 4.10.0 to 4.10.1.0;
+-- Schema upgrade from 4.10.0.0 to 4.11.0.0;
 --;
-
-CREATE TABLE `cloud`.`domain_vnet_map` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `uuid` varchar(255) UNIQUE,
-  `vnet_range` varchar(255) NOT NULL COMMENT 'dedicated guest vlan range',
-  `domain_id` bigint unsigned NOT NULL COMMENT 'domain id. foreign key to domain table',
-  `physical_network_id` bigint unsigned NOT NULL COMMENT 'physical network id. foreign key to the the physical network table',
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_domain_vnet_map__physical_network_id` FOREIGN KEY (`physical_network_id`) REFERENCES `physical_network` (`id`) ON DELETE CASCADE,
-  INDEX `i_domain_vnet_map__physical_network_id` (`physical_network_id`),
-  CONSTRAINT `fk_domain_vnet_map__domain_id` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE CASCADE,
-  INDEX `i_domain_vnet_map__domain_id` (`domain_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-ALTER TABLE `cloud`.`op_dc_vnet_alloc` ADD COLUMN domain_vnet_map_id bigint unsigned DEFAULT NULL;
-ALTER TABLE `cloud`.`op_dc_vnet_alloc` ADD CONSTRAINT `fk_op_dc_vnet_alloc__domain_vnet_map_id` FOREIGN KEY `fk_op_dc_vnet_alloc__domain_vnet_map_id` (`domain_vnet_map_id`) REFERENCES `domain_vnet_map` (`id`);
-
 

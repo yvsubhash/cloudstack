@@ -15,6 +15,6 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
---;
--- Schema cleanup from 4.5.0 to 4.5.1;
---;
+--
+-- Schema cleanup from 4.5.0 to 4.5.1
+--

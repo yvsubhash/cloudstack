@@ -111,7 +111,8 @@ CREATE TABLE `cloud`.`async_job_join_map` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 #realhostip changes, before changing table and adding default value
-UPDATE `cloud`.`configuration` SET value=CONCAT("*.",value) WHERE `name`="consoleproxy.url.domain" OR `name`="secstorage.ssl.cert.domain";
+UPDATE `cloud`.`configuration` SET value = CONCAT("*.",(SELECT `temptable`.`value` FROM (SELECT * FROM `cloud`.`configuration` WHERE `name`="consoleproxy.url.domain") AS `temptable` WHERE `temptable`.`name`="consoleproxy.url.domain")) WHERE `name`="consoleproxy.url.domain";
+UPDATE `cloud`.`configuration` SET `value` = CONCAT("*.",(SELECT `temptable`.`value` FROM (SELECT * FROM `cloud`.`configuration` WHERE `name`="secstorage.ssl.cert.domain") AS `temptable` WHERE `temptable`.`name`="secstorage.ssl.cert.domain")) WHERE `name`="secstorage.ssl.cert.domain";
 
 ALTER TABLE `cloud`.`configuration` ADD COLUMN `default_value` VARCHAR(4095) COMMENT 'Default value for a configuration parameter';
 ALTER TABLE `cloud`.`configuration` ADD COLUMN `updated` datetime COMMENT 'Time this was updated by the server. null means this row is obsolete.';
@@ -607,7 +608,7 @@ UPDATE `cloud`.`configuration` SET name='ldap.truststore.password' WHERE name='l
 INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.bind.principal', NULL, 'Specifies the bind principal to use for bind to LDAP', NULL) ON DUPLICATE KEY UPDATE category='Secure';
 INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.bind.password', NULL, 'Specifies the password to use for binding to LDAP', NULL) ON DUPLICATE KEY UPDATE category='Secure';
 INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.basedn', NULL, 'Sets the basedn for LDAP', NULL) ON DUPLICATE KEY UPDATE category='Secure';
-INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.search.group.principle', NULL, 'Sets the principle of the group that users must be a member of', NULL) ON DUPLICATE KEY UPDATE category='Secure';
+INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.search.group.principle', NULL, 'Sets the principle of the group that users must be a member of (optional)', NULL) ON DUPLICATE KEY UPDATE category='Secure';
 INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.truststore', NULL, 'Sets the path to the truststore to use for LDAP SSL', NULL) ON DUPLICATE KEY UPDATE category='Secure';
 INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Secure', 'DEFAULT', 'management-server', 'ldap.truststore.password', NULL, 'Sets the password for the truststore', NULL) ON DUPLICATE KEY UPDATE category='Secure';
 
@@ -779,7 +780,7 @@ CREATE VIEW `cloud`.`domain_router_view` AS
             and async_job.job_status = 0;
 
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'management-server', "vmware.vcenter.session.timeout", "1200", "VMware client timeout in seconds", "1200", NULL,NULL,0);
-INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'management-server', "mgt.server.vendor", "ACS", "the vendor of management server", "ACS", NULL,NULL,0);
+INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'management-server', "mgt.server.vendor", "CCP", "the vendor of management server", "CCP", NULL,NULL,0);
 Update `cloud`.`configuration` set `component` = "VolumeOrchestrationService", `scope` = "Global" where `name`="custom.diskoffering.size.max";
 Update `cloud`.`configuration` set `component` = "VolumeOrchestrationService", `scope` = "Global" where `name`="custom.diskoffering.size.min";
 
@@ -863,12 +864,12 @@ INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'VMSna
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'VMSnapshotManager', "vmsnapshot.max", "10", "Maximum vm snapshots for a vm", NULL, NULL,NULL,0);
 
 INSERT IGNORE INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type, state)
-    VALUES (9, UUID(), 'routing-9', 'SystemVM Template (HyperV)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/templates/4.3/systemvm64template-2013-12-23-hyperv.vhd.bz2', '5df45ee6ebe1b703a8805f4e1f4d0818', 0, 'SystemVM Template (HyperV)', 'VHD', 15, 0, 1, 'Hyperv', 'Active' );
+    VALUES (9, UUID(), 'routing-9', 'SystemVM Template (HyperV)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloud.com/templates/4.3/systemvm64template-2013-12-23-hyperv.vhd.bz2', '5df45ee6ebe1b703a8805f4e1f4d0818', 0, 'SystemVM Template (HyperV)', 'VHD', 15, 0, 1, 'Hyperv', 'Active' );
 
-UPDATE `cloud`.`vm_template` SET `bits` = "64", `url` = "http://download.cloudstack.org/templates/4.3/systemvm64template-2013-12-23-hyperv.vhd.bz2", `state` = "Active", `checksum` = "5df45ee6ebe1b703a8805f4e1f4d0818" WHERE `id` = "9";
+UPDATE `cloud`.`vm_template` SET `bits` = "64", `url` = "http://download.cloud.com/templates/4.3/systemvm64template-2013-12-23-hyperv.vhd.bz2", `state` = "Active", `checksum` = "5df45ee6ebe1b703a8805f4e1f4d0818" WHERE `id` = "9";
 
 INSERT IGNORE INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text,  format, guest_os_id, featured, cross_zones, hypervisor_type, extractable, state)
-    VALUES (6, UUID(), 'centos64-x64', 'CentOS 6.4(64-bit) GUI (Hyperv)', 1, now(), 'BUILTIN', 0, 64, 1, 'http://download.cloudstack.org/releases/4.3/centos6_4_64bit.vhd.bz2', 'eef6b9940ea3ed01221d963d4a012d0a', 0, 'CentOS 6.4 (64-bit) GUI (Hyperv)', 'VHD', 182, 1, 1, 'Hyperv', 1, 'Active');
+    VALUES (6, UUID(), 'centos64-x64', 'CentOS 6.4(64-bit) GUI (Hyperv)', 1, now(), 'BUILTIN', 0, 64, 1, 'http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2', 'eef6b9940ea3ed01221d963d4a012d0a', 0, 'CentOS 6.4 (64-bit) GUI (Hyperv)', 'VHD', 182, 1, 1, 'Hyperv', 1, 'Active');
 
 UPDATE `cloud`.`configuration` SET `component` = 'VMSnapshotManager' WHERE `name` IN ("vmsnapshot.create.wait", "vmsnapshot.max");
 

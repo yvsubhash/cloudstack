@@ -29,7 +29,6 @@ ALTER TABLE cloud.nic_ip_alias ENGINE=INNODB;
 ALTER TABLE cloud.sslcerts ENGINE=INNODB;
 ALTER TABLE cloud.op_lock ENGINE=INNODB;
 ALTER TABLE cloud.op_nwgrp_work ENGINE=INNODB;
-ALTER TABLE cloud_usage.quota_account ENGINE=INNODB;
 
 -- Add Ubuntu 16.04 LTS as support guest os
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (255, UUID(), 10, 'Ubuntu 16.04 (32-bit)', utc_timestamp());
