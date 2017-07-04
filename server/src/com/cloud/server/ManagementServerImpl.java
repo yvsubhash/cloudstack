@@ -558,6 +558,7 @@ import com.cloud.cluster.ClusterManager;
 import com.cloud.configuration.Config;
 import com.cloud.consoleproxy.ConsoleProxyManagementState;
 import com.cloud.consoleproxy.ConsoleProxyManager;
+import com.cloud.dc.DataCenter;
 import com.cloud.dc.AccountVlanMapVO;
 import com.cloud.dc.ClusterVO;
 import com.cloud.dc.DataCenterVO;
