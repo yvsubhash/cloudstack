@@ -89,7 +89,6 @@ def is_guestnet_configured(guestnet_dict, keys):
         '''
         Device already configured, ignore.
         '''
-        return True
 
     exists = False
 
@@ -99,8 +98,10 @@ def is_guestnet_configured(guestnet_dict, keys):
             old_mac = interface["mac_address"].encode('utf-8')
             new_ip = new_guestnet_dict["router_guest_ip"].encode('utf-8')
             old_ip = interface["router_guest_ip"].encode('utf-8')
+            new_iface = new_guestnet_dict["device"].encode('utf-8')
+            old_iface = interface["device"].encode('utf-8')
 
-            if (new_mac == old_mac) and (new_ip == old_ip):
+            if (new_mac == old_mac) and (new_ip == old_ip) and (new_iface == old_iface):
                 exists = True
                 break
 
