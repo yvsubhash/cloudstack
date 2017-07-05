@@ -58,28 +58,31 @@ import com.cloud.vm.snapshot.VMSnapshot;
  */
 public interface VolumeOrchestrationService {
 
-    static final ConfigKey<Long> CustomDiskOfferingMinSize = new ConfigKey<Long>("Advanced",
+    ConfigKey<Long> CustomDiskOfferingMinSize = new ConfigKey<Long>("Advanced",
         Long.class,
         "custom.diskoffering.size.min",
         "1",
         "Minimum size in GB for custom disk offering.",
         true
     );
-    static final ConfigKey<Long> CustomDiskOfferingMaxSize = new ConfigKey<Long>("Advanced",
+
+    ConfigKey<Long> CustomDiskOfferingMaxSize = new ConfigKey<Long>("Advanced",
         Long.class,
         "custom.diskoffering.size.max",
         "1024",
         "Maximum size in GB for custom disk offering.",
         true
     );
-    static final ConfigKey<Long> RootDiskMaxSize = new ConfigKey<Long>("Advanced",
+
+    ConfigKey<Long> RootDiskMaxSize = new ConfigKey<Long>("Advanced",
             Long.class,
             "root.disk.size.max",
             "50",
             "Maximum size in GB for root disk.",
             true
     );
-    static final ConfigKey<Boolean> EnableRootDiskResize = new ConfigKey<Boolean>("Advanced",
+
+    ConfigKey<Boolean> EnableRootDiskResize = new ConfigKey<Boolean>("Advanced",
             Boolean.class,
             "root.disk.resize.enable",
             "true",
