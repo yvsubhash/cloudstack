@@ -650,18 +650,18 @@ class CsVpnUser(CsDataBag):
 
 class CsRemoteAccessVpn(CsDataBag):
     VPNCONFDIR = "/etc/ipsec.d"
-
     def process(self):
         self.confips = []
+        self.vpnconfig=None
 
         logging.debug(self.dbag)
         for public_ip in self.dbag:
             if public_ip == "id":
                 continue
-            vpnconfig=self.dbag[public_ip]
+            self.vpnconfig=self.dbag[public_ip]
 
             #Enable remote access vpn
-            if vpnconfig['create']:
+            if self.vpnconfig['create']:
                 logging.debug("Enabling  remote access vpn  on "+ public_ip)
                 CsHelper.start_if_stopped("ipsec")
                 self.configure_l2tpIpsec(public_ip, self.dbag[public_ip])
@@ -671,12 +671,13 @@ class CsRemoteAccessVpn(CsDataBag):
                 CsHelper.execute("ipsec update")
                 CsHelper.execute("service xl2tpd start")
                 CsHelper.execute("ipsec rereadsecrets")
-            else:
-                logging.debug("Disabling remote access vpn .....")
-                #disable remote access vpn
-                CsHelper.execute("ipsec down L2TP-PSK")
-                CsHelper.execute("service xl2tpd stop")
 
+        if self.vpnconfig is None:
+            logging.debug("Disabling remote access vpn .....")
+            CsHelper.execute("service xl2tpd stop")
+            #doing down twice to get it down incase if is not down first
+            CsHelper.execute("ipsec down L2TP-PSK")
+            CsHelper.execute("ipsec down L2TP-PSK")
 
     def configure_l2tpIpsec(self, left,  obj):
         l2tpconffile="%s/l2tp.conf" % (self.VPNCONFDIR)
