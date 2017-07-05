@@ -160,8 +160,7 @@ if [ "$installtype" == "q" -o "$installtype" == "Q" ] ; then
 		echo "Installing the Management Server..."
 
         yum update -y
-		doinstall wget
-
+		doinstall wget python-setuptools
 		epel_download_path=/tmp/cloud-temp
         epel6_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/6/x86_64/
         epel7_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/7/x86_64/e
@@ -171,6 +170,7 @@ if [ "$installtype" == "q" -o "$installtype" == "Q" ] ; then
             if [ -f $epel7_rpm_location/*.rpm ]; then
                 rpm -ivh $epel7_rpm_location/*.rpm
             fi
+            rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-6.1.noarch.rpm
         elif  [[ `cat /etc/redhat-release` =~ " 6." ]]; then
             wget -r --no-parent -A 'epel-release-*.noarch.rpm' http://dl.fedoraproject.org/pub/epel/6/x86_64/ -P $epel_download_path  2>/dev/null
             if [ -f $epel6_rpm_location/*.rpm ]; then
