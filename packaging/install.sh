@@ -159,6 +159,7 @@ if [ "$installtype" == "q" -o "$installtype" == "Q" ] ; then
 	elif [ "$installtype" == "m" -o "$installtype" == "M" ] ; then
 		echo "Installing the Management Server..."
 
+        yum update -y
 		doinstall wget
 
 		epel_download_path=/tmp/cloud-temp
@@ -175,6 +176,7 @@ if [ "$installtype" == "q" -o "$installtype" == "Q" ] ; then
             if [ -f $epel6_rpm_location/*.rpm ]; then
                 rpm -ivh $epel6_rpm_location/*.rpm
             fi
+            rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-2.el6.noarch.rpm
         fi
 
         rm -rf $epel_download_path
