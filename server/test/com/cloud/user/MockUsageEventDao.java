@@ -279,6 +279,11 @@ public class MockUsageEventDao implements UsageEventDao{
     }
 
     @Override
+    public Pair<List<UsageEventVO>, Integer> searchAndDistinctCount(SearchCriteria<UsageEventVO> sc, Filter filter, String[] distinctColumns) {
+        return null;
+    }
+
+    @Override
     public List<UsageEventVO> listLatestEvents(Date endDate) {
         return null;
     }
