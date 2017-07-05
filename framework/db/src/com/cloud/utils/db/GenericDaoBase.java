@@ -1355,14 +1355,6 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
 
     @Override
     @DB()
-    public Pair<List<T>, Integer> searchAndDistinctCount(final SearchCriteria<T> sc, final Filter filter, final String[] distinctColumns) {
-        List<T> objects = search(sc, filter, null, false);
-        Integer count = getDistinctCount(sc, distinctColumns);
-        return new Pair<List<T>, Integer>(objects, count);
-    }
-
-    @Override
-    @DB()
     public List<T> search(final SearchCriteria<T> sc, final Filter filter, final boolean enableQueryCache) {
         return search(sc, filter, null, false, enableQueryCache);
     }
@@ -1962,54 +1954,6 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
         }
     }
 
-    public Integer getDistinctCount(SearchCriteria<T> sc, String[] distinctColumns) {
-        String clause = sc != null ? sc.getWhereClause() : null;
-        if (clause != null && clause.length() == 0) {
-            clause = null;
-        }
-
-        final StringBuilder str = createDistinctSelect(sc, clause != null, distinctColumns);
-        if (clause != null) {
-            str.append(clause);
-        }
-
-        Collection<JoinBuilder<SearchCriteria<?>>> joins = null;
-        if (sc != null) {
-            joins = sc.getJoins();
-            if (joins != null) {
-                addJoins(str, joins);
-            }
-        }
-
-        final TransactionLegacy txn = TransactionLegacy.currentTxn();
-        final String sql = "SELECT COUNT(*) FROM (" + str.toString() + ") AS tmp";
-
-        PreparedStatement pstmt = null;
-        try {
-            pstmt = txn.prepareAutoCloseStatement(sql);
-            int i = 1;
-            if (clause != null) {
-                for (final Pair<Attribute, Object> value : sc.getValues()) {
-                    prepareAttribute(i++, pstmt, value.first(), value.second());
-                }
-            }
-
-            if (joins != null) {
-                i = addJoinAttributes(i, pstmt, joins);
-            }
-
-            final ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                return rs.getInt(1);
-            }
-            return 0;
-        } catch (final SQLException e) {
-            throw new CloudRuntimeException("DB Exception on: " + pstmt, e);
-        } catch (final Throwable e) {
-            throw new CloudRuntimeException("Caught: " + pstmt, e);
-        }
-    }
-
     public Integer getCount(SearchCriteria<T> sc) {
         String clause = sc != null ? sc.getWhereClause() : null;
         if (clause != null && clause.length() == 0) {
@@ -2095,19 +2039,5 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
         List<T> objects = searchIncludingRemoved(sc, filter, null, false);
         Integer count = getCount(sc);
         return new Pair<List<T>, Integer>(objects, count);
-    }
-
-    @DB()
-    protected StringBuilder createDistinctSelect(SearchCriteria<?> sc, final boolean whereClause, String[] distinctColumns) {
-        final SqlGenerator generator = new SqlGenerator(_entityBeanType);
-        String distinctSql = generator.buildDistinctSql(distinctColumns);
-
-        StringBuilder sql = new StringBuilder(distinctSql);
-
-        if (!whereClause) {
-            sql.delete(sql.length() - (_discriminatorClause == null ? 6 : 4), sql.length());
-        }
-
-        return sql;
     }
 }

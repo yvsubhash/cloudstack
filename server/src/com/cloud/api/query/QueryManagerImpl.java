@@ -3475,8 +3475,7 @@ public class QueryManagerImpl extends MutualExclusiveIdsManagerBase implements Q
             uniqueTmplPair = _templateJoinDao.searchIncludingRemovedAndCount(sc, searchFilter);
         } else {
             sc.addAnd("templateState", SearchCriteria.Op.IN, new State[]{State.Active, State.UploadAbandoned, State.UploadError, State.NotUploaded, State.UploadInProgress});
-            final String[] distinctColumns = {"temp_zone_pair"};
-            uniqueTmplPair = _templateJoinDao.searchAndDistinctCount(sc, searchFilter, distinctColumns);
+            uniqueTmplPair = _templateJoinDao.searchAndCount(sc, searchFilter);
         }
 
         Integer count = uniqueTmplPair.second();
