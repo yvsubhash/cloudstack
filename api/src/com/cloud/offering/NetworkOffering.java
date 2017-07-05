@@ -29,34 +29,34 @@ import com.cloud.network.Networks.TrafficType;
  */
 public interface NetworkOffering extends InfrastructureEntity, InternalIdentity, Identity {
 
-    public enum Availability {
+    enum Availability {
         Required, Optional
     }
 
-    public enum State {
+    enum State {
         Disabled, Enabled
     }
 
-    public enum Detail {
+    enum Detail {
         InternalLbProvider, PublicLbProvider, servicepackageuuid, servicepackagedescription, BaremetalInternalStorageServerIP
     }
 
-    public final static String SystemPublicNetwork = "System-Public-Network";
-    public final static String SystemControlNetwork = "System-Control-Network";
-    public final static String SystemManagementNetwork = "System-Management-Network";
-    public final static String SystemStorageNetwork = "System-Storage-Network";
-    public final static String SystemPrivateGatewayNetworkOffering = "System-Private-Gateway-Network-Offering";
+    String SystemPublicNetwork = "System-Public-Network";
+    String SystemControlNetwork = "System-Control-Network";
+    String SystemManagementNetwork = "System-Management-Network";
+    String SystemStorageNetwork = "System-Storage-Network";
+    String SystemPrivateGatewayNetworkOffering = "System-Private-Gateway-Network-Offering";
 
-    public final static String DefaultSharedNetworkOfferingWithSGService = "DefaultSharedNetworkOfferingWithSGService";
-    public final static String QuickCloudNoServices = "QuickCloudNoServices";
-    public final static String DefaultIsolatedNetworkOfferingWithSourceNatService = "DefaultIsolatedNetworkOfferingWithSourceNatService";
-    public final static String OvsIsolatedNetworkOfferingWithSourceNatService = "OvsIsolatedNetworkOfferingWithSourceNatService";
-    public final static String DefaultSharedNetworkOffering = "DefaultSharedNetworkOffering";
-    public final static String DefaultIsolatedNetworkOffering = "DefaultIsolatedNetworkOffering";
-    public final static String DefaultSharedEIPandELBNetworkOffering = "DefaultSharedNetscalerEIPandELBNetworkOffering";
-    public final static String DefaultIsolatedNetworkOfferingForVpcNetworks = "DefaultIsolatedNetworkOfferingForVpcNetworks";
-    public final static String DefaultIsolatedNetworkOfferingForVpcNetworksNoLB = "DefaultIsolatedNetworkOfferingForVpcNetworksNoLB";
-    public final static String DefaultIsolatedNetworkOfferingForVpcNetworksWithInternalLB = "DefaultIsolatedNetworkOfferingForVpcNetworksWithInternalLB";
+    String DefaultSharedNetworkOfferingWithSGService = "DefaultSharedNetworkOfferingWithSGService";
+    String QuickCloudNoServices = "QuickCloudNoServices";
+    String DefaultIsolatedNetworkOfferingWithSourceNatService = "DefaultIsolatedNetworkOfferingWithSourceNatService";
+    String OvsIsolatedNetworkOfferingWithSourceNatService = "OvsIsolatedNetworkOfferingWithSourceNatService";
+    String DefaultSharedNetworkOffering = "DefaultSharedNetworkOffering";
+    String DefaultIsolatedNetworkOffering = "DefaultIsolatedNetworkOffering";
+    String DefaultSharedEIPandELBNetworkOffering = "DefaultSharedNetscalerEIPandELBNetworkOffering";
+    String DefaultIsolatedNetworkOfferingForVpcNetworks = "DefaultIsolatedNetworkOfferingForVpcNetworks";
+    String DefaultIsolatedNetworkOfferingForVpcNetworksNoLB = "DefaultIsolatedNetworkOfferingForVpcNetworksNoLB";
+    String DefaultIsolatedNetworkOfferingForVpcNetworksWithInternalLB = "DefaultIsolatedNetworkOfferingForVpcNetworksWithInternalLB";
 
     /**
      * @return name for the network offering.
