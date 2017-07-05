@@ -37,7 +37,7 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.ServiceOfferingResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
 import org.apache.cloudstack.api.response.UserVmResponse;
-
+import com.cloud.offering.ServiceOffering;
 import com.cloud.event.EventTypes;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.ManagementServerException;
@@ -129,7 +129,7 @@ public class ScaleVMCmd extends BaseAsyncCmd {
 
     @Override
     public String getEventDescription() {
-        return  "upgrading vm: " + getId() + " to service offering: " + getServiceOfferingId();
+        return  "upgrading vm: " + this._uuidMgr.getUuid(VirtualMachine.class, getId()) + " to service offering: " + this._uuidMgr.getUuid(ServiceOffering.class, getServiceOfferingId());
     }
 
     @Override

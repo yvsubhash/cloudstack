@@ -29,7 +29,7 @@ import org.apache.cloudstack.api.response.ExtractResponse;
 import org.apache.cloudstack.api.response.TemplateResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.cloudstack.context.CallContext;
-
+import com.cloud.dc.DataCenter;
 import com.cloud.event.EventTypes;
 import com.cloud.exception.InternalErrorException;
 import com.cloud.template.VirtualMachineTemplate;
@@ -113,7 +113,7 @@ public class ExtractTemplateCmd extends BaseAsyncCmd {
 
     @Override
     public String getEventDescription() {
-        return "extracting template: " + getId() + " from zone: " + getZoneId();
+        return "extracting template: " + this._uuidMgr.getUuid(VirtualMachineTemplate.class, getId()) + " from zone: " + this._uuidMgr.getUuid(DataCenter.class, getZoneId());
     }
 
     @Override

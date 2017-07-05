@@ -27,7 +27,8 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.command.user.template.CreateTemplateCmd;
 import org.apache.cloudstack.api.response.TemplateResponse;
 import org.apache.cloudstack.context.CallContext;
-
+import com.cloud.storage.Snapshot;
+import com.cloud.storage.Volume;
 import com.cloud.template.VirtualMachineTemplate;
 
 @APICommand(name = "createTemplate", responseObject = TemplateResponse.class, description = "Creates a template of a virtual machine. " + "The virtual machine must be in a STOPPED state. "
@@ -38,7 +39,7 @@ public class CreateTemplateCmdByAdmin extends CreateTemplateCmd {
 
     @Override
     public void execute() {
-        CallContext.current().setEventDetails("Template Id: "+getEntityId()+((getSnapshotId() == null) ? " from volume Id: " + getVolumeId() : " from snapshot Id: " + getSnapshotId()));
+        CallContext.current().setEventDetails("Template Id: "+getEntityUuid()+((getSnapshotId() == null) ? " from volume Id: " + this._uuidMgr.getUuid(Volume.class, getVolumeId()) : " from snapshot Id: " + this._uuidMgr.getUuid(Snapshot.class, getSnapshotId())));
         VirtualMachineTemplate template = null;
         template = _templateService.createPrivateTemplate(this);
 

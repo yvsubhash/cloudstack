@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 
 import org.apache.log4j.Logger;
-
+import com.cloud.vm.Nic;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
 import org.apache.cloudstack.api.ApiErrorCode;
@@ -40,7 +40,7 @@ public class RemoveNicFromVMCmdByAdmin extends RemoveNicFromVMCmd {
 
     @Override
     public void execute(){
-        CallContext.current().setEventDetails("Vm Id: "+getVmId() + " Nic Id: " + getNicId());
+        CallContext.current().setEventDetails("Vm Id: "+this._uuidMgr.getUuid(VirtualMachine.class, getVmId()) + " Nic Id: " + this._uuidMgr.getUuid(Nic.class, getNicId()));
         UserVm result = _userVmService.removeNicFromVirtualMachine(this);
         ArrayList<VMDetails> dc = new ArrayList<VMDetails>();
         dc.add(VMDetails.valueOf("nics"));

@@ -25,7 +25,7 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.command.user.vmsnapshot.RevertToVMSnapshotCmd;
 import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.context.CallContext;
-
+import com.cloud.vm.snapshot.VMSnapshot;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
@@ -42,7 +42,7 @@ public class RevertToVMSnapshotCmdByAdmin extends RevertToVMSnapshotCmd {
     @Override
     public void execute() throws  ResourceUnavailableException, InsufficientCapacityException, ResourceAllocationException, ConcurrentOperationException {
         CallContext.current().setEventDetails(
-                "vmsnapshot id: " + getVmSnapShotId());
+                "vmsnapshot id: " + this._uuidMgr.getUuid(VMSnapshot.class, getVmSnapShotId()));
         UserVm result = _vmSnapshotService.revertToSnapshot(getVmSnapShotId());
         if (result != null) {
             UserVmResponse response = _responseGenerator.createUserVmResponse(ResponseView.Full,
