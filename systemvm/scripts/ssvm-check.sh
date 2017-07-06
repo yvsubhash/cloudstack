@@ -56,16 +56,16 @@ fi
 
 # check dns resolve
 echo ================================================
-nslookup cloudstack.apache.org 1> /tmp/dns 2>&1
+nslookup s3.download.accelerite.com 1> /tmp/dns 2>&1
 grep 'no servers could' /tmp/dns 1> /dev/null 2>&1
 if [ $? -eq 0 ]
 then
-    echo "ERROR: DNS not resolving cloudstack.apache.org"
+    echo "ERROR: DNS not resolving s3.download.accelerite.com"
     echo resolv.conf follows
     cat /etc/resolv.conf
     exit 2
 else
-    echo "Good: DNS resolves cloudstack.apache.org"
+    echo "Good: DNS resolves s3.download.accelerite.com"
 fi
 
 
