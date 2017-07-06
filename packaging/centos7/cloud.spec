@@ -291,6 +291,7 @@ install -D packaging/systemd/cloudstack-management.default ${RPM_BUILD_ROOT}%{_s
 install -D server/target/conf/cloudstack-sudoers ${RPM_BUILD_ROOT}%{_sysconfdir}/sudoers.d/%{name}-management
 touch ${RPM_BUILD_ROOT}%{_localstatedir}/run/%{name}-management.pid
 install -D server/target/conf/cloudstack-catalina7.logrotate ${RPM_BUILD_ROOT}%{_sysconfdir}/logrotate.d/%{name}-catalina
+install -D packaging/centos7/tomcat7/tomcat-syslog.conf ${RPM_BUILD_ROOT}%{_sysconfdir}/rsyslog.d/tomcat.conf
 
 chmod 440 ${RPM_BUILD_ROOT}%{_sysconfdir}/sudoers.d/%{name}-management
 chmod 770 ${RPM_BUILD_ROOT}%{_sysconfdir}/%{name}/management/Catalina
@@ -504,6 +505,7 @@ pip install --upgrade /usr/share/cloudstack-marvin/Marvin-*.tar.gz
 %config(noreplace) %{_sysconfdir}/%{name}/management/environment.properties
 %config(noreplace) %{_sysconfdir}/%{name}/management/java.security.ciphers
 %config(noreplace) %{_sysconfdir}/%{name}/management/commons-logging.properties
+%attr(0755,root,root) %{_sysconfdir}/rsyslog.d/tomcat.conf
 %attr(0755,root,root) %{_unitdir}/%{name}-management.service
 %attr(0755,cloud,cloud) %{_localstatedir}/run/%{name}-management.pid
 
