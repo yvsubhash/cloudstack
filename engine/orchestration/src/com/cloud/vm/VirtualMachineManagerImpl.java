@@ -139,6 +139,7 @@ import com.cloud.exception.OperationTimedoutException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.exception.StorageUnavailableException;
 import com.cloud.gpu.dao.VGPUTypesDao;
+import com.cloud.gpu.dao.HostGpuGroupsDao;
 import com.cloud.ha.HighAvailabilityManager;
 import com.cloud.ha.HighAvailabilityManager.WorkType;
 import com.cloud.host.Host;
@@ -275,6 +276,8 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
     protected RulesManager rulesMgr;
     @Inject
     protected AffinityGroupVMMapDao _affinityGroupVMMapDao;
+    @Inject
+    protected HostGpuGroupsDao _hostGpuGroupsDao;
     @Inject
     protected VGPUTypesDao _vgpuTypesDao;
     @Inject

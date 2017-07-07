@@ -2449,7 +2449,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
                 long capacityMax = 0;
                 for (VgpuTypesInfo capacity : gpuCapacities) {
                     if (vgpuVMs.containsKey(capacity.getGroupName().concat(capacity.getModelName()))) {
-                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVpuPerGpu();
+                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVgpuPerGpu();
                     }
                     if (capacity.getModelName().equals(GPU.GPUType.passthrough.toString())) {
                         capacityMax += capacity.getMaxCapacity();
@@ -2625,7 +2625,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
                 long capacityMax = 0;
                 for (VgpuTypesInfo capacity : gpuCapacities) {
                     if (vgpuVMs.containsKey(capacity.getGroupName().concat(capacity.getModelName()))) {
-                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVpuPerGpu();
+                        capacityUsed += (float) vgpuVMs.get(capacity.getGroupName().concat(capacity.getModelName())) / capacity.getMaxVgpuPerGpu();
                     }
                     if (capacity.getModelName().equals(GPU.GPUType.passthrough.toString())) {
                         capacityMax += capacity.getMaxCapacity();

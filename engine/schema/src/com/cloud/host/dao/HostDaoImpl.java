@@ -91,6 +91,7 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
     protected SearchBuilder<HostVO> DcPrivateIpAddressSearch;
     protected SearchBuilder<HostVO> DcStorageIpAddressSearch;
     protected SearchBuilder<HostVO> PublicIpAddressSearch;
+    protected SearchBuilder<HostVO> PrivateIpAddressSearch;
 
     protected SearchBuilder<HostVO> GuidSearch;
     protected SearchBuilder<HostVO> DcSearch;
@@ -219,6 +220,10 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
         PublicIpAddressSearch = createSearchBuilder();
         PublicIpAddressSearch.and("publicIpAddress", PublicIpAddressSearch.entity().getPublicIpAddress(), SearchCriteria.Op.EQ);
         PublicIpAddressSearch.done();
+
+        PrivateIpAddressSearch = createSearchBuilder();
+        PrivateIpAddressSearch.and("privateIpAddress", PrivateIpAddressSearch.entity().getPrivateIpAddress(), SearchCriteria.Op.EQ);
+        PrivateIpAddressSearch.done();
 
         GuidSearch = createSearchBuilder();
         GuidSearch.and("guid", GuidSearch.entity().getGuid(), SearchCriteria.Op.EQ);
@@ -1118,6 +1123,12 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
         return findOneBy(sc);
     }
 
+    @Override
+    public HostVO findByPrivateIp(String privateIp) {
+        SearchCriteria<HostVO> sc = PrivateIpAddressSearch.create();
+        sc.setParameters("privateIpAddress", privateIp);
+        return findOneBy(sc);
+    }
 
     @Override
     public List<HostVO> findHypervisorHostInCluster(long clusterId) {

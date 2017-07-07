@@ -17,11 +17,12 @@
 package com.cloud.vm;
 
 public interface VmDetailConstants {
-    public static final String KEYBOARD = "keyboard";
-    public static final String NIC_ADAPTER = "nicAdapter";
-    public static final String ROOT_DISK_CONTROLLER = "rootDiskController";
-    public static final String NESTED_VIRTUALIZATION_FLAG = "nestedVirtualizationFlag";
-    public static final String HYPERVISOR_TOOLS_VERSION = "hypervisortoolsversion";
-    public static final String DATA_DISK_CONTROLLER = "dataDiskController";
-    public static final String SVGA_VRAM_SIZE = "svga.vramSize";
+    String KEYBOARD = "keyboard";
+    String NIC_ADAPTER = "nicAdapter";
+    String ROOT_DISK_CONTROLLER = "rootDiskController";
+    String NESTED_VIRTUALIZATION_FLAG = "nestedVirtualizationFlag";
+    String HYPERVISOR_TOOLS_VERSION = "hypervisortoolsversion";
+    String DATA_DISK_CONTROLLER = "dataDiskController";
+    String SVGA_VRAM_SIZE = "svga.vramSize";
+    String VGPU_TYPE = "vgpu.type";
 }
