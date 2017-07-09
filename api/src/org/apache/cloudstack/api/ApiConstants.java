@@ -149,6 +149,7 @@ public class ApiConstants {
     public static final String IS_PUBLIC = "ispublic";
     public static final String IS_PERSISTENT = "ispersistent";
     public static final String EGRESS_DEFAULT_POLICY = "egressdefaultpolicy";
+    public static final String STORAGE_POLICY = "storagepolicy";
     public static final String IS_READY = "isready";
     public static final String IS_RECURSIVE = "isrecursive";
     public static final String ISO_FILTER = "isofilter";

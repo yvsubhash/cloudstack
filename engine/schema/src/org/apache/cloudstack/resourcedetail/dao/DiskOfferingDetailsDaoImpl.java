@@ -17,9 +17,10 @@
 package org.apache.cloudstack.resourcedetail.dao;
 
 
+import org.springframework.stereotype.Component;
+
 import org.apache.cloudstack.resourcedetail.DiskOfferingDetailVO;
 import org.apache.cloudstack.resourcedetail.ResourceDetailsDaoBase;
-import org.springframework.stereotype.Component;
 
 @Component
 public class DiskOfferingDetailsDaoImpl extends ResourceDetailsDaoBase<DiskOfferingDetailVO> implements DiskOfferingDetailsDao {
@@ -28,4 +29,15 @@ public class DiskOfferingDetailsDaoImpl extends ResourceDetailsDaoBase<DiskOffer
     public void addDetail(long resourceId, String key, String value, boolean display) {
         super.addDetail(new DiskOfferingDetailVO(resourceId, key, value, display));
     }
+
+    @Override
+    public String getDetail(Long diskOfferingId, String key) {
+        String detailValue = "";
+        DiskOfferingDetailVO diskOfferingDetail = findDetail(diskOfferingId, key);
+        if (diskOfferingDetail != null) {
+            detailValue = diskOfferingDetail.getValue();
+        }
+        return detailValue;
+    }
+
 }

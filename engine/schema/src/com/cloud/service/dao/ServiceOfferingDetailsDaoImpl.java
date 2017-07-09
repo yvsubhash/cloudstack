@@ -31,4 +31,13 @@ public class ServiceOfferingDetailsDaoImpl extends ResourceDetailsDaoBase<Servic
         super.addDetail(new ServiceOfferingDetailsVO(resourceId, key, value, display));
     }
 
+    @Override
+    public String getDetail(Long serviceOfferingId, String key) {
+        String detailValue = "";
+        ServiceOfferingDetailsVO serviceOfferingDetail = findDetail(serviceOfferingId, key);
+        if (serviceOfferingDetail != null) {
+            detailValue = serviceOfferingDetail.getValue();
+        }
+        return detailValue;
+    }
 }

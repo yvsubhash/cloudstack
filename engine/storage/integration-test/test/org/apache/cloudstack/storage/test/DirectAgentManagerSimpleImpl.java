@@ -290,4 +290,10 @@ public class DirectAgentManagerSimpleImpl extends ManagerBase implements AgentMa
     @Override
     public void notifyMonitorsOfRemovedHost(long hostId, long clusterId) {
     }
+
+    @Override
+    public void notifyMonitorsOfNewlyAddedHost(long hostId) {
+        // TODO Auto-generated method stub
+
+    }
 }

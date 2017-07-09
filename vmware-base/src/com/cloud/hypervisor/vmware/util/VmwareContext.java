@@ -16,27 +16,6 @@
 // under the License.
 package com.cloud.hypervisor.vmware.util;
 
-import com.cloud.hypervisor.vmware.mo.DatacenterMO;
-import com.cloud.hypervisor.vmware.mo.DatastoreFile;
-import com.cloud.utils.ActionDelegate;
-import com.cloud.utils.StringUtils;
-import com.vmware.vim25.ManagedObjectReference;
-import com.vmware.vim25.ObjectContent;
-import com.vmware.vim25.ObjectSpec;
-import com.vmware.vim25.PropertyFilterSpec;
-import com.vmware.vim25.PropertySpec;
-import com.vmware.vim25.ServiceContent;
-import com.vmware.vim25.TaskInfo;
-import com.vmware.vim25.TraversalSpec;
-import com.vmware.vim25.VimPortType;
-import org.apache.cloudstack.utils.security.SSLUtils;
-import org.apache.cloudstack.utils.security.SecureSSLSocketFactory;
-import org.apache.log4j.Logger;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSession;
-import javax.xml.ws.soap.SOAPFaultException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -56,6 +35,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
+import javax.xml.ws.soap.SOAPFaultException;
+
+import org.apache.log4j.Logger;
+
+import com.vmware.pbm.PbmPortType;
+import com.vmware.pbm.PbmServiceInstanceContent;
+import com.vmware.vim25.ManagedObjectReference;
+import com.vmware.vim25.ObjectContent;
+import com.vmware.vim25.ObjectSpec;
+import com.vmware.vim25.PropertyFilterSpec;
+import com.vmware.vim25.PropertySpec;
+import com.vmware.vim25.ServiceContent;
+import com.vmware.vim25.TaskInfo;
+import com.vmware.vim25.TraversalSpec;
+import com.vmware.vim25.VimPortType;
+
+import org.apache.cloudstack.utils.security.SSLUtils;
+import org.apache.cloudstack.utils.security.SecureSSLSocketFactory;
+
+import com.cloud.hypervisor.vmware.mo.DatacenterMO;
+import com.cloud.hypervisor.vmware.mo.DatastoreFile;
+import com.cloud.utils.ActionDelegate;
+import com.cloud.utils.StringUtils;
 
 public class VmwareContext {
     private static final Logger s_logger = Logger.getLogger(VmwareContext.class);
@@ -146,6 +152,14 @@ public class VmwareContext {
 
     public ServiceContent getServiceContent() {
         return _vimClient.getServiceContent();
+    }
+
+    public PbmPortType getPbmService() {
+        return _vimClient.getPbmService();
+    }
+
+    public PbmServiceInstanceContent getPbmServiceContent() {
+        return _vimClient.getPbmServiceContent();
     }
 
     public ManagedObjectReference getPropertyCollector() {

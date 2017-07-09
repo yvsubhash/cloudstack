@@ -25,6 +25,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.vmware.pbm.PbmProfile;
 import com.vmware.vim25.DistributedVirtualSwitchPortConnection;
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.GuestOsDescriptor;
@@ -59,6 +61,7 @@ import com.vmware.vim25.VirtualEthernetCardDistributedVirtualPortBackingInfo;
 import com.vmware.vim25.VirtualEthernetCardNetworkBackingInfo;
 import com.vmware.vim25.VirtualEthernetCardOpaqueNetworkBackingInfo;
 import com.vmware.vim25.VirtualMachineConfigSpec;
+import com.vmware.vim25.VirtualMachineDefinedProfileSpec;
 import com.vmware.vim25.VirtualMachineSnapshotTree;
 import com.vmware.vim25.VirtualPCNet32;
 import com.vmware.vim25.VirtualUSBController;
@@ -68,6 +71,8 @@ import com.vmware.vim25.VirtualVmxnet3;
 import com.cloud.hypervisor.vmware.mo.DiskControllerType;
 import com.cloud.hypervisor.vmware.mo.HostMO;
 import com.cloud.hypervisor.vmware.mo.LicenseAssignmentManagerMO;
+import com.cloud.hypervisor.vmware.mo.ProfileManagerMO;
+import com.cloud.hypervisor.vmware.mo.VirtualCdDriveType;
 import com.cloud.hypervisor.vmware.mo.VirtualEthernetCardType;
 import com.cloud.hypervisor.vmware.mo.VirtualMachineMO;
 import com.cloud.hypervisor.vmware.mo.VmwareHypervisorHost;
@@ -79,6 +84,18 @@ public class VmwareHelper {
     @SuppressWarnings("unused")
     private static final Logger s_logger = Logger.getLogger(VmwareHelper.class);
 
+    public static final int CONFIG_DRIVE_INDEX_IN_USER_INSTANCE_CDDRIVES = 2;
+    public static final String VSAN_ROOT_FOLDER = ".cloudstack.volumes";
+    public static final String VSAN_DATASTORE_TYPE = "vsan";
+
+    public static EnumMap<VirtualCdDriveType, Integer> s_virtualCdDriveMap;
+    // Default ordering of Virtual CD Drives is general purpose drive for ISO images, hypervisor tools ISO etc.
+    // followed by config drive if applicable.
+    static {
+        s_virtualCdDriveMap = new EnumMap<VirtualCdDriveType, Integer>(VirtualCdDriveType.class);
+        s_virtualCdDriveMap.put(VirtualCdDriveType.GENERAL_PURPOSE_DRIVE, 0);
+        s_virtualCdDriveMap.put(VirtualCdDriveType.CONFIG_DRIVE, 1);
+    }
     public static final int MAX_SCSI_CONTROLLER_COUNT = 4;
     public static final int MAX_IDE_CONTROLLER_COUNT = 2;
     public static final int MAX_ALLOWED_DEVICES_IDE_CONTROLLER = 2;
@@ -795,5 +812,17 @@ public class VmwareHelper {
 
     public static boolean isControllerOsRecommended(String dataDiskController) {
         return DiskControllerType.getType(dataDiskController) == DiskControllerType.osdefault;
+    }
+
+    public static VirtualMachineDefinedProfileSpec getProfileSpec(VmwareContext context, String profileName) throws Exception {
+        VirtualMachineDefinedProfileSpec profileSpec = new VirtualMachineDefinedProfileSpec();
+        ProfileManagerMO profMgrMo = new ProfileManagerMO(context);
+        PbmProfile profile = profMgrMo.getPbmProfile(profileName);
+        profileSpec.setProfileId(profile.getProfileId().getUniqueId());
+        return profileSpec;
+    }
+
+    public static String getVsanRootFolder() {
+        return VSAN_ROOT_FOLDER;
     }
 }

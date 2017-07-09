@@ -18,6 +18,7 @@ package com.cloud.storage;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.persistence.Column;
@@ -133,6 +134,12 @@ public class DiskOfferingVO implements DiskOffering {
 
     @Column(name = "hv_ss_reserve")
     Integer hypervisorSnapshotReserve;
+
+    // This is a delayed load value.  If the value is null,
+    // then this field has not been loaded yet.
+    // Call DiskOfferingDao to load it.
+    @Transient
+    Map<String, String> details;
 
     public DiskOfferingVO() {
         uuid = UUID.randomUUID().toString();
@@ -308,6 +315,7 @@ public class DiskOfferingVO implements DiskOffering {
         return domainId;
     }
 
+    @Override
     public Type getType() {
         return type;
     }
@@ -513,5 +521,23 @@ public class DiskOfferingVO implements DiskOffering {
     @Override
     public Integer getHypervisorSnapshotReserve() {
         return hypervisorSnapshotReserve;
+    }
+
+    public Map<String, String> getDetails() {
+        return details;
+    }
+
+    public String getDetail(String name) {
+        return details != null ? details.get(name) : null;
+    }
+
+    public void setDetail(String name, String value) {
+        assert (details != null) : "Did you forget to load the details?";
+
+        details.put(name, value);
+    }
+
+    public void setDetails(Map<String, String> details) {
+        this.details = details;
     }
 }

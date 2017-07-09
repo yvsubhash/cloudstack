@@ -31,5 +31,4 @@ public interface DiskOfferingDao extends GenericDao<DiskOfferingVO, Long> {
     DiskOfferingVO findByUniqueName(String uniqueName);
 
     DiskOfferingVO persistDeafultDiskOffering(DiskOfferingVO offering);
-
 }

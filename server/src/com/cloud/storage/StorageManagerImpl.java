@@ -40,9 +40,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import com.cloud.exception.OperationCancelledException;
-import com.cloud.hypervisor.Hypervisor;
-
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine;
 import org.apache.cloudstack.engine.subsystem.api.storage.SnapshotService;
 import org.apache.log4j.Logger;
@@ -137,6 +134,7 @@ import com.cloud.exception.ConnectionException;
 import com.cloud.exception.DiscoveryException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
+import com.cloud.exception.OperationCancelledException;
 import com.cloud.exception.OperationTimedoutException;
 import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceInUseException;
@@ -147,6 +145,7 @@ import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.host.Status;
 import com.cloud.host.dao.HostDao;
+import com.cloud.hypervisor.Hypervisor;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.hypervisor.HypervisorGuruManager;
 import com.cloud.offering.DiskOffering;
@@ -686,6 +685,13 @@ public class StorageManagerImpl extends ManagerBase implements StorageManager, C
             if (hypervisorType != HypervisorType.KVM && hypervisorType != HypervisorType.VMware && hypervisorType != HypervisorType.Hyperv && hypervisorType != HypervisorType.LXC && hypervisorType != HypervisorType.Any) {
                 throw new InvalidParameterValueException("zone wide storage pool is not supported for hypervisor type " + hypervisor);
             }
+            if (hypervisorType == HypervisorType.VMware) {
+                if (isStorageProtocolVsan(cmd.getUrl())) {
+                    throw new InvalidParameterValueException("Zone wide storage pool cannot be created for storage protocol/type : [" +
+                            Storage.StoragePoolType.VSAN + "] over " + hypervisor +
+                            " hypervisor, because the datastore scope is limited to CLUSTER only.");
+                }
+            }
         }
 
         Map<String, String> details = extractApiParamAsMap(cmd.getDetails());
@@ -738,6 +744,21 @@ public class StorageManagerImpl extends ManagerBase implements StorageManager, C
         }
 
         return (PrimaryDataStoreInfo)_dataStoreMgr.getDataStore(store.getId(), DataStoreRole.Primary);
+    }
+
+    private boolean isStorageProtocolVsan(String url) {
+        if (StringUtils.isNotBlank(url)) {
+            URI uri = null;
+            try {
+                uri = new URI(UriUtils.encodeURIComponent(url));
+                if (uri.getScheme() != null && uri.getScheme().equalsIgnoreCase(Storage.StoragePoolType.VSAN.name())) {
+                    return true;
+                }
+            } catch (URISyntaxException e) {
+                throw new InvalidParameterValueException(url + " is not a valid uri");
+            }
+        }
+        return false;
     }
 
     private Map<String, String> extractApiParamAsMap(Map ds) {

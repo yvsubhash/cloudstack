@@ -1699,4 +1699,13 @@ public class HypervisorHostHelper {
         return DiskControllerType.getType(controller) == DiskControllerType.ide;
     }
 
+    public static void initVsanDatastore(DatastoreMO dsMo, VmwareHypervisorHost hyperHost) throws Exception {
+        String dsPath = String.format("[%s]", dsMo.getName());
+        String folderPath = String.format("[%s] %s", dsMo.getName(), VmwareHelper.VSAN_ROOT_FOLDER);
+
+        if (!dsMo.folderExists(dsPath, VmwareHelper.VSAN_ROOT_FOLDER)) {
+            s_logger.info("The folder " + VmwareHelper.VSAN_ROOT_FOLDER + " does not exist on this datastore. Creating one on datastore: " + dsMo.getName());
+            dsMo.makeDirectory(folderPath, hyperHost.getHyperHostDatacenter());
+        }
+    }
 }

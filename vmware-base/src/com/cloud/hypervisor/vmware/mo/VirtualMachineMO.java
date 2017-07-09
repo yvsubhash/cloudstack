@@ -90,6 +90,7 @@ import com.vmware.vim25.VirtualMachineConfigInfo;
 import com.vmware.vim25.VirtualMachineConfigOption;
 import com.vmware.vim25.VirtualMachineConfigSpec;
 import com.vmware.vim25.VirtualMachineConfigSummary;
+import com.vmware.vim25.VirtualMachineDefinedProfileSpec;
 import com.vmware.vim25.VirtualMachineFileInfo;
 import com.vmware.vim25.VirtualMachineFileLayoutEx;
 import com.vmware.vim25.VirtualMachineMessage;
@@ -111,6 +112,7 @@ import com.cloud.hypervisor.vmware.util.VmwareContext;
 import com.cloud.hypervisor.vmware.util.VmwareHelper;
 import com.cloud.utils.ActionDelegate;
 import com.cloud.utils.Pair;
+import com.cloud.utils.StringUtils;
 import com.cloud.utils.Ternary;
 import com.cloud.utils.concurrency.NamedThreadFactory;
 import com.cloud.utils.script.Script;
@@ -1053,13 +1055,13 @@ public class VirtualMachineMO extends BaseMO {
     }
 
     // vmdkDatastorePath: [datastore name] vmdkFilePath
-    public void createDisk(String vmdkDatastorePath, int sizeInMb, ManagedObjectReference morDs, int controllerKey) throws Exception {
-        createDisk(vmdkDatastorePath, VirtualDiskType.THIN, VirtualDiskMode.PERSISTENT, null, sizeInMb, morDs, controllerKey);
+    public void createDisk(String vmdkDatastorePath, int sizeInMb, ManagedObjectReference morDs, int controllerKey, String storagePolicy) throws Exception {
+        createDisk(vmdkDatastorePath, VirtualDiskType.THIN, VirtualDiskMode.PERSISTENT, null, sizeInMb, morDs, controllerKey, storagePolicy);
     }
 
     // vmdkDatastorePath: [datastore name] vmdkFilePath
     public void createDisk(String vmdkDatastorePath, VirtualDiskType diskType, VirtualDiskMode diskMode, String rdmDeviceName, int sizeInMb,
-            ManagedObjectReference morDs, int controllerKey) throws Exception {
+            ManagedObjectReference morDs, int controllerKey, String storagePolicy) throws Exception {
 
         if (s_logger.isTraceEnabled())
             s_logger.trace("vCenter API trace - createDisk(). target MOR: " + _mor.getValue() + ", vmdkDatastorePath: " + vmdkDatastorePath + ", sizeInMb: " + sizeInMb +
@@ -1124,6 +1126,7 @@ public class VirtualMachineMO extends BaseMO {
         deviceConfigSpec.setDevice(newDisk);
         deviceConfigSpec.setFileOperation(VirtualDeviceConfigSpecFileOperation.CREATE);
         deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+        configurePolicyForVirtualDevice(deviceConfigSpec, storagePolicy, morDs, vmdkDatastorePath);
 
         reConfigSpec.getDeviceChange().add(deviceConfigSpec);
 
@@ -1142,11 +1145,30 @@ public class VirtualMachineMO extends BaseMO {
             s_logger.trace("vCenter API trace - createDisk() done(successfully)");
     }
 
+    private void configurePolicyForVirtualDevice(VirtualDeviceConfigSpec vdConfigSpec, String storagePolicy,
+            ManagedObjectReference morDs, String vmdkDatastorePath) throws Exception {
+        DatastoreMO dsMo = new DatastoreMO(_context, morDs);
+        if (StringUtils.isNotBlank(storagePolicy) && VmwareHelper.VSAN_DATASTORE_TYPE.equalsIgnoreCase(dsMo.getType())) {
+            if (!dsMo.isStoragePoolPolicyCompliant(storagePolicy)) {
+                String msg = "Failing volume provisioning for volume at [" + vmdkDatastorePath +
+                        "] because the datastore is not compliant with specified storage policy " + storagePolicy;
+                s_logger.error(msg);
+                throw new Exception(msg);
+            }
+            VirtualMachineDefinedProfileSpec profileSpec = VmwareHelper.getProfileSpec(_context, storagePolicy);
+            vdConfigSpec.getProfile().add(profileSpec);
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Adding profile [" + storagePolicy + "] to virtual disk [" + vmdkDatastorePath + "]");
+            }
+        }
+    }
+
     public void updateVmdkAdapter(String vmdkFileName, String newAdapterType) throws Exception {
         Pair<VmdkFileDescriptor, byte[]> vmdkInfo = getVmdkFileInfo(vmdkFileName);
         VmdkFileDescriptor vmdkFileDescriptor = vmdkInfo.first();
         boolean isVmfsSparseFile = vmdkFileDescriptor.isVmfsSparseFile();
-        if (!isVmfsSparseFile) {
+        boolean isVsanSparseFile = vmdkFileDescriptor.isVsanSparseFile();
+        if (!isVmfsSparseFile && !isVsanSparseFile) {
             String currentAdapterType = vmdkFileDescriptor.getAdapterType();
             if (!currentAdapterType.equalsIgnoreCase(newAdapterType)) {
                 s_logger.info("Updating adapter type to " + newAdapterType + " for VMDK file " + vmdkFileName);
@@ -1165,7 +1187,8 @@ public class VirtualMachineMO extends BaseMO {
         VmdkFileDescriptor vmdkFileDescriptor = vmdkInfo.first();
 
         boolean isVmfsSparseFile = vmdkFileDescriptor.isVmfsSparseFile();
-        if (!isVmfsSparseFile) {
+        boolean isVsanSparseFile = vmdkFileDescriptor.isVsanSparseFile();
+        if (!isVmfsSparseFile && !isVsanSparseFile) {
             String currentAdapterTypeStr = vmdkFileDescriptor.getAdapterType();
             if (s_logger.isTraceEnabled()) {
                 s_logger.trace("Detected adapter type  " + currentAdapterTypeStr + " for VMDK file " + vmdkFileName);
@@ -1187,7 +1210,7 @@ public class VirtualMachineMO extends BaseMO {
         }
     }
 
-    public void attachDisk(String[] vmdkDatastorePathChain, ManagedObjectReference morDs, String diskController) throws Exception {
+    public void attachDisk(String[] vmdkDatastorePathChain, ManagedObjectReference morDs, String diskController, String storagePolicy) throws Exception {
 
         if(s_logger.isTraceEnabled())
             s_logger.trace("vCenter API trace - attachDisk(). target MOR: " + _mor.getValue() + ", vmdkDatastorePath: "
@@ -1232,6 +1255,7 @@ public class VirtualMachineMO extends BaseMO {
 
             deviceConfigSpec.setDevice(newDisk);
             deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+            configurePolicyForVirtualDevice(deviceConfigSpec, storagePolicy, morDs, vmdkFileName);
 
             reConfigSpec.getDeviceChange().add(deviceConfigSpec);
 
@@ -2051,9 +2075,30 @@ public class VirtualMachineMO extends BaseMO {
         return vmdkFileBaseName;
     }
 
+    public DatastoreFile getVmdkFileName(VirtualDisk disk) throws Exception {
+        DatastoreFile dsBackingFile = null;
+        VirtualDeviceBackingInfo backingInfo = disk.getBacking();
+        if (backingInfo instanceof VirtualDiskFlatVer2BackingInfo) {
+            VirtualDiskFlatVer2BackingInfo diskBackingInfo = (VirtualDiskFlatVer2BackingInfo)backingInfo;
+            dsBackingFile = new DatastoreFile(diskBackingInfo.getFileName());
+        }
+        return dsBackingFile;
+    }
+
     // this method relies on un-offical VMware API
     @Deprecated
     public void moveAllVmDiskFiles(DatastoreMO destDsMo, String destDsDir, boolean followDiskChain) throws Exception {
+
+        boolean vsanDatastore = false;
+        if (VmwareHelper.VSAN_DATASTORE_TYPE.equalsIgnoreCase(destDsMo.getType())) {
+            vsanDatastore = true;
+        }
+
+        String destDirForAllDatastoreTypes = new String(destDsDir); //Parameter "destDsDir" by default cannot be applicable for vsan datastore as destination directory for detached vmdk files.
+        if (destDirForAllDatastoreTypes.isEmpty() && vsanDatastore) {
+            destDirForAllDatastoreTypes = VmwareHelper.getVsanRootFolder();
+        }
+
         VirtualDevice[] disks = getAllDiskDevice();
         DatacenterMO dcMo = getOwnerDatacenter().first();
         if (disks != null) {
@@ -2063,15 +2108,20 @@ public class VirtualMachineMO extends BaseMO {
                     DatastoreMO srcDsMo = new DatastoreMO(_context, fileItem.second());
 
                     DatastoreFile srcFile = new DatastoreFile(fileItem.first());
-                    DatastoreFile destFile = new DatastoreFile(destDsMo.getName(), destDsDir, srcFile.getFileName());
+                    DatastoreFile destFile = new DatastoreFile(destDsMo.getName(), destDirForAllDatastoreTypes, srcFile.getFileName());
 
                     Pair<VmdkFileDescriptor, byte[]> vmdkDescriptor = null;
                     vmdkDescriptor = getVmdkFileInfo(fileItem.first());
 
-                    s_logger.info("Move VM disk file " + srcFile.getPath() + " to " + destFile.getPath());
-                    srcDsMo.moveDatastoreFile(fileItem.first(), dcMo.getMor(), destDsMo.getMor(), destFile.getPath(), dcMo.getMor(), true);
-
-                    if (vmdkDescriptor != null) {
+                    if (!vsanDatastore) {
+                        s_logger.info("Move VM disk file " + srcFile.getPath() + " to " + destFile.getPath());
+                        srcDsMo.moveDatastoreFile(fileItem.first(), dcMo.getMor(), destDsMo.getMor(), destFile.getPath(), dcMo.getMor(), true);
+                    } else {
+                        s_logger.info("Move virtual disk related to file " + srcFile.getPath() + " to " + destFile.getPath());
+                        VirtualDiskManagerMO virtDiskMgrMo = new VirtualDiskManagerMO(_context, _context.getServiceContent().getVirtualDiskManager());
+                        virtDiskMgrMo.moveVirtualDisk(fileItem.first(), dcMo.getMor(), destFile.getPath(), dcMo.getMor(), false);
+                    }
+                    if (vmdkDescriptor != null && !vsanDatastore) {
                         String vmdkBaseFileName = vmdkDescriptor.first().getBaseFileName();
                         String baseFilePath = srcFile.getCompanionPath(vmdkBaseFileName);
                         destFile = new DatastoreFile(destDsMo.getName(), destDsDir, vmdkBaseFileName);
@@ -3324,4 +3374,32 @@ public class VirtualMachineMO extends BaseMO {
         }
         return false;
     }
+
+    public boolean destroyAndCleanupVmFolder() throws Exception {
+        boolean vmDestroyed = false;
+        String vmName = getVmName();
+
+        // Fetch vsan datastore, if the VM is using any
+        DatastoreMO vsanDsMo = null;
+        List<DatastoreMO> vmDatastores = getAllDatastores();
+        for (DatastoreMO dsMo : vmDatastores) {
+            if (VmwareHelper.VSAN_DATASTORE_TYPE.equalsIgnoreCase(dsMo.getType())) {
+                // Exactly 1 vSAN datastore would be associated with a VM as only 1 such datastore can exist
+                // in a cluster and there is no zone wide vSan datastore supported.
+                vsanDsMo = dsMo;
+                break;
+            }
+        }
+
+        vmDestroyed = super.destroy();
+
+        if (vmDestroyed && vsanDsMo != null) {
+            String vmFolderPath = String.format("[%s] %s", vsanDsMo.getName(), vmName);
+            DatastoreFile vmFolder = new DatastoreFile(vmFolderPath);
+            vsanDsMo.deleteFolderIfEmpty(vmFolder, vsanDsMo.getOwnerDatacenter().first().getMor());
+        }
+
+        return vmDestroyed;
+    }
+
 }

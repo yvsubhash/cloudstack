@@ -29,6 +29,8 @@ mvn install:install-file -Dfile=cloud-netscaler-sdx.jar -DgroupId=com.cloud.com.
 if [ -e cloud-manageontap.jar ]; then mv cloud-manageontap.jar manageontap.jar;  fi
 mvn install:install-file -Dfile=manageontap.jar   -DgroupId=com.cloud.com.netapp -DartifactId=manageontap     -Dversion=4.0   -Dpackaging=jar
 
+mvn install:install-file -Dfile=pbm_60.jar -DgroupId=com.cloud.com.vmware -DartifactId=pbm -Dversion=6.0 -Dpackaging=jar
+
 # From https://my.vmware.com/group/vmware/get-download?downloadGroup=VSP510-WEBSDK-510
 # Version: 5.1, Release-date: 2012-09-10, Build: 774886
 mvn install:install-file -Dfile=vim25_51.jar        -DgroupId=com.cloud.com.vmware -DartifactId=vmware-vim25    -Dversion=5.1   -Dpackaging=jar

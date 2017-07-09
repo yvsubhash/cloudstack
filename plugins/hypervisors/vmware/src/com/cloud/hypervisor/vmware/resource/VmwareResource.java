@@ -50,6 +50,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.NDC;
+
 import org.joda.time.Duration;
 
 import com.google.gson.Gson;
@@ -95,6 +96,7 @@ import com.vmware.vim25.VirtualEthernetCardDistributedVirtualPortBackingInfo;
 import com.vmware.vim25.VirtualEthernetCardNetworkBackingInfo;
 import com.vmware.vim25.VirtualEthernetCardOpaqueNetworkBackingInfo;
 import com.vmware.vim25.VirtualMachineConfigSpec;
+import com.vmware.vim25.VirtualMachineDefinedProfileSpec;
 import com.vmware.vim25.VirtualMachineFileInfo;
 import com.vmware.vim25.VirtualMachineFileLayoutEx;
 import com.vmware.vim25.VirtualMachineFileLayoutExFileInfo;
@@ -291,6 +293,7 @@ import com.cloud.storage.Storage.StoragePoolType;
 import com.cloud.storage.Volume;
 import com.cloud.storage.resource.StoragePoolResource;
 import com.cloud.storage.resource.StorageSubsystemCommandHandler;
+import com.cloud.storage.resource.VmwareDatastoreType;
 import com.cloud.storage.resource.VmwareStorageLayoutHelper;
 import com.cloud.storage.resource.VmwareStorageProcessor;
 import com.cloud.storage.resource.VmwareStorageProcessor.VmwareStorageProcessorConfigurableFields;
@@ -718,7 +721,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 }
 
                 synchronized (this) {
-                    vmdkDataStorePath = VmwareStorageLayoutHelper.getLegacyDatastorePathFromVmdkFileName(dsMo, path + ".vmdk");
+                    vmdkDataStorePath = VmwareStorageLayoutHelper.getDatastorePathFromVmdkFileName(dsMo, path + ".vmdk");
                     vmMo.attachDisk(new String[] { vmdkDataStorePath }, morDS);
                 }
             }
@@ -1585,6 +1588,12 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         String dataDiskController = vmSpec.getDetails().get(VmDetailConstants.DATA_DISK_CONTROLLER);
         String rootDiskController = vmSpec.getDetails().get(VmDetailConstants.ROOT_DISK_CONTROLLER);
         DiskTO rootDiskTO = null;
+        VirtualMachineDefinedProfileSpec rootDiskProfileSpec = null;
+        VirtualMachineDefinedProfileSpec profileSpec = null;
+        String storagePolicy = null;
+        String rootDiskStoragePolicy = null;
+        VmwareDatastoreType rootDiskDatastoreType = VmwareDatastoreType.NFS;
+        VmwareDatastoreType dsType = VmwareDatastoreType.NFS;
         // If root disk controller is scsi, then data disk controller would also be scsi instead of using 'osdefault'
         // This helps avoid mix of different scsi subtype controllers in instance.
         if (DiskControllerType.lsilogic == DiskControllerType.getType(rootDiskController)) {
@@ -1958,8 +1967,29 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                             volumeDsDetails.first(),
                             (controllerKey == vmMo.getIDEControllerKey(ideUnitNumber)) ? ((ideUnitNumber++) % VmwareHelper.MAX_IDE_CONTROLLER_COUNT) : scsiUnitNumber++, i + 1);
 
-                    if (vol.getType() == Volume.Type.ROOT)
+                    VolumeObjectTO volTO = (VolumeObjectTO)vol.getData();
+                    VolumeObjectTO volInSpec = getVolumeInSpec(vmSpec, volTO);
+                    storagePolicy = volInSpec.getStoragePolicy();
+                    dsType = VmwareDatastoreType.getVmwareDatastoreType(volumeDsDetails.second().getType());
+                    if (VmwareDatastoreType.VSAN == dsType && !StringUtils.isEmpty(storagePolicy)) {
+                        if (!volumeDsDetails.second().isStoragePoolPolicyCompliant(storagePolicy)) {
+                            String ms = "Failing volume provisioning for volume : [" + volumeTO.getId() + ":" + volumeTO.getName() +
+                                    "] because the datastore is not compliant with specified storage policy " + storagePolicy;
+                            s_logger.error(ms);
+                            throw new Exception(ms);
+                        }
+                        profileSpec = VmwareHelper.getProfileSpec(context, storagePolicy);
+                        deviceConfigSpecArray[i].getProfile().add(profileSpec);
+                        if (s_logger.isDebugEnabled()) {
+                            s_logger.debug("Adding profile [" + storagePolicy + "] to virtual disk [" + volumeDsDetails.first() + "]");
+                        }
+                    }
+                    if (vol.getType() == Volume.Type.ROOT) {
                         rootDiskTO = vol;
+                        rootDiskProfileSpec = profileSpec;
+                        rootDiskStoragePolicy = storagePolicy;
+                        rootDiskDatastoreType = dsType;
+                    }
                     deviceConfigSpecArray[i].setDevice(device);
                     deviceConfigSpecArray[i].setOperation(VirtualDeviceConfigSpecOperation.ADD);
 
@@ -2132,7 +2162,17 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                 configureGpuCard(vmMo, vmSpec, vmConfigSpec);
             }
 
-            // Configure VM.
+            // configure storage policy if specified
+            if (rootDiskDatastoreType == VmwareDatastoreType.VSAN && !StringUtils.isEmpty(rootDiskStoragePolicy)) {
+                vmConfigSpec.getVmProfile().add(rootDiskProfileSpec);
+                if (s_logger.isTraceEnabled()) {
+                    s_logger.trace("Configuring the instance with storage policy : [" + rootDiskStoragePolicy + "]");
+                }
+            }
+
+            //
+            // Configure VM
+            //
             if (!vmMo.configureVm(vmConfigSpec)) {
                 throw new Exception("Failed to configure VM before start. vmName: " + vmInternalCSName);
             }
@@ -2142,7 +2182,8 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             }
 
             //For resizing root disk.
-            if (rootDiskTO != null && !hasSnapshot) {
+            assert(rootDiskTO!=null);
+            if (!hasSnapshot && rootDiskTO != null && !systemVm && rootDiskDatastoreType != VmwareDatastoreType.VSAN) {
                 resizeRootDisk(vmMo, rootDiskTO, hyperHost, context);
             }
 
@@ -3828,7 +3869,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                     // If datastore is NFS and target datastore is not already mounted on source host then mount the datastore.
                     if (filerTo.getType().equals(StoragePoolType.NetworkFilesystem)) {
                         if (morDsAtSource == null) {
-                            morDsAtSource = srcHyperHost.mountDatastore(false, tgtDsHost, tgtDsPort, tgtDsPath, tgtDsName);
+                            morDsAtSource = srcHyperHost.mountDatastore(StoragePoolType.NetworkFilesystem, tgtDsHost, tgtDsPort, tgtDsPath, tgtDsName);
                             if (morDsAtSource == null) {
                                 throw new Exception("Unable to mount NFS datastore " + tgtDsHost + ":/" + tgtDsPath + " on " + _hostName);
                             }
@@ -4383,6 +4424,43 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         throw new Exception("Unable to locate dest host by " + destIp);
     }
 
+    private void detachAllDisksAndDestroyVm(VirtualMachineMO vmMo, String vmName) {
+        if (vmMo != null && isVirtualMachine(vmMo)) {
+            if (s_logger.isTraceEnabled()) {
+                s_logger.trace("Trying to detach all disks of VM : " + vmName);
+            }
+            try {
+                vmMo.detachAllDisks();
+            } catch (Throwable e) {
+                s_logger.error("Failed to detach disks from worker VM : " + vmName);
+                throw new CloudRuntimeException("Failed to detach disks from worker VM : " + vmName + ". " + e);
+            }
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Successfully detached all disks of VM : " + vmName);
+            }
+
+            if (s_logger.isTraceEnabled()) {
+                s_logger.trace("Trying to destroy VM : " + vmName);
+            }
+            try {
+                vmMo.destroy();
+            } catch (Throwable e) {
+                s_logger.error("Failed to destroy worker VM : " + vmName +
+                        ". Ignoring this error as worker VM cleanup thread will try to clean this up. " + e);
+            }
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Successfully destroyed VM : " + vmName);
+            }
+        } else {
+            s_logger.error("Invalid VM object reference provided, hence failed to destroy worker VM : " + vmName);
+            throw new CloudRuntimeException("Failed to detach disks from and destroy worker VM : " + vmName);
+        }
+    }
+
+    private boolean isVirtualMachine(VirtualMachineMO vmMo) {
+        return vmMo.getMor().getType().equalsIgnoreCase("VirtualMachine");
+    }
+
     protected Answer execute(CreateStoragePoolCommand cmd) {
         if (cmd.getCreateDatastore()) {
             try {
@@ -4416,14 +4494,18 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             VmwareHypervisorHost hyperHost = getHyperHost(getServiceContext());
             StorageFilerTO pool = cmd.getPool();
 
-            if (pool.getType() != StoragePoolType.NetworkFilesystem && pool.getType() != StoragePoolType.VMFS) {
+            if (pool.getType() != StoragePoolType.NetworkFilesystem && pool.getType() != StoragePoolType.VMFS &&
+                    pool.getType() != StoragePoolType.VSAN) {
                 throw new Exception("Unsupported storage pool type " + pool.getType());
             }
-
-            ManagedObjectReference morDatastore = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost, pool.getUuid());
-
+            ManagedObjectReference morDatastore = null;
+            morDatastore = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost, pool.getUuid());
             if (morDatastore == null) {
-                morDatastore = hyperHost.mountDatastore(pool.getType() == StoragePoolType.VMFS, pool.getHost(), pool.getPort(), pool.getPath(), pool.getUuid().replace("-", ""));
+                morDatastore = hyperHost.mountDatastore(pool.getType(), pool.getHost(), pool.getPort(), pool.getPath(), pool.getUuid().replace("-", ""));
+            } else {
+                if (pool.getType() == StoragePoolType.VSAN) {
+                    HypervisorHostHelper.initVsanDatastore(new DatastoreMO(getServiceContext(), morDatastore), hyperHost);
+                }
             }
 
             assert (morDatastore != null);
@@ -4593,7 +4675,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         URI uri = new URI(storeUrl);
 
         VmwareHypervisorHost hyperHost = getHyperHost(getServiceContext());
-        ManagedObjectReference morDatastore = hyperHost.mountDatastore(false, uri.getHost(), 0, uri.getPath(), storeName.replace("-", ""));
+        ManagedObjectReference morDatastore = hyperHost.mountDatastore(StoragePoolType.NetworkFilesystem, uri.getHost(), 0, uri.getPath(), storeName.replace("-", ""));
 
         if (morDatastore == null)
             throw new Exception("Unable to mount secondary storage on host. storeUrl: " + storeUrl);
@@ -4605,7 +4687,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         String storeName = getSecondaryDatastoreUUID(storeUrl);
         URI uri = new URI(storeUrl);
 
-        ManagedObjectReference morDatastore = hyperHost.mountDatastore(false, uri.getHost(), 0, uri.getPath(), storeName.replace("-", ""));
+        ManagedObjectReference morDatastore = hyperHost.mountDatastore(StoragePoolType.NetworkFilesystem, uri.getHost(), 0, uri.getPath(), storeName.replace("-", ""));
 
         if (morDatastore == null)
             throw new Exception("Unable to mount secondary storage on host. storeUrl: " + storeUrl);

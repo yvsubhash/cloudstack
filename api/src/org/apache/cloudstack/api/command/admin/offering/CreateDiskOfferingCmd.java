@@ -16,6 +16,11 @@
 // under the License.
 package org.apache.cloudstack.api.command.admin.offering;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.inject.Inject;
+
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.APICommand;
@@ -27,9 +32,12 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.DiskOfferingResponse;
 import org.apache.cloudstack.api.response.DomainResponse;
 
-import com.cloud.storage.Storage.ProvisioningType;
 import com.cloud.offering.DiskOffering;
+import com.cloud.offering.OfferingDetailConstants;
 import com.cloud.offering.ServiceOffering;
+import com.cloud.server.ResourceMetaDataService;
+import com.cloud.server.ResourceTag;
+import com.cloud.storage.Storage.ProvisioningType;
 import com.cloud.user.Account;
 
 @APICommand(name = "createDiskOffering", description = "Creates a disk offering.", responseObject = DiskOfferingResponse.class,
@@ -38,6 +46,8 @@ public class CreateDiskOfferingCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(CreateDiskOfferingCmd.class.getName());
 
     private static final String s_name = "creatediskofferingresponse";
+    @Inject
+    public ResourceMetaDataService _resourceMetaDataService;
 
     /////////////////////////////////////////////////////
     //////////////// API parameters /////////////////////
@@ -65,12 +75,12 @@ public class CreateDiskOfferingCmd extends BaseCmd {
     private Long domainId;
 
     @Parameter(name = ApiConstants.STORAGE_TYPE, type = CommandType.STRING, description = "the storage type of the disk offering. Values are local and shared.")
-    private String storageType = ServiceOffering.StorageType.shared.toString();
+    private final String storageType = ServiceOffering.StorageType.shared.toString();
 
     @Parameter(name = ApiConstants.PROVISIONINGTYPE,
             type = CommandType.STRING,
             description = "provisioning type used to create volumes. Valid values are thin, sparse, fat.")
-    private String provisioningType = ProvisioningType.THIN.toString();
+    private final String provisioningType = ProvisioningType.THIN.toString();
 
     @Parameter(name = ApiConstants.DISPLAY_OFFERING,
             type = CommandType.BOOLEAN,
@@ -104,7 +114,10 @@ public class CreateDiskOfferingCmd extends BaseCmd {
             description = "Hypervisor snapshot reserve space as a percent of a volume (for managed storage using Xen or VMware)")
     private Integer hypervisorSnapshotReserve;
 
-/////////////////////////////////////////////////////
+    @Parameter(name = ApiConstants.STORAGE_POLICY, type = CommandType.STRING, required = false, description = "Name of the storage policy defined at hypervisor or storage system")
+    private String storagePolicy;
+
+    /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
 
@@ -190,13 +203,20 @@ public class CreateDiskOfferingCmd extends BaseCmd {
         return Account.ACCOUNT_ID_SYSTEM;
     }
 
+    private Map getDetails() {
+        Map<String, String> detailsMap = new HashMap<String, String>();
+        detailsMap.put(OfferingDetailConstants.STORAGE_POLICY, storagePolicy);
+        return detailsMap;
+    }
+
     @Override
     public void execute() {
         DiskOffering offering = _configService.createDiskOffering(this);
         if (offering != null) {
+            _resourceMetaDataService.addResourceMetaData(Long.toString(offering.getId()), ResourceTag.ResourceObjectType.DiskOffering, getDetails(), true);
             DiskOfferingResponse response = _responseGenerator.createDiskOfferingResponse(offering);
             response.setResponseName(getCommandName());
-            this.setResponseObject(response);
+            setResponseObject(response);
         } else {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create disk offering");
         }

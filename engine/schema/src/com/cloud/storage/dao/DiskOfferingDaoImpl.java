@@ -23,8 +23,8 @@ import javax.persistence.EntityExistsException;
 
 import org.springframework.stereotype.Component;
 
-import com.cloud.storage.DiskOfferingVO;
 import com.cloud.offering.DiskOffering.Type;
+import com.cloud.storage.DiskOfferingVO;
 import com.cloud.utils.db.Attribute;
 import com.cloud.utils.db.Filter;
 import com.cloud.utils.db.GenericDaoBase;
@@ -34,6 +34,7 @@ import com.cloud.utils.db.SearchCriteria.Op;
 
 @Component
 public class DiskOfferingDaoImpl extends GenericDaoBase<DiskOfferingVO, Long> implements DiskOfferingDao {
+
     private final SearchBuilder<DiskOfferingVO> DomainIdSearch;
     private final SearchBuilder<DiskOfferingVO> PrivateDiskOfferingSearch;
     private final SearchBuilder<DiskOfferingVO> PublicDiskOfferingSearch;

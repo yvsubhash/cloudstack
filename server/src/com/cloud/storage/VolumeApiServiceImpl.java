@@ -1,4 +1,4 @@
-    // Licensed to the Apache Software Foundation (ASF) under one
+// Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
 // regarding copyright ownership.  The ASF licenses this file
@@ -1207,6 +1207,7 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
          */
         long[] hosts = null;
         String instanceName = "none";
+        StoragePoolVO volStoragePool = _storagePoolDao.findById(volume.getPoolId());
         if (userVm != null) {
             instanceName = userVm.getInstanceName();
             if (userVm.getHostId() != null) {
@@ -1217,7 +1218,7 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
 
             final String errorMsg = "The VM must be stopped or the disk detached in order to resize with the XenServer Hypervisor.";
 
-            if (storagePool.isManaged() && storagePool.getHypervisor() == HypervisorType.Any && hosts != null && hosts.length > 0) {
+            if (volStoragePool.isManaged() && volStoragePool.getHypervisor() == HypervisorType.Any && hosts != null && hosts.length > 0) {
                 HostVO host = _hostDao.findById(hosts[0]);
 
                 if (currentSize != newSize && host.getHypervisorType() == HypervisorType.XenServer && !userVm.getState().equals(State.Stopped)) {

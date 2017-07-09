@@ -31,9 +31,10 @@ public class VmdkFileDescriptor {
     private static final Logger s_logger = Logger.getLogger(VmdkFileDescriptor.class);
     private static final String VMDK_PROPERTY_CREATE_TYPE = "createType";
     private static final String VMDK_CREATE_TYPE_VMFSSPARSE = "vmfsSparse";
+    private static final String VMDK_CREATE_TYPE_VSANSPARSE = "vsanSparse";
     private static final String VMDK_PROPERTY_ADAPTER_TYPE = "ddb.adapterType";
 
-    private Properties _properties = new Properties();
+    private final Properties _properties = new Properties();
     private String _baseFileName;
 
     public VmdkFileDescriptor() {
@@ -90,6 +91,14 @@ public class VmdkFileDescriptor {
     public boolean isVmfsSparseFile() {
         String vmdkCreateType = _properties.getProperty(VMDK_PROPERTY_CREATE_TYPE);
         if (vmdkCreateType.equalsIgnoreCase(VMDK_CREATE_TYPE_VMFSSPARSE)) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isVsanSparseFile() {
+        String vmdkCreateType = _properties.getProperty(VMDK_PROPERTY_CREATE_TYPE);
+        if (vmdkCreateType.equalsIgnoreCase(VMDK_CREATE_TYPE_VSANSPARSE)) {
             return true;
         }
         return false;

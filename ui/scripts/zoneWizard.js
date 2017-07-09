@@ -1413,6 +1413,10 @@
                                     id: "vmfs",
                                     description: "vmfs"
                                 });
+                                items.push({
+                                    id: "vsan",
+                                    description: "vsan"
+                                });
                                 args.response.success({
                                     data: items
                                 });
@@ -1653,6 +1657,26 @@
                                     $form.find('[rel=rbdsecret]').hide();
 
                                     $form.find('[rel=glustervolume]').hide();
+                                } else if (protocol == "vsan") {
+                                    $form.find('[rel=server]').css('display', 'block');
+                                    $form.find('[rel=server]').find(".value").find("input").val("");
+
+                                    $form.find('[rel=path]').hide();
+
+                                    $form.find('[rel=smbUsername]').hide();
+                                    $form.find('[rel=smbPassword]').hide();
+                                    $form.find('[rel=smbDomain]').hide();
+
+                                    $form.find('[rel=iqn]').hide();
+                                    $form.find('[rel=lun]').hide();
+
+                                    $form.find('[rel=volumegroup]').hide();
+
+                                    $form.find('[rel=vCenterDataCenter]').css('display', 'block');
+                                    $form.find('[rel=vCenterDataStore]').css('display', 'block');
+
+                                    $form.find('[rel=glustervolume]').hide();
+
                                 } else if (protocol == "SharedMountPoint") { //"SharedMountPoint" show the same fields as "nfs" does.
                                     $form.find('[rel=server]').hide();
                                     $form.find('[rel=server]').find(".value").find("input").val("localhost");
@@ -1838,7 +1862,23 @@
                         isHidden: true
                     },
 
-                    //gluster
+                    //vsan
+                    vCenterDataCenter: {
+                        label: 'label.vcenter.datacenter',
+                        validation: {
+                            required: true
+                        },
+                        isHidden: true
+                    },
+                    vCenterDataStore: {
+                        label: 'label.vcenter.datastore',
+                        validation: {
+                            required: true
+                        },
+                        isHidden: true
+                    },
+
+		    //gluster
                     glustervolume: {
                         label: 'label.gluster.volume',
                         validation: {
@@ -4533,6 +4573,12 @@
                             path = "/" + path;
                         path += "/" + args.data.primaryStorage.vCenterDataStore;
                         url = vmfsURL("dummy", path);
+                    } else if (args.data.primaryStorage.protocol == "vsan") {
+                        var path = args.data.primaryStorage.vCenterDataCenter;
+                        if (path.substring(0, 1) != "/")
+                            path = "/" + path;
+                        path += "/" + args.data.primaryStorage.vCenterDataStore;
+                        url = vsanURL("dummy", path);
                     } else {
                         var iqn = args.data.primaryStorage.iqn;
                         if (iqn.substring(0, 1) != "/")
