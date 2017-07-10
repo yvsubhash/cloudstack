@@ -123,3 +123,5 @@ CREATE VIEW `cloud`.`domain_router_view` AS
             and async_job.instance_type = 'DomainRouter'
             and async_job.job_status = 0;
 
+
+update guest_os_hypervisor set guest_os_name='windows9Server64Guest' where guest_os_id in (select id from guest_os where display_name like 'Windows Server 2016%') and hypervisor_type ='vmware';
