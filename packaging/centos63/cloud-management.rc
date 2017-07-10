@@ -108,9 +108,12 @@ case "$1" in
         set_ulimit
 	        start
 		;;
-	*)
+    start)
         set_ulimit
-                start
+        	start
+        ;;
+	*)
+        echo "Usage: $0 {start|stop|status|restart}"
 esac
 
 exit $RETVAL
