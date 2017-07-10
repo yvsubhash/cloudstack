@@ -3790,7 +3790,6 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     public SSHKeyPair registerSSHKeyPair(final RegisterSSHKeyPairCmd cmd) {
         final Account owner = getOwner(cmd);
         checkForKeyByName(cmd, owner);
-        checkForKeyByPublicKey(cmd, owner);
 
         final String name = cmd.getName();
         String key = cmd.getPublicKey();
