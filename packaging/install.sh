@@ -81,6 +81,39 @@ function doupdate() {
 
 }
 
+function install_epel_pyargparse() {
+
+    yum update -y
+    doinstall wget python-setuptools
+    epel_download_path=/tmp/cloud-temp
+    epel6_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/6/x86_64/
+    epel7_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/7/x86_64/e
+    echo "Installing EPEL "
+    if [[ `rpm -qa | grep epel-release` == "" ]];then
+        if [[ `cat /etc/redhat-release` =~ " 7." ]]; then
+            wget -r --no-parent -A 'epel-release-*.noarch.rpm' http://dl.fedoraproject.org/pub/epel/7/x86_64/e/ -P $epel_download_path  2>/dev/null
+           if [ -f $epel7_rpm_location/*.rpm ]; then
+               rpm -ivh $epel7_rpm_location/*.rpm
+           fi
+        elif  [[ `cat /etc/redhat-release` =~ " 6." ]]; then
+           wget -r --no-parent -A 'epel-release-*.noarch.rpm' http://dl.fedoraproject.org/pub/epel/6/x86_64/ -P $epel_download_path  2>/dev/null
+           if [ -f $epel6_rpm_location/*.rpm ]; then
+             rpm -ivh $epel6_rpm_location/*.rpm
+           fi
+        fi
+    fi
+    echo "Installing Python Argparse"
+    if [[ `rpm -qa | grep python-argparse` == "" ]];then
+        if [[ `cat /etc/redhat-release` =~ " 7." ]]; then
+           rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-6.1.noarch.rpm
+        elif  [[ `cat /etc/redhat-release` =~ " 6." ]]; then
+           rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-2.el6.noarch.rpm
+        fi
+    fi
+    rm -rf $epel_download_path
+
+}
+
 function doremove() {
     yum remove "$@" || return $?
 }
@@ -158,41 +191,13 @@ if [ "$installtype" == "q" -o "$installtype" == "Q" ] ; then
 
 	elif [ "$installtype" == "m" -o "$installtype" == "M" ] ; then
 		echo "Installing the Management Server..."
-
-        yum update -y
-		doinstall wget python-setuptools
-		epel_download_path=/tmp/cloud-temp
-        epel6_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/6/x86_64/
-        epel7_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/7/x86_64/e
-        echo "Installing EPEL "
-        if [[ `rpm -qa | grep epel-release` == "" ]];then
-            if [[ `cat /etc/redhat-release` =~ " 7." ]]; then
-                wget -r --no-parent -A 'epel-release-*.noarch.rpm' http://dl.fedoraproject.org/pub/epel/7/x86_64/e/ -P $epel_download_path  2>/dev/null
-               if [ -f $epel7_rpm_location/*.rpm ]; then
-                   rpm -ivh $epel7_rpm_location/*.rpm
-               fi
-            elif  [[ `cat /etc/redhat-release` =~ " 6." ]]; then
-               wget -r --no-parent -A 'epel-release-*.noarch.rpm' http://dl.fedoraproject.org/pub/epel/6/x86_64/ -P $epel_download_path  2>/dev/null
-               if [ -f $epel6_rpm_location/*.rpm ]; then
-                 rpm -ivh $epel6_rpm_location/*.rpm
-               fi
-            fi
-        fi
-        echo "Installing Python Argparse"
-        if [[ `rpm -qa | grep python-argparse` == "" ]];then
-            if [[ `cat /etc/redhat-release` =~ " 7." ]]; then
-               rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-6.1.noarch.rpm
-            elif  [[ `cat /etc/redhat-release` =~ " 6." ]]; then
-               rpm -ivh http://s3.download.accelerite.com/packages/python-argparse-1.2.1-2.el6.noarch.rpm
-            fi
-        fi
-        rm -rf $epel_download_path
-
+        install_epel_pyargparse
 		doinstall cloudstack-management
 		true
 
 	elif [ "$installtype" == "a" -o "$installtype" == "A" ] ; then
 		echo "Installing the Agent..." >&2
+		install_epel_pyargparse
 		if doinstall cloudstack-agent; then
                         modprobe kvm
                         modprobe kvm_intel > /dev/null 2>&1
