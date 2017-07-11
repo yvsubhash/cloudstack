@@ -107,11 +107,11 @@ public class Upgrade481to490 implements DbUpgrade {
             }
         }
 
-       /* try (final PreparedStatement pstmt = conn.prepareStatement("ALTER TABLE `cloud_usage`.`account` ADD COLUMN `role_id` bigint(20) unsigned AFTER `type`")) {
+        try (final PreparedStatement pstmt = conn.prepareStatement("ALTER TABLE `cloud_usage`.`account` ADD COLUMN `role_id` bigint(20) unsigned AFTER `type`")) {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new CloudRuntimeException("Unable to create column role_id in table cloud_usage.account", e);
-        }*/
+        }
 
         migrateAccountsToDefaultRoles(conn);
 
