@@ -16,9 +16,17 @@
 // under the License.
 package com.cloud.tags.dao;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
 
 
+import com.cloud.utils.db.TransactionLegacy;
+import org.apache.cloudstack.api.response.ResourceTagResponse;
 import org.springframework.stereotype.Component;
 
 import com.cloud.server.ResourceTag;
@@ -66,5 +74,39 @@ public class ResourceTagsDaoImpl extends GenericDaoBase<ResourceTagVO, Long> imp
             tag.setResourceId(destId);
             update(tag.getId(), tag);
         }
+    }
+
+    @Override
+    public Map<String, Set<ResourceTagResponse>> listTagsByUsage(List<Long> usageId) throws Exception {
+        TransactionLegacy txn = TransactionLegacy.currentTxn();
+        PreparedStatement pstmt = null;
+        String usageIdList = usageId.toString();
+
+        //ignore opening and closing brackets [ ] from a list of String
+        usageIdList = usageIdList.substring(1, usageIdList.length() - 1);
+        String sql = "SELECT DISTINCT rt.resource_id, rt.resource_type, rt.key, rt.value FROM cloud.resource_tags rt\n" +
+                "INNER JOIN cloud_usage.cloud_usage cu ON cu.usage_id = rt.resource_id \n" +
+                "WHERE cu.id IN (" + usageIdList + ") ORDER BY rt.resource_id, rt.resource_type";
+        Map<String, Set<ResourceTagResponse>> resourceTagMap = new HashMap();
+        pstmt = txn.prepareAutoCloseStatement(sql);
+        ResultSet rs = pstmt.executeQuery();
+        ResourceTagResponse resourceTagResponse = null;
+        while (rs.next()) {
+            resourceTagResponse = new ResourceTagResponse();
+            String resourceId = rs.getString(1);
+            String resourceType = rs.getString(2);
+            String key = rs.getString(3);
+            String value = rs.getString(4);
+            resourceTagResponse.setKey(key);
+            resourceTagResponse.setValue(value);
+            Set<ResourceTagResponse> resourceTagSet = new HashSet();
+            String resourceKey = resourceId + ":" +resourceType;
+            if(resourceTagMap.get(resourceKey) != null) {
+               resourceTagSet = resourceTagMap.get(resourceKey);
+            }
+            resourceTagSet.add(resourceTagResponse);
+            resourceTagMap.put(resourceKey, resourceTagSet);
+        }
+        return resourceTagMap;
     }
 }
