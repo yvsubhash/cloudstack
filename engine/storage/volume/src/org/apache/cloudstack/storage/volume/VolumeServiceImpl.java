@@ -2319,7 +2319,7 @@ public class VolumeServiceImpl implements VolumeService {
         Long ownerhostid = vmSnapshotOwnerVm.getHostId();
         Long lasthostid = vmSnapshotOwnerVm.getLastHostId();
         long poolid = srcVolume.getPoolId();
-        List<HostVO> hosts;
+        List<HostVO> hosts = null;
         if (isHostUpandEnabled(ownerhostid)) {
             hostId = ownerhostid;
         } else {
@@ -2327,9 +2327,10 @@ public class VolumeServiceImpl implements VolumeService {
                 hostId = lasthostid;
             } else {
                 StoragePoolVO storagepool = storagePoolDao.findById(poolid);
-                Long clusterid = storagepool.getClusterId();
-                hosts = resourceMgr.listAllUpAndEnabledHosts(Host.Type.Routing, clusterid, storagepool.getPodId(), storagepool.getDataCenterId());
-                if (storagepool.getScope() == ScopeType.ZONE && hosts.isEmpty()) {
+                if(storagepool.getScope() == ScopeType.CLUSTER) {
+                    hosts = resourceMgr.listAllUpAndEnabledHostsInOneClusterByHypervisor(vmSnapshotOwnerVm.getHypervisorType(), storagepool.getClusterId());
+                }
+                if (storagepool.getScope() == ScopeType.ZONE) {
                     hosts = resourceMgr.listAllUpAndEnabledHostsInOneZoneByHypervisor(vmSnapshotOwnerVm.getHypervisorType(), storagepool.getDataCenterId());
                 }
                 if (hosts.isEmpty()) {

@@ -396,6 +396,11 @@ public class MockResourceManagerImpl extends ManagerBase implements ResourceMana
         return null;
     }
 
+    @Override
+    public List<HostVO> listAllUpAndEnabledHostsInOneClusterByHypervisor(HypervisorType type, long clusterId) {
+        return null;
+    }
+
     /* (non-Javadoc)
      * @see com.cloud.resource.ResourceManager#listAllHostsInOneZoneByType(com.cloud.host.Host.Type, long)
      */

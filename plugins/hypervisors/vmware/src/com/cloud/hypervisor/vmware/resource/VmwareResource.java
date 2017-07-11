@@ -4199,8 +4199,10 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         try {
             hyperHost = getHyperHost(getServiceContext());
             morDc = hyperHost.getHyperHostDatacenter();
+            DatacenterMO hyperHostDC = new DatacenterMO(getServiceContext(), hyperHost.getHyperHostDatacenter());
 
-            vmMo = hyperHost.findVmOnPeerHyperHost(vmName);
+            //vmMo = hyperHost.findVmOnPeerHyperHost(vmName);
+            vmMo = hyperHostDC.findVm(vmName);
             if (vmMo == null) {
                 String msg = "VM " + vmName + " does not exist in VMware datacenter " + morDc.getValue();
                 s_logger.error(msg);
@@ -4238,6 +4240,9 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             boolean cloneSuccess = snapshotCloneVm.createFullClone(newVolumeName, morVmFolder, morPool, morDs);
             if (cloneSuccess) {
                 s_logger.debug("Successfully created full clone of the volume from VM snapshot " + vmSnapshotUuid);
+                if(hyperHost.getHyperHostCluster() != null) {
+                    hyperHost = new ClusterMO(hyperHost.getContext(), hyperHost.getHyperHostCluster());
+                }
                 volumeWorkerVmMo = hyperHost.findVmOnHyperHost(newVolumeName);
                 if (volumeWorkerVmMo == null) {
                     String msg = "Failed to clone VM snapshot " + vmSnapshotUuid +

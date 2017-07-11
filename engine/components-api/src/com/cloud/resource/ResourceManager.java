@@ -107,6 +107,8 @@ public interface ResourceManager extends ResourceService {
 
     public List<HostVO> listAllUpAndEnabledHostsInOneZoneByType(Host.Type type, long dcId);
 
+    public List<HostVO> listAllUpAndEnabledHostsInOneClusterByHypervisor(HypervisorType type, long clusterId);
+
     public List<HostVO> listAllUpAndEnabledHostsInOneZoneByHypervisor(HypervisorType type, long dcId);
 
     public List<HostVO> listAllUpAndEnabledHostsInOneZone(long dcId);
