@@ -205,7 +205,11 @@ public class CreateDiskOfferingCmd extends BaseCmd {
 
     private Map getDetails() {
         Map<String, String> detailsMap = new HashMap<String, String>();
-        detailsMap.put(OfferingDetailConstants.STORAGE_POLICY, storagePolicy);
+
+        if (storagePolicy != null && !storagePolicy.isEmpty()) {
+            detailsMap.put(OfferingDetailConstants.STORAGE_POLICY, storagePolicy);
+        }
+
         return detailsMap;
     }
 
