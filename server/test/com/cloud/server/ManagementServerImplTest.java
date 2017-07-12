@@ -30,7 +30,6 @@ import static org.mockito.Mockito.any;
 
 import org.apache.cloudstack.api.command.user.ssh.RegisterSSHKeyPairCmd;
 
-import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.user.Account;
 import com.cloud.user.SSHKeyPairVO;
 import com.cloud.user.dao.SSHKeyPairDao;
@@ -57,7 +56,7 @@ public class ManagementServerImplTest {
     @Spy
     ManagementServerImpl spy;
 
-    @Test(expected = InvalidParameterValueException.class)
+    @Test
     public void testDuplicateRegistraitons(){
         String accountName = "account";
         String publicKeyString = "ssh-rsa very public";
@@ -70,7 +69,7 @@ public class ManagementServerImplTest {
         Mockito.doReturn(accountName).when(regCmd).getAccountName();
 
         Mockito.doReturn(publicKeyString).when(regCmd).getPublicKey();
-        Mockito.doReturn("name").when(regCmd).getName();
+        Mockito.doReturn("name").doReturn("name1").when(regCmd).getName();
 
         spy._sshKeyPairDao = sshKeyPairDao;
         Mockito.doReturn(1L).when(account).getAccountId();
@@ -105,6 +104,6 @@ public class ManagementServerImplTest {
         Mockito.doReturn(account).when(spy).getOwner(regCmd);
 
         spy.registerSSHKeyPair(regCmd);
-        Mockito.verify(spy, Mockito.times(3)).getPublicKeyFromKeyKeyMaterial(anyString());
+        Mockito.verify(spy, Mockito.times(2)).getPublicKeyFromKeyKeyMaterial(anyString());
     }
 }
