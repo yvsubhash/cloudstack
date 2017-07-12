@@ -235,3 +235,5 @@ CREATE VIEW `cloud`.`domain_router_view` AS
 
 
 update guest_os_hypervisor set guest_os_name='windows9Server64Guest' where guest_os_id in (select id from guest_os where display_name like 'Windows Server 2016%') and hypervisor_type ='vmware';
+
+ALTER TABLE cloud.s2s_customer_gateway ADD COLUMN force_encap INT(1) NOT NULL DEFAULT 0 AFTER dpd;
