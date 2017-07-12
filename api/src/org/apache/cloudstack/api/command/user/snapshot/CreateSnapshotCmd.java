@@ -80,6 +80,9 @@ public class CreateSnapshotCmd extends BaseAsyncCreateCmd implements Cancellable
     @Parameter(name = ApiConstants.NAME, type = CommandType.STRING, description = "the name of the snapshot")
     private String snapshotName;
 
+    @Parameter(name = ApiConstants.ASYNC_BACKUP, type = CommandType.BOOLEAN, required = false, description = "asynchronous backup if true")
+    private Boolean asyncBackup;
+
     private String syncObjectType = BaseAsyncCmd.snapshotHostSyncObject;
 
     // ///////////////////////////////////////////////////
@@ -193,7 +196,7 @@ public class CreateSnapshotCmd extends BaseAsyncCreateCmd implements Cancellable
         Snapshot snapshot;
         try {
             snapshot =
-                _volumeService.takeSnapshot(getVolumeId(), getPolicyId(), getEntityId(), _accountService.getAccount(getEntityOwnerId()), getQuiescevm(), getLocationType());
+                _volumeService.takeSnapshot(getVolumeId(), getPolicyId(), getEntityId(), _accountService.getAccount(getEntityOwnerId()), getQuiescevm(), getLocationType(), getAsyncBackup());
 
             if (snapshot != null) {
                 SnapshotResponse response = _responseGenerator.createSnapshotResponse(snapshot);
@@ -238,5 +241,13 @@ public class CreateSnapshotCmd extends BaseAsyncCreateCmd implements Cancellable
             return getHostId();
         }
         return null;
+    }
+
+    public Boolean getAsyncBackup() {
+        if (asyncBackup == null) {
+            return false;
+        } else {
+            return asyncBackup;
+        }
     }
 }
