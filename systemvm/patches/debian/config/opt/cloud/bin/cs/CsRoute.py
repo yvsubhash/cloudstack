@@ -53,7 +53,7 @@ class CsRoute:
         table = self.get_tablename(dev)
         logging.info("Adding route: dev " + dev + " table: " +
                      table + " network: " + address + " if not present")
-        cmd = "dev %s table %s %s" % (dev, table, address)
+        #cmd = "dev %s table %s %s" % (dev, table, address)
         cmd = "default via %s table %s proto static" % (address, table)
         self.set_route(cmd)
 
@@ -102,7 +102,7 @@ class CsRoute:
         :return: bool
         """
         logging.info("Checking if default ipv4 route is present")
-        route_found = CsHelper.execute("ip -4 route list 0/0")
+        route_found = CsHelper.execute("ip -4 route list default")
 
         if len(route_found) > 0:
             logging.info("Default route found: " + route_found[0])
