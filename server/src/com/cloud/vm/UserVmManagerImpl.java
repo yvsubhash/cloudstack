@@ -2687,10 +2687,20 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         if (expunge && !_accountMgr.isAdmin(ctx.getCallingAccount().getId()) && !AllowUserExpungeRecoverVm.valueIn(cmd.getEntityOwnerId())) {
             throw new PermissionDeniedException("Parameter " + ApiConstants.EXPUNGE + " can be passed by Admin only. Or when the allow.user.expunge.recover.vm key is set.");
         }
+        // check if VM exists
+        UserVmVO vm = _vmDao.findById(vmId);
+
+        if (vm == null) {
+            throw new InvalidParameterValueException("unable to find a virtual machine with id " + vmId);
+        }
+
+        // check if there are active volume snapshots tasks
+        if (checkStatusOfVolumeSnapshots(vmId, Volume.Type.ROOT)) {
+            throw new CloudRuntimeException("There is/are unbacked up snapshot(s) on ROOT volume, vm destroy is not permitted, please try again later.");
+        }
 
         UserVm destroyedVm = destroyVm(vmId, expunge);
         if (expunge) {
-            UserVmVO vm = _vmDao.findById(vmId);
             if (!expunge(vm, ctx.getCallingUserId(), ctx.getCallingAccount())) {
                 throw new CloudRuntimeException("Failed to expunge vm " + destroyedVm);
             }
@@ -3532,7 +3542,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         UserVmVO vm = commitUserVm(zone, template, hostName, displayName, owner, diskOfferingId, diskSize, userData, caller, isDisplayVm, keyboard, accountId, userId, offering,
-                isIso, sshPublicKey, networkNicMap, id, instanceName, uuidName, hypervisorType, customParameters);
+                isIso, sshKeyPair, sshPublicKey, networkNicMap, id, instanceName, uuidName, hypervisorType, customParameters);
 
         // Assign instance to the group
         try {
@@ -3599,7 +3609,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
     private UserVmVO commitUserVm(final DataCenter zone, final VirtualMachineTemplate template, final String hostName, final String displayName, final Account owner,
                                   final Long diskOfferingId, final Long diskSize, final String userData, final Account caller, final Boolean isDisplayVm, final String keyboard,
-                                  final long accountId, final long userId, final ServiceOfferingVO offering, final boolean isIso, final String sshPublicKey, final LinkedHashMap<String, NicProfile> networkNicMap,
+                                  final long accountId, final long userId, final ServiceOfferingVO offering, final boolean isIso, final String sshKeyPairName, final String sshPublicKey, final LinkedHashMap<String, NicProfile> networkNicMap,
                                   final long id, final String instanceName, final String uuidName, final HypervisorType hypervisorType, final Map<String, String> customParameters) throws InsufficientCapacityException {
         return Transaction.execute(new TransactionCallbackWithException<UserVmVO, InsufficientCapacityException>() {
             @Override
@@ -3620,7 +3630,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                     vm.details.putAll(details);
                 }
 
-                if (sshPublicKey != null) {
+                if (sshKeyPairName != null && sshPublicKey != null) {
+                    vm.setDetail("SSH.KeyPairName", sshKeyPairName);
                     vm.setDetail("SSH.PublicKey", sshPublicKey);
                 }
 
@@ -4900,6 +4911,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new VirtualMachineMigrationException("Destination host, hostId: " + destinationHost.getId()
                             + " already has max Running VMs(count includes system VMs), cannot migrate to this host");
         }
+        //check if there are any ongoing volume snapshots on the volumes associated with the VM.
+        if (checkStatusOfVolumeSnapshots(vmId, null)) {
+            throw new CloudRuntimeException("There is/are unbacked up snapshot(s) on volume(s) attached to this VM, VM Migration is not permitted, please try again later.");
+        }
 
         UserVmVO uservm = _vmDao.findById(vmId);
         if (uservm != null) {
@@ -5770,6 +5785,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         _accountMgr.checkAccess(caller, null, true, vm);
 
+        //check if there are any active snapshots on volumes associated with the VM
+        if (checkStatusOfVolumeSnapshots(vmId, Volume.Type.ROOT)) {
+            throw new CloudRuntimeException("There is/are unbacked up snapshot(s) on ROOT volume, Re-install VM is not permitted, please try again later.");
+        }
         return restoreVMInternal(caller, vm, newTemplateId);
     }
 
@@ -6204,4 +6223,27 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         return vmSnapshotIsUsableForDeployment;
     }
+
+    private boolean checkStatusOfVolumeSnapshots(long vmId, Volume.Type type) {
+        List<VolumeVO> listVolumes = null;
+        if (type == Volume.Type.ROOT) {
+            listVolumes = _volsDao.findByInstanceAndType(vmId, type);
+        } else if (type == Volume.Type.DATADISK) {
+            listVolumes = _volsDao.findByInstanceAndType(vmId, type);
+        } else {
+            listVolumes = _volsDao.findByInstance(vmId);
+        }
+        for (VolumeVO volume : listVolumes) {
+            // for the volumes got, check if any snapshot associated with this volume is ongoing/happening.
+            List<SnapshotVO> ongoingSnapshots = _snapshotDao.listByStatus(volume.getInstanceId(), Snapshot.State.Creating, Snapshot.State.CreatedOnPrimary,
+                    Snapshot.State.BackingUp);
+            if (ongoingSnapshots.size() > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
 }

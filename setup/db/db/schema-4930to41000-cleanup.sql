@@ -22,3 +22,5 @@
 DELETE FROM `cloud`.`configuration` WHERE name='consoleproxy.loadscan.interval';
 
 DELETE FROM `cloud`.`configuration` WHERE `name`='vmware.ports.per.dvportgroup';
+
+DELETE FROM `cloud`.`configuration` WHERE name='snapshot.backup.rightafter';

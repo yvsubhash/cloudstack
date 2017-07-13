@@ -250,9 +250,6 @@ public class StorageSystemSnapshotStrategy extends SnapshotStrategyBase {
             }
 
             snapshotOnPrimary = result.getSnapshot();
-            backedUpSnapshot = backupSnapshot(snapshotOnPrimary);
-
-            updateLocationTypeInDb(backedUpSnapshot);
         }
         finally {
             if (result != null && result.isSuccess()) {
@@ -274,7 +271,12 @@ public class StorageSystemSnapshotStrategy extends SnapshotStrategyBase {
 
         snapshotDao.releaseFromLockTable(snapshotInfo.getId());
 
-        return backedUpSnapshot;
+        return snapshotOnPrimary;
+    }
+
+    @Override
+    public void postSnapshotCreation(SnapshotInfo snapshot) {
+       updateLocationTypeInDb(snapshot);
     }
 
     private void updateLocationTypeInDb(SnapshotInfo snapshotInfo) {
@@ -604,4 +606,5 @@ public class StorageSystemSnapshotStrategy extends SnapshotStrategyBase {
 
         return StrategyPriority.CANT_HANDLE;
     }
+
 }
