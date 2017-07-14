@@ -104,6 +104,7 @@ public class DirectAgentAttache extends AgentAttache {
             }
         } else {
             Command[] cmds = req.getCommands();
+            checkAvailability(cmds);
             if (cmds.length > 0 && !(cmds[0] instanceof CronCommand)) {
                 queueTask(new Task(req));
                 scheduleFromQueue();

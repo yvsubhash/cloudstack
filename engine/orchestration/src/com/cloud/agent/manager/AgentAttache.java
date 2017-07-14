@@ -194,11 +194,18 @@ public abstract class AgentAttache {
     }
 
     protected synchronized void cancel(final long seq) {
+        cancel(seq, null);
+    }
+
+    protected synchronized void cancel(final long seq, final String reason) {
         if (s_logger.isDebugEnabled()) {
             s_logger.debug(log(seq, "Cancelling."));
         }
         final Listener listener = _waitForList.remove(seq);
         if (listener != null) {
+            if(reason != null) {
+                listener.processAnswers(_id, seq, new Answer[]{new Answer(null, false, reason)});
+            }
             listener.processDisconnect(_id, Status.Disconnected);
         }
         int index = findRequest(seq);
