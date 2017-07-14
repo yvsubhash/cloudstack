@@ -3389,7 +3389,7 @@ namespace HypervResource
                 case Enabled: result = "PowerOn"; break;
                 case Disabled: result = "PowerOff"; break;
                 case Paused: result = "PowerOn"; break; //Assuming this change is made manually by User for some maintainence
-                case Suspended: result = "PowerOff"; break;
+                case Suspended: result = "PowerOn"; break;
                 case Starting: result = "PowerOn"; break;
                 case Snapshotting: result = "PowerOn"; break; // NOT used
                 case Saving: result = "PowerOn"; break;
