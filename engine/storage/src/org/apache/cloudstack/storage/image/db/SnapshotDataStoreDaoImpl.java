@@ -32,7 +32,7 @@ import org.apache.cloudstack.storage.datastore.db.SnapshotDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.SnapshotDataStoreVO;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
-
+import com.cloud.hypervisor.Hypervisor;
 import javax.naming.ConfigurationException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -55,8 +55,13 @@ public class SnapshotDataStoreDaoImpl extends GenericDaoBase<SnapshotDataStoreVO
     private SearchBuilder<SnapshotDataStoreVO> volumeSearch;
     private SearchBuilder<SnapshotDataStoreVO> stateSearch;
 
-    private final String parentSearch = "select store_id, store_role, snapshot_id from cloud.snapshot_store_ref where store_id = ? "
-        + " and store_role = ? and volume_id = ? and state = 'Ready'" + " order by created DESC " + " limit 1";
+    // As snapshot chaining happens only for Xenserver, hence limiting parent search query only for Xenserver.
+    // For other hypervisors, there is no need to set or fetch parent snapshot id.
+    private final String parentSearch = "select store_id, store_role, snapshot_id from cloud.snapshot_store_ref ssr " +
+            "INNER JOIN snapshots s ON ssr.snapshot_id = s.id " +
+            "where store_id = ? and store_role = ? and volume_id = ? and state = 'Ready' and s.hypervisor_type like '" + Hypervisor.HypervisorType.XenServer +
+            "' order by created DESC limit 1";
+
     private final String findLatestSnapshot = "select store_id, store_role, snapshot_id from cloud.snapshot_store_ref where " +
             " store_role = ? and volume_id = ? and state = 'Ready'" +
             " order by created DESC " +
