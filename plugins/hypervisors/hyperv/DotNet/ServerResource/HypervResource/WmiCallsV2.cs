@@ -3021,6 +3021,11 @@ namespace HypervResource
 
         private ResourceGroup GetResourceGroup(string groupName)
         {
+            if (!IsClusterPresent())
+            {
+                return null;
+            }
+
             var wmiQuery = String.Format("Name=\"{0}\"", groupName);
             var resGroups = ResourceGroup.GetInstances(wmiQuery);
 
