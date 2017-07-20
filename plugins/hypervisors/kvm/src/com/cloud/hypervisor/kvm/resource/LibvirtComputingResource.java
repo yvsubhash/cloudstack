@@ -2821,7 +2821,7 @@ public class LibvirtComputingResource extends ServerResourceBase implements Serv
         return msg;
     }
 
-    public String stopVM(final Connect conn, final String vmName, final boolean forceStop) {
+    public String stopVM(final Connect conn, final String vmName, final boolean isForcedStop) {
         DomainState state = null;
         Domain dm = null;
 
@@ -2842,7 +2842,7 @@ public class LibvirtComputingResource extends ServerResourceBase implements Serv
         }
 
         s_logger.debug("Try to stop the vm at first");
-        if (forceStop) {
+        if (isForcedStop) {
             return stopVMInternal(conn, vmName, true);
         }
         String ret = stopVMInternal(conn, vmName, false);

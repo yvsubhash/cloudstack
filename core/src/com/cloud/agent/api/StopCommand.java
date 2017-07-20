@@ -29,7 +29,7 @@ public class StopCommand extends RebootCommand {
     private GPUDeviceTO gpuDevice;
     boolean checkBeforeCleanup = false;
     String controlIp = null;
-    boolean forceStop = false;
+    boolean isForcedStop = false;
 
     protected StopCommand() {
     }
@@ -47,10 +47,9 @@ public class StopCommand extends RebootCommand {
         this.checkBeforeCleanup = checkBeforeCleanup;
     }
 
-    public StopCommand(VirtualMachine vm, boolean executeInSequence, boolean checkBeforeCleanup, boolean forceStop) {
-        super(vm.getInstanceName(), executeInSequence);
-        this.checkBeforeCleanup = checkBeforeCleanup;
-        this.forceStop = forceStop;
+    public StopCommand(VirtualMachine vm, boolean executeInSequence, boolean checkBeforeCleanup, boolean isForcedStop) {
+        this(vm.getInstanceName(), executeInSequence, checkBeforeCleanup);
+        this.isForcedStop = isForcedStop;
     }
 
     public StopCommand(String vmName, boolean executeInSequence, boolean checkBeforeCleanup) {
@@ -99,7 +98,7 @@ public class StopCommand extends RebootCommand {
         this.controlIp = controlIp;
     }
 
-    public boolean isForceStop() {
-        return forceStop;
+    public boolean isForcedStop(){
+        return this.isForcedStop;
     }
 }

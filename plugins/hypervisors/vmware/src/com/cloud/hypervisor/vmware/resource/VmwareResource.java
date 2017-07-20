@@ -3248,7 +3248,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
                     if (getVmPowerState(vmMo) != PowerState.PowerOff) {
                         String msg = "Stop VM " + cmd.getVmName() + " Succeed";
                         boolean success = false;
-                        if (cmd.isForceStop()) {
+                        if (cmd.isForcedStop()) {
                             success = vmMo.powerOff();
                         } else {
                             success = vmMo.safePowerOff(_shutdownWaitMs);
