@@ -835,7 +835,7 @@ public class VolumeServiceImpl implements VolumeService {
                                 if (vmSnapTemplatePoolRef == null) {
                                     s_logger.warn("Failed to reset Status of VmSnapshot template on primary storage pool, due to - unable to lock on VmSnapshot template [id="
                                             + vmSnapTemplatePoolRefId + "]");
-                                } else {
+                                } else if (vmSnapTemplatePoolRef.getState() != ObjectInDataStoreStateMachine.State.Ready) {
                                     vmSnapTemplatePoolRef.setStatus(VMSnapshotTemplateStorageResourceAssoc.Status.NOT_CREATED);
                                     vmSnapTemplatePoolRef.setState(ObjectInDataStoreStateMachine.State.Allocated);
                                     _vmSnapTmplPoolDao.update(vmSnapTemplatePoolRefId, vmSnapTemplatePoolRef);

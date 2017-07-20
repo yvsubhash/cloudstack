@@ -450,3 +450,5 @@ FROM `affinity_group`
 	LEFT JOIN `affinity_group_vm_map` ON`affinity_group`.`id` = `affinity_group_vm_map`.`affinity_group_id`
 	LEFT JOIN `vm_instance` ON`vm_instance`.`id` = `affinity_group_vm_map`.`instance_id`
 	LEFT JOIN `user_vm` ON`user_vm`.`id` = `vm_instance`.`id`;
+
+UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE hypervisor_version='6.2' AND hypervisor_type="Hyperv";

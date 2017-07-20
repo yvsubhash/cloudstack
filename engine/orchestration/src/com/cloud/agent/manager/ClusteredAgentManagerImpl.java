@@ -639,7 +639,7 @@ public class ClusteredAgentManagerImpl extends AgentManagerImpl implements Clust
                         if (s_logger.isDebugEnabled()) {
                             logD(data, "Cancel request received");
                         }
-                        agent.cancel(cancel.getSequence());
+                        agent.cancel(cancel.getSequence(), cancel.getReason());
                         final Long current = agent._currentSequence;
                         // if the request is the current request, always have to trigger sending next request in
                         // sequence,

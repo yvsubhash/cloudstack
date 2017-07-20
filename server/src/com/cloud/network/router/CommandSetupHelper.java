@@ -860,6 +860,7 @@ public class CommandSetupHelper {
 
             int ipsWithrules = 0;
             int ipsStaticNat = 0;
+            long vlanDbId = 0;
             for (IPAddressVO ip : userIps) {
                 if ( _rulesDao.countRulesByIpIdAndState(ip.getId(), FirewallRule.State.Active) > 0){
                     ipsWithrules++;
@@ -870,6 +871,7 @@ public class CommandSetupHelper {
                 if (ip.isOneToOneNat() && ip.getRuleState() == null) {
                     ipsStaticNat++;
                 }
+                vlanDbId = ip.getVlanId();
             }
 
             final IpAssocCommand cmd = new IpAssocCommand(ipsToSend);
@@ -879,9 +881,13 @@ public class CommandSetupHelper {
             final DataCenterVO dcVo = _dcDao.findById(router.getDataCenterId());
             cmd.setAccessDetail(NetworkElementCommand.ZONE_NETWORK_TYPE, dcVo.getNetworkType().toString());
 
+            // consider the source nat ip before setting lastip. Get the list of ips with same vlan_db_id and look for
+            // source nat ip.
             // if there is 1 static nat then it will be checked for remove at the resource
-            if (ipsWithrules == 0 && ipsStaticNat == 0) {
+            if (ipsWithrules == 0 && ipsStaticNat == 0 && !_ipAddressDao.isIpInSourceIpNatRange
+                    (_ipAddressDao.listByVlanId(vlanDbId))) {
                 // there is only one ip address for the network.
+                s_logger.debug("There rules/services on the ips so marking it as last public of the interface");
                 cmd.setAccessDetail(NetworkElementCommand.NETWORK_PUB_LAST_IP, "true");
             } else {
                 cmd.setAccessDetail(NetworkElementCommand.NETWORK_PUB_LAST_IP, "false");
