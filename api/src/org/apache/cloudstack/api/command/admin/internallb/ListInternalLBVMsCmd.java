@@ -113,8 +113,8 @@ public class ListInternalLBVMsCmd extends BaseListProjectAndAccountResourcesCmd 
         return forVpc;
     }
 
-    public String getRole() {
-        return Role.INTERNAL_LB_VM.toString();
+    public String[] getRole() {
+        return new String[] {Role.INTERNAL_LB_VM.toString()};
     }
 
     /////////////////////////////////////////////////////
