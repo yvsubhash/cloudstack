@@ -983,14 +983,14 @@
                                             cloudStack.dialog.confirm({
                                                 message: 'message.confirm.current.guest.CIDR.unchanged',
                                                 action: function() { //"Yes" button is clicked
-                                                    getForcedInfoAndUpdateNetwork(data);
+                                                    getForcedInfoAndUpdateNetwork(data, args);
                                                 },
                                                 cancelAction: function() { //"Cancel" button is clicked
                                                     $.extend(data, {
                                                         changecidr: true
                                                     });
 
-                                                    getForcedInfoAndUpdateNetwork(data);
+                                                    getForcedInfoAndUpdateNetwork(data, args);
                                                 }
                                             });
                                             return;
@@ -6990,7 +6990,7 @@
         return data;
     }
 
-    function getForcedInfoAndUpdateNetwork(data) {
+    function getForcedInfoAndUpdateNetwork(data, args) {
         if (isAdmin()) {
             cloudStack.dialog.confirm({
                 message: "message.confirm.force.update",

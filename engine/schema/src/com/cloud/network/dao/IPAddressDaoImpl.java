@@ -260,6 +260,16 @@ public class IPAddressDaoImpl extends GenericDaoBase<IPAddressVO, Long> implemen
     }
 
     @Override
+    public Boolean isIpInSourceIpNatRange(List<IPAddressVO> userIps) {
+        for (IPAddressVO ip: userIps ) {
+            if (ip.isSourceNat()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<IPAddressVO> listStaticNatPublicIps(long networkId) {
         SearchCriteria<IPAddressVO> sc = AllFieldsSearch.create();
         sc.setParameters("network", networkId);

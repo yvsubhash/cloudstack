@@ -236,6 +236,8 @@ CREATE VIEW `cloud`.`domain_router_view` AS
 
 update guest_os_hypervisor set guest_os_name='windows9Server64Guest' where guest_os_id in (select id from guest_os where display_name like 'Windows Server 2016%') and hypervisor_type ='vmware';
 
+ALTER TABLE cloud.s2s_customer_gateway ADD COLUMN force_encap INT(1) NOT NULL DEFAULT 0 AFTER dpd;
+
 DROP VIEW IF EXISTS `cloud`.`user_vm_view`;
 CREATE VIEW `user_vm_view` AS
 SELECT `cloud`.`vm_instance`.`id` AS `id`,
@@ -448,3 +450,5 @@ FROM `affinity_group`
 	LEFT JOIN `affinity_group_vm_map` ON`affinity_group`.`id` = `affinity_group_vm_map`.`affinity_group_id`
 	LEFT JOIN `vm_instance` ON`vm_instance`.`id` = `affinity_group_vm_map`.`instance_id`
 	LEFT JOIN `user_vm` ON`user_vm`.`id` = `vm_instance`.`id`;
+
+UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE hypervisor_version='6.2' AND hypervisor_type="Hyperv";
