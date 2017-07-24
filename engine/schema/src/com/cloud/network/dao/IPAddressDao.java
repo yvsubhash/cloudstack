@@ -70,6 +70,8 @@ public interface IPAddressDao extends GenericDao<IPAddressVO, Long> {
 
     long countFreePublicIPs();
 
+    List<IPAddressVO> listByVpcAndVlan(long vpcId, long vlanId);
+
     long countFreeIPsInNetwork(long networkId);
 
     IPAddressVO findByVmIp(String vmIp);

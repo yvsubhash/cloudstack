@@ -18,6 +18,7 @@ package com.cloud.network.rules;
 
 import javax.inject.Inject;
 
+import com.cloud.network.dao.FirewallRulesDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -83,6 +84,9 @@ public class VirtualNetworkApplianceFactory {
     private IpAddressManager _ipAddrMgr;
     @Inject
     private NetworkACLManager _networkACLMgr;
+    @Inject
+    private FirewallRulesDao _rulesDao;
+
 
     @Autowired
     @Qualifier("networkHelper")
@@ -153,6 +157,10 @@ public class VirtualNetworkApplianceFactory {
 
     public IPAddressDao getIpAddressDao() {
         return _ipAddressDao;
+    }
+
+    public FirewallRulesDao getFirewallRulesDao() {
+        return _rulesDao;
     }
 
     public PrivateIpDao getPrivateIpDao() {
