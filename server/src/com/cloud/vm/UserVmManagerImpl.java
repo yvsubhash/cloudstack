@@ -798,6 +798,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         _vmDao.loadDetails(userVm);
+        userVm.setDetail("SSH.KeyPairName", cmd.getName());
         VMTemplateVO template = _templateDao.findByIdIncludingRemoved(userVm.getTemplateId());
 
         // Do parameters input validation
