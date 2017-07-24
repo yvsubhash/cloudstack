@@ -32,7 +32,7 @@ import org.apache.cloudstack.storage.datastore.db.SnapshotDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.SnapshotDataStoreVO;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
-
+import com.cloud.hypervisor.Hypervisor;
 import javax.naming.ConfigurationException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,6 +40,12 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import com.cloud.storage.SnapshotVO;
+import com.cloud.storage.dao.SnapshotDao;
+import com.cloud.utils.db.JoinBuilder;
+import com.cloud.utils.db.Filter;
+import javax.inject.Inject;
+
 
 @Component
 public class SnapshotDataStoreDaoImpl extends GenericDaoBase<SnapshotDataStoreVO, Long> implements SnapshotDataStoreDao {
@@ -54,9 +60,12 @@ public class SnapshotDataStoreDaoImpl extends GenericDaoBase<SnapshotDataStoreVO
     private SearchBuilder<SnapshotDataStoreVO> volumeIdSearch;
     private SearchBuilder<SnapshotDataStoreVO> volumeSearch;
     private SearchBuilder<SnapshotDataStoreVO> stateSearch;
+    private SearchBuilder<SnapshotDataStoreVO> parentSnapshotSearch;
+    private SearchBuilder<SnapshotVO> snapshotVOSearch;
 
-    private final String parentSearch = "select store_id, store_role, snapshot_id from cloud.snapshot_store_ref where store_id = ? "
-        + " and store_role = ? and volume_id = ? and state = 'Ready'" + " order by created DESC " + " limit 1";
+    @Inject
+    private SnapshotDao _snapshotDao;
+
     private final String findLatestSnapshot = "select store_id, store_role, snapshot_id from cloud.snapshot_store_ref where " +
             " store_role = ? and volume_id = ? and state = 'Ready'" +
             " order by created DESC " +
@@ -127,6 +136,19 @@ public class SnapshotDataStoreDaoImpl extends GenericDaoBase<SnapshotDataStoreVO
         stateSearch = createSearchBuilder();
         stateSearch.and("state", stateSearch.entity().getState(), SearchCriteria.Op.IN);
         stateSearch.done();
+
+        parentSnapshotSearch = createSearchBuilder();
+        parentSnapshotSearch.and("volume_id", parentSnapshotSearch.entity().getVolumeId(), SearchCriteria.Op.EQ);
+        parentSnapshotSearch.and("store_id", parentSnapshotSearch.entity().getDataStoreId(), SearchCriteria.Op.EQ);
+        parentSnapshotSearch.and("store_role", parentSnapshotSearch.entity().getRole(), SearchCriteria.Op.EQ);
+        parentSnapshotSearch.and("state", parentSnapshotSearch.entity().getState(), SearchCriteria.Op.EQ);
+
+        snapshotVOSearch = _snapshotDao.createSearchBuilder();
+        snapshotVOSearch.and("hypervisorType", snapshotVOSearch.entity().getHypervisorType(), Op.LIKE);
+        parentSnapshotSearch.join("snapshotVOSearch", snapshotVOSearch, snapshotVOSearch.entity().getId(),
+                parentSnapshotSearch.entity().getSnapshotId(), JoinBuilder.JoinType.INNER);
+
+        parentSnapshotSearch.done();
 
         return true;
     }
@@ -272,22 +294,18 @@ public class SnapshotDataStoreDaoImpl extends GenericDaoBase<SnapshotDataStoreVO
     @Override
     @DB
     public SnapshotDataStoreVO findParent(DataStoreRole role, Long storeId, Long volumeId) {
-        TransactionLegacy txn = TransactionLegacy.currentTxn();
-        try (
-                PreparedStatement pstmt = txn.prepareStatement(parentSearch);
-            ){
-            pstmt.setLong(1, storeId);
-            pstmt.setString(2, role.toString());
-            pstmt.setLong(3, volumeId);
-            try (ResultSet rs = pstmt.executeQuery();) {
-                while (rs.next()) {
-                    long sid = rs.getLong(1);
-                    long snid = rs.getLong(3);
-                    return findByStoreSnapshot(role, sid, snid);
-                }
-            }
-        } catch (SQLException e) {
-            s_logger.debug("Failed to find parent snapshot: " + e.toString());
+
+        SearchCriteria<SnapshotDataStoreVO> sc = parentSnapshotSearch.create();
+        sc.setParameters("volume_id", volumeId);
+        sc.setParameters("store_role", role.toString());
+        sc.setParameters("state", ObjectInDataStoreStateMachine.State.Ready.name());
+        sc.setParameters("store_id", storeId);
+        sc.setJoinParameters("snapshotVOSearch", "hypervisorType", Hypervisor.HypervisorType.XenServer);
+
+        List<SnapshotDataStoreVO> snapshotList = listBy(sc, new Filter(SnapshotDataStoreVO.class, "created", false, null, null));
+        if (snapshotList != null && snapshotList.size() != 0)
+        {
+            return snapshotList.get(0);
         }
         return null;
     }
