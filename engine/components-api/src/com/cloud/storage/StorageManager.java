@@ -54,7 +54,7 @@ public interface StorageManager extends StorageService {
             "'random', 'firstfit', 'userdispersing', 'firstfitleastconsumed' : Order in which suitable pools will be considered for volume allocation." +
                     " default will be to infer from vm.allocation.algorithm", true, ConfigKey.Scope.Global, null);
     static final ConfigKey<String> ImageStoreAllocationAlgorithm = new ConfigKey(String.class, "image.store.allocation.algorithm", "Advanced", "random",
-            "'random', 'firstfit', 'userdispersing', 'firstfitleastconsumed' : Order in which image stores will be considered for allocation..", true, ConfigKey.Scope.Global, null);
+            "'random', 'firstfit', 'firstfitleastconsumed' : Order in which image stores will be considered for allocation..", true, ConfigKey.Scope.Global, null);
 
     /**
      * Returns a comma separated list of tags for the specified storage pool

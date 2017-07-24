@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import com.cloud.server.StatsCollector;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
@@ -93,6 +94,8 @@ public class XenserverSnapshotStrategy extends SnapshotStrategyBase {
     private SnapshotDetailsDao _snapshotDetailsDao;
     @Inject
     private SyncQueueItemDao _syncQueueItemDao;
+    @Inject
+    StatsCollector _statsCollector;
 
     @Override
     public SnapshotInfo backupSnapshot(SnapshotInfo snapshot) {
@@ -133,7 +136,8 @@ public class XenserverSnapshotStrategy extends SnapshotStrategyBase {
         SnapshotDataStoreVO latestSnapshotOnBackupStore = snapshotStoreDao.findLatestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Image);
         SnapshotDataStoreVO latestSnapshotOnPrimaryStore = snapshotStoreDao.findLatestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Primary);
         HypervisorType hypervisorType = snapshot.getBaseVolume().getHypervisorType();
-        if (latestSnapshotOnPrimaryStore != null && latestSnapshotOnBackupStore != null && hypervisorType == Hypervisor.HypervisorType.XenServer) { // CS does incremental backup only for XenServer
+        if (latestSnapshotOnPrimaryStore != null && latestSnapshotOnBackupStore != null && hypervisorType == Hypervisor.HypervisorType.XenServer &&
+                _statsCollector.imageStoreHasEnoughCapacity((DataStore)latestSnapshotOnBackupStore)) { // CS does incremental backup only for XenServer
 
             // In case of volume migration from one pool to other pool, CS should take full snapshot to avoid any issues with delta chain,
             // to check if this is a migrated volume, compare the current pool id of volume and store_id of oldest snapshot on primary for this volume.
