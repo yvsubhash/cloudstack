@@ -1350,6 +1350,22 @@ start() {
 	         /opt/cloud/bin/update_config.py cmd_line.json
          fi
 	  ;;
+     elbvm)
+         [ "$NAME" == "" ] && NAME=elb
+         setup_elbvm
+         if [ -x /opt/cloud/bin/update_config.py ]
+         then
+	         /opt/cloud/bin/update_config.py cmd_line.json
+         fi
+	  ;;
+     ilbvm)
+         [ "$NAME" == "" ] && NAME=ilb
+         setup_ilbvm
+         if [ -x /opt/cloud/bin/update_config.py ]
+         then
+	         /opt/cloud/bin/update_config.py cmd_line.json
+         fi
+	  ;;
      secstorage)
          [ "$NAME" == "" ] && NAME=secstorage
          setup_secstorage $hyp;
@@ -1357,14 +1373,6 @@ start() {
      consoleproxy)
          [ "$NAME" == "" ] && NAME=consoleproxy
          setup_console_proxy $hyp;
-	  ;;
-     elbvm)
-         [ "$NAME" == "" ] && NAME=elb
-         setup_elbvm
-	  ;;
-     ilbvm)
-         [ "$NAME" == "" ] && NAME=ilb
-         setup_ilbvm
 	  ;;
      unknown)
          [ "$NAME" == "" ] && NAME=systemvm
