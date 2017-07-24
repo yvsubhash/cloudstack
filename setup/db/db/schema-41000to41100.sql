@@ -452,3 +452,5 @@ FROM `affinity_group`
 	LEFT JOIN `user_vm` ON`user_vm`.`id` = `vm_instance`.`id`;
 
 UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE hypervisor_version='6.2' AND hypervisor_type="Hyperv";
+
+UPDATE `cloud`.`hypervisor_capabilities` SET `max_data_volumes_limit`=30 WHERE `hypervisor_type`='VMware';

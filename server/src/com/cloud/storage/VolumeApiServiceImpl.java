@@ -2793,7 +2793,11 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
         Integer maxDataVolumesSupported = null;
         if (host != null) {
             _hostDao.loadDetails(host);
-            maxDataVolumesSupported = _hypervisorCapabilitiesDao.getMaxDataVolumesLimit(host.getHypervisorType(), host.getDetail("product_version"));
+            String hypervisorVersion = host.getDetail("product_version");
+            if (org.apache.commons.lang.StringUtils.isBlank(hypervisorVersion)) {
+                hypervisorVersion = host.getHypervisorVersion();
+            }
+            maxDataVolumesSupported = _hypervisorCapabilitiesDao.getMaxDataVolumesLimit(host.getHypervisorType(), hypervisorVersion);
         }
         if (maxDataVolumesSupported == null || maxDataVolumesSupported.intValue() <= 0) {
             maxDataVolumesSupported = 6; // 6 data disks by default if nothing
