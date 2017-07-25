@@ -659,7 +659,7 @@ public class CapacityDaoImpl extends GenericDaoBase<CapacityVO, Long> implements
         public Long getPodId() {
             return podId;
         }
-
+        public void setPercentUsed(float percentUsed){this.percentUsed=percentUsed;}
         public Float getPercentUsed() {
             return percentUsed;
         }

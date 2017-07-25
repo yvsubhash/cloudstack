@@ -2433,11 +2433,48 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
                 summedCapacities.addAll(summedCapacitiesAtCluster);
             }
         }
-
-        List<SummedCapacity> summedCapacitiesForSecStorage = getStorageUsed(clusterId, podId, zoneId, capacityType);
-        if (summedCapacitiesForSecStorage != null) {
-            summedCapacities.addAll(summedCapacitiesForSecStorage);
+//Find relevant ZoneIds to get the storage related capacities
+        List<DataCenterVO> dcList = new ArrayList<DataCenterVO>();
+        List<CapacityVO> capacities_list = new ArrayList<CapacityVO>();
+        if (zoneId == null && podId == null && clusterId == null) {
+            dcList = ApiDBUtils.listZones();
+        } else if (zoneId != null) {
+            dcList.add(ApiDBUtils.findZoneById(zoneId));
+        } else {
+            if (clusterId != null) {
+                zoneId = ApiDBUtils.findClusterById(clusterId).getDataCenterId();
+            } else {
+                zoneId = ApiDBUtils.findPodById(podId).getDataCenterId();
+            }
+            if (capacityType == null || capacityType == Capacity.CAPACITY_TYPE_STORAGE) {
+                capacities_list.add(_storageMgr.getStoragePoolUsedStats(null, clusterId, podId, zoneId));
+            }
         }
+
+        for (final DataCenterVO zone : dcList) {
+            zoneId = zone.getId();
+            if ((capacityType == null || capacityType == Capacity.CAPACITY_TYPE_SECONDARY_STORAGE) && podId == null && clusterId == null) {
+                capacities_list.add(_storageMgr.getSecondaryStorageUsedStats(null, zoneId));
+            }
+            if (capacityType == null || capacityType == Capacity.CAPACITY_TYPE_STORAGE) {
+                capacities_list.add(_storageMgr.getStoragePoolUsedStats(null, clusterId, podId, zoneId));
+            }
+        }
+
+        for(CapacityVO cv:capacities_list){
+            SummedCapacity sp = new SummedCapacity(cv.getUsedCapacity(),cv.getReservedCapacity(),cv.getTotalCapacity(),cv.getCapacityType(),cv.getClusterId(),cv.getPodId(),cv.getDataCenterId());
+            if(sp.getTotalCapacity()==0){
+                sp.setPercentUsed(0.0f);
+            }
+            else{
+                Long used = cv.getUsedCapacity();
+                Long  total = cv.getTotalCapacity();
+                Float f = (used.floatValue()/total.floatValue());
+                sp.setPercentUsed(f);
+            }
+            summedCapacities.add(sp);
+        }
+
 
         //Calculating VGPU capacity info
         List<VgpuTypesInfo> gpuCapacities;
