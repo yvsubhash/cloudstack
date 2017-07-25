@@ -87,6 +87,7 @@ public class IPAddressDaoImpl extends GenericDaoBase<IPAddressVO, Long> implemen
         AllFieldsSearch.and("physicalNetworkId", AllFieldsSearch.entity().getPhysicalNetworkId(), Op.EQ);
         AllFieldsSearch.and("vpcId", AllFieldsSearch.entity().getVpcId(), Op.EQ);
         AllFieldsSearch.and("associatedVmIp", AllFieldsSearch.entity().getVmIp(), Op.EQ);
+        AllFieldsSearch.and("state", AllFieldsSearch.entity().getState(), Op.EQ);
         AllFieldsSearch.done();
 
         VlanDbIdSearchUnallocated = createSearchBuilder();
@@ -197,6 +198,7 @@ public class IPAddressDaoImpl extends GenericDaoBase<IPAddressVO, Long> implemen
     public List<IPAddressVO> listByVlanId(long vlanId) {
         SearchCriteria<IPAddressVO> sc = AllFieldsSearch.create();
         sc.setParameters("vlan", vlanId);
+        sc.setParameters("state", "Allocated" );
         return listBy(sc);
     }
 
@@ -410,6 +412,15 @@ public class IPAddressDaoImpl extends GenericDaoBase<IPAddressVO, Long> implemen
         if (isSourceNat != null) {
             sc.setParameters("sourceNat", isSourceNat);
         }
+
+        return listBy(sc);
+    }
+
+    @Override
+    public List<IPAddressVO> listByVpcAndVlan(long vpcId, long vlanId) {
+        SearchCriteria<IPAddressVO> sc = AllFieldsSearch.create();
+        sc.setParameters("vpcId", vpcId);
+        sc.setParameters("vlan", vlanId);
 
         return listBy(sc);
     }

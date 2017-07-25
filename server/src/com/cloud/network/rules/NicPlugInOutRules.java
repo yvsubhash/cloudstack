@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.cloud.network.dao.FirewallRulesDao;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.IPAddressVO;
 import org.apache.cloudstack.network.topology.NetworkTopologyVisitor;
 import org.apache.log4j.Logger;
 
@@ -159,6 +162,9 @@ public class NicPlugInOutRules extends RuleApplier {
 
         VpcManager vpcMgr = visitor.getVirtualNetworkApplianceFactory().getVpcMgr();
         NicDao nicDao = visitor.getVirtualNetworkApplianceFactory().getNicDao();
+        IPAddressDao ipDao = visitor.getVirtualNetworkApplianceFactory().getIpAddressDao();
+        FirewallRulesDao rulesDao =  visitor.getVirtualNetworkApplianceFactory().getFirewallRulesDao();
+
         // find out nics to unplug
         for (PublicIpAddress ip : _ipAddresses) {
             long publicNtwkId = ip.getNetworkId();
@@ -170,11 +176,34 @@ public class NicPlugInOutRules extends RuleApplier {
             }
 
             if (ip.getState() == IpAddress.State.Releasing) {
-                Nic nic = nicDao.findByIp4AddressAndNetworkIdAndInstanceId(publicNtwkId, _router.getId(), ip.getAddress().addr());
-                if (nic != null) {
+                // only nic first ip will be there in nic table ip address column. Secondary ips won't be available updated in nic table on deleting the primary ip.
+                //Nic nic = nicDao.findByIp4AddressAndNetworkIdAndInstanceId(publicNtwkId, _router.getId(), ip.getAddress().addr());
+                List<IPAddressVO> userIps = ipDao.listByVpcAndVlan(ip.getVpcId(), ip.getVlanId());
+
+                    int ipsWithrules = 0;
+                    int ipsStaticNat = 0;
+                    long vlanDbId = 0;
+                    for (IPAddressVO userIp : userIps) {
+                        if ( rulesDao.countRulesByIpIdAndState(userIp.getId(), FirewallRule.State.Active) > 0 || rulesDao.countRulesByIpIdAndState(userIp.getId(), FirewallRule.State.Add) > 0){
+                            ipsWithrules++;
+                        }
+
+                        // check onetoonenat and also check if the ip "add":false. If there are 2 PF rules remove and
+                        // 1 static nat rule add
+                        if (userIp.isOneToOneNat() && userIp.getRuleState() == null) {
+                            ipsStaticNat++;
+                        }
+                        vlanDbId = ip.getVlanId();
+                    }
+
+                    if (ipsWithrules != 0 || ipsStaticNat != 0 || ipDao.isIpInSourceIpNatRange
+                            (ipDao.listByVlanId(vlanDbId))) {
+                        continue;
+                    }
+
                     nicsToUnplug.put(ip.getVlanTag(), ip);
                     s_logger.debug("Need to unplug the nic for ip=" + ip + "; vlan=" + ip.getVlanTag() + " in public network id =" + publicNtwkId);
-                }
+
             }
         }
 
