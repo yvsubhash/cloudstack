@@ -56,10 +56,6 @@ public class VMTemplateZoneDaoImpl extends GenericDaoBase<VMTemplateZoneVO, Long
         ZoneTemplateSearch.and("template_id", ZoneTemplateSearch.entity().getTemplateId(), SearchCriteria.Op.EQ);
         ZoneTemplateSearch.done();
 
-        ActiveTemplateSearch = createSearchBuilder();
-        ActiveTemplateSearch.and("template_id", ActiveTemplateSearch.entity().getTemplateId(), SearchCriteria.Op.EQ);
-        ActiveTemplateSearch.and("removed", ActiveTemplateSearch.entity().getRemoved(), SearchCriteria.Op.NULL);
-        ActiveTemplateSearch.done();
     }
 
     @Override
