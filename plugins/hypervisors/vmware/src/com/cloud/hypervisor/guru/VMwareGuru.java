@@ -514,6 +514,7 @@ public class VMwareGuru extends HypervisorGuruBase implements HypervisorGuru, Co
             _cmdExecLogDao.persist(execLog);
             cmd.setContextParam("execid", String.valueOf(execLog.getId()));
             cmd.setContextParam("noderuninfo", String.format("%d-%d", _clusterMgr.getManagementNodeId(), _clusterMgr.getCurrentRunId()));
+            cmd.setContextParam(VmwareManager.s_vmwareOVAPackageTimeout.key(), String.valueOf(VmwareManager.s_vmwareOVAPackageTimeout.value()));
             if (cmd instanceof CopyCommand) { // Snapshot backup
                 CopyCommand cpyCommand = (CopyCommand)cmd;
                 DataTO srcData = cpyCommand.getSrcTO();
