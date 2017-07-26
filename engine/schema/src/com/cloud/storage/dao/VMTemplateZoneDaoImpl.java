@@ -35,6 +35,7 @@ public class VMTemplateZoneDaoImpl extends GenericDaoBase<VMTemplateZoneVO, Long
     protected final SearchBuilder<VMTemplateZoneVO> ZoneSearch;
     protected final SearchBuilder<VMTemplateZoneVO> TemplateSearch;
     protected final SearchBuilder<VMTemplateZoneVO> ZoneTemplateSearch;
+    protected final SearchBuilder<VMTemplateZoneVO> ActiveTemplateSearch;
 
     public VMTemplateZoneDaoImpl() {
         ZoneSearch = createSearchBuilder();
@@ -49,6 +50,11 @@ public class VMTemplateZoneDaoImpl extends GenericDaoBase<VMTemplateZoneVO, Long
         ZoneTemplateSearch.and("zone_id", ZoneTemplateSearch.entity().getZoneId(), SearchCriteria.Op.EQ);
         ZoneTemplateSearch.and("template_id", ZoneTemplateSearch.entity().getTemplateId(), SearchCriteria.Op.EQ);
         ZoneTemplateSearch.done();
+
+        ActiveTemplateSearch = createSearchBuilder();
+        ActiveTemplateSearch.and("template_id", ActiveTemplateSearch.entity().getTemplateId(), SearchCriteria.Op.EQ);
+        ActiveTemplateSearch.and("removed", ActiveTemplateSearch.entity().getRemoved(), SearchCriteria.Op.NULL);
+        ActiveTemplateSearch.done();
     }
 
     @Override
@@ -79,6 +85,12 @@ public class VMTemplateZoneDaoImpl extends GenericDaoBase<VMTemplateZoneVO, Long
         if (zoneId != null) {
             sc.setParameters("zone_id", zoneId);
         }
+        sc.setParameters("template_id", templateId);
+        return listBy(sc);
+    }
+    @Override
+    public List<VMTemplateZoneVO> listActiveTemplate(long templateId) {
+        SearchCriteria<VMTemplateZoneVO> sc = ActiveTemplateSearch.create();
         sc.setParameters("template_id", templateId);
         return listBy(sc);
     }
