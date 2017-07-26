@@ -58,6 +58,7 @@ import com.cloud.hypervisor.xenserver.resource.XenServer620SP1Resource;
 import com.cloud.hypervisor.xenserver.resource.XenServer650Resource;
 import com.cloud.hypervisor.xenserver.resource.XenServerConnectionPool;
 import com.cloud.hypervisor.xenserver.resource.Xenserver625Resource;
+import com.cloud.hypervisor.xenserver.resource.XenServer700Resource;
 import com.cloud.resource.Discoverer;
 import com.cloud.resource.DiscovererBase;
 import com.cloud.resource.ResourceStateAdapter;
@@ -425,12 +426,17 @@ public class XcpServerDiscoverer extends DiscovererBase implements Discoverer, L
             return new XcpOssResource();
         } else if (prodBrand.equals("XenServer")) {
             final String[] items = prodVersion.split("\\.");
-            if ((Integer.parseInt(items[0]) > 6) ||
-                    (Integer.parseInt(items[0]) == 6 && Integer.parseInt(items[1]) >= 4)) {
+            if (Integer.parseInt(items[0]) == 6 && Integer.parseInt(items[1]) >= 4) {
                 s_logger.warn("defaulting to xenserver650 resource for product brand: " + prodBrand + " with product " +
                         "version: " + prodVersion);
                 //default to xenserver650 resource.
                 return new XenServer650Resource();
+            }
+            if (Integer.parseInt(items[0]) >= 7) {
+                s_logger.warn("defaulting to xenserver7 resource for product brand: " + prodBrand + " with product " +
+                        "version: " + prodVersion);
+                //default to xenserver700 resource.
+                return new XenServer700Resource();
             }
         }
         String msg =

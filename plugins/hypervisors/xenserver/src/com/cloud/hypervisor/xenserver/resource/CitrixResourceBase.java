@@ -2587,11 +2587,15 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
         return null;
     }
 
-    public VDI getIsoVDIByURL(final Connection conn, final String vmName, final String isoURL) {
+    public VDI getIsoVDIByURL(final Connection conn, final String vmName, String isoURL) {
         SR isoSR = null;
         String mountpoint = null;
         if (isoURL.startsWith("xs-tools")) {
             try {
+                final String[] items = _host.getProductVersion().split("\\.");
+                if (Integer.parseInt(items[0]) == 7 && Integer.parseInt(items[1]) > 0) {
+                    isoURL = "guest-tools.iso";
+                }
                 final Set<VDI> vdis = VDI.getByNameLabel(conn, isoURL);
                 if (vdis.isEmpty()) {
                     throw new CloudRuntimeException("Could not find ISO with URL: " + isoURL);
@@ -3879,9 +3883,13 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
             }
 
             // corer case, xenserver pv driver iso
-            final String templateName = iso.getName();
+            String templateName = iso.getName();
             if (templateName.startsWith("xs-tools")) {
                 try {
+                    final String[] items = _host.getProductVersion().split("\\.");
+                    if (Integer.parseInt(items[0]) == 7 && Integer.parseInt(items[1]) > 0) {
+                        templateName = "guest-tools.iso";
+                    }
                     final Set<VDI> vdis = VDI.getByNameLabel(conn, templateName);
                     if (vdis.isEmpty()) {
                         throw new CloudRuntimeException("Could not find ISO with URL: " + templateName);
