@@ -25,6 +25,7 @@ public class ApiConstants {
     public static final String ALGORITHM = "algorithm";
     public static final String ALLOCATED_ONLY = "allocatedonly";
     public static final String API_KEY = "apikey";
+    public static final String ASYNC_BACKUP = "asyncbackup";
     public static final String USER_API_KEY = "userapikey";
     public static final String APPLIED = "applied";
     public static final String LIST_LB_VMIPS = "lbvmips";
@@ -149,6 +150,7 @@ public class ApiConstants {
     public static final String IS_PUBLIC = "ispublic";
     public static final String IS_PERSISTENT = "ispersistent";
     public static final String EGRESS_DEFAULT_POLICY = "egressdefaultpolicy";
+    public static final String STORAGE_POLICY = "storagepolicy";
     public static final String IS_READY = "isready";
     public static final String IS_RECURSIVE = "isrecursive";
     public static final String ISO_FILTER = "isofilter";
@@ -284,6 +286,7 @@ public class ApiConstants {
     public static final String VIRTUAL_MACHINE_COUNT = "virtualmachinecount";
     public static final String USAGE_ID = "usageid";
     public static final String USAGE_TYPE = "usagetype";
+    public static final String INCLUDE_TAGS = "includetags";
 
     public static final String VLAN = "vlan";
     public static final String VLAN_RANGE = "vlanrange";
@@ -459,6 +462,10 @@ public class ApiConstants {
     public static final String VSWITCH_TYPE_PUBLIC_TRAFFIC = "publicvswitchtype";
     public static final String VSWITCH_NAME_GUEST_TRAFFIC = "guestvswitchname";
     public static final String VSWITCH_NAME_PUBLIC_TRAFFIC = "publicvswitchname";
+    public static final String PHYSICAL_NETWORK_TRAFFIC_LABELS = "physicalnetworktrafficlabels";
+    public static final String PHYSICAL_NETWORK_TRAFFIC_ID = "physicalnetworktrafficid";
+    public static final String SHOW_TRAFFIC_LABEL_INFO = "showtrafficlabelinfo";
+    public static final String NETWORK_LABEL = "networklabel";
     // Ovs controller
     public static final String OVS_DEVICE_ID = "ovsdeviceid";
     public static final String OVS_DEVICE_NAME = "ovsdevicename";
@@ -503,6 +510,7 @@ public class ApiConstants {
     public static final String IPSEC_PSK = "ipsecpsk";
     public static final String GUEST_IP = "guestip";
     public static final String REMOVED = "removed";
+    public static final String IKE_VERSION = "ikeversion";
     public static final String IKE_POLICY = "ikepolicy";
     public static final String ESP_POLICY = "esppolicy";
     public static final String IKE_LIFETIME = "ikelifetime";
@@ -648,10 +656,15 @@ public class ApiConstants {
     public static final String NETWORK_SPANNED_ZONES = "zonesnetworkspans";
     public static final String METADATA = "metadata";
     public static final String PHYSICAL_SIZE = "physicalsize";
+    public static final String VIRTUAL_SIZE = "virtualsize";
     public static final String OVM3_POOL = "ovm3pool";
     public static final String OVM3_CLUSTER = "ovm3cluster";
     public static final String OVM3_VIP = "ovm3vip";
     public static final String CLEAN_UP_DETAILS = "cleanupdetails";
+    public static final String DURATION_RUNNING = "duration";
+    public static final String NETSCALER_CONTROLCENTER_ID = "netscalercontrolcenterid";
+    public static final String NETSCALER_SERVICEPACKAGE_ID = "netscalerservicepackageid";
+    public static final String ADDITIONAL_MACS = "additionalmacs";
 
     public static final String ZONE_ID_LIST = "zoneids";
     public static final String DESTINATION_ZONE_ID_LIST = "destzoneids";
@@ -663,5 +676,9 @@ public class ApiConstants {
 
     public enum VMDetails {
         all, group, nics, stats, secgrp, tmpl, servoff, diskoff, iso, volume, min, affgrp;
+    }
+
+    public enum DomainDetails {
+        all, resource, min;
     }
 }

@@ -49,6 +49,13 @@ import org.apache.cloudstack.storage.datastore.db.ImageStoreVO;
 import org.apache.cloudstack.utils.imagestore.ImageStoreUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
+import com.google.common.base.Joiner;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.BaseListTemplateOrIsoPermissionsCmd;
@@ -64,6 +71,7 @@ import org.apache.cloudstack.api.command.user.template.CopyTemplateCmd;
 import org.apache.cloudstack.api.command.user.template.CreateTemplateCmd;
 import org.apache.cloudstack.api.command.user.template.DeleteTemplateCmd;
 import org.apache.cloudstack.api.command.user.template.ExtractTemplateCmd;
+import org.apache.cloudstack.api.command.user.template.GetUploadParamsForTemplateCmd;
 import org.apache.cloudstack.api.command.user.template.ListTemplatePermissionsCmd;
 import org.apache.cloudstack.api.command.user.template.RegisterTemplateCmd;
 import org.apache.cloudstack.api.command.user.template.UpdateTemplateCmd;
@@ -75,6 +83,7 @@ import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
 import org.apache.cloudstack.engine.subsystem.api.storage.EndPoint;
 import org.apache.cloudstack.engine.subsystem.api.storage.EndPointSelector;
+import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine;
 import org.apache.cloudstack.engine.subsystem.api.storage.PrimaryDataStore;
 import org.apache.cloudstack.engine.subsystem.api.storage.Scope;
 import org.apache.cloudstack.engine.subsystem.api.storage.SnapshotDataFactory;
@@ -87,9 +96,13 @@ import org.apache.cloudstack.engine.subsystem.api.storage.TemplateDataFactory;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateService;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateService.TemplateApiResult;
+import org.apache.cloudstack.engine.subsystem.api.storage.TemplateService.VmSnapshotTemplateApiResult;
+import org.apache.cloudstack.engine.subsystem.api.storage.VmSnapshotObject;
+import org.apache.cloudstack.engine.subsystem.api.storage.VmSnapshotTemplateInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeDataFactory;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.ZoneScope;
+import org.apache.cloudstack.framework.async.AsyncCallFuture;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
@@ -99,6 +112,9 @@ import org.apache.cloudstack.managed.context.ManagedContextRunnable;
 import org.apache.cloudstack.storage.command.AttachCommand;
 import org.apache.cloudstack.storage.command.CommandResult;
 import org.apache.cloudstack.storage.command.DettachCommand;
+import org.apache.cloudstack.storage.command.TemplateOrVolumePostUploadCommand;
+import org.apache.cloudstack.storage.datastore.db.ImageStoreDao;
+import org.apache.cloudstack.storage.datastore.db.ImageStoreVO;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.SnapshotDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
@@ -106,6 +122,7 @@ import org.apache.cloudstack.storage.datastore.db.TemplateDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.TemplateDataStoreVO;
 import org.apache.cloudstack.storage.image.datastore.ImageStoreEntity;
 import org.apache.cloudstack.storage.to.TemplateObjectTO;
+import org.apache.cloudstack.utils.imagestore.ImageStoreUtil;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
@@ -143,6 +160,7 @@ import com.cloud.projects.Project;
 import com.cloud.projects.ProjectManager;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.GuestOSVO;
+import com.cloud.storage.ImageStoreUploadMonitorImpl;
 import com.cloud.storage.LaunchPermissionVO;
 import com.cloud.storage.Snapshot;
 import com.cloud.storage.SnapshotVO;
@@ -155,6 +173,8 @@ import com.cloud.storage.StoragePoolHostVO;
 import com.cloud.storage.StoragePoolStatus;
 import com.cloud.storage.TemplateProfile;
 import com.cloud.storage.Upload;
+import com.cloud.storage.VMSnapshotTemplateStoragePoolVO;
+import com.cloud.storage.VMSnapshotTemplateStorageResourceAssoc;
 import com.cloud.storage.VMTemplateHostVO;
 import com.cloud.storage.VMTemplateStoragePoolVO;
 import com.cloud.storage.VMTemplateStorageResourceAssoc;
@@ -167,6 +187,7 @@ import com.cloud.storage.dao.GuestOSDao;
 import com.cloud.storage.dao.LaunchPermissionDao;
 import com.cloud.storage.dao.SnapshotDao;
 import com.cloud.storage.dao.StoragePoolHostDao;
+import com.cloud.storage.dao.VMSnapshotTemplatePoolDao;
 import com.cloud.storage.dao.VMTemplateDao;
 import com.cloud.storage.dao.VMTemplateDetailsDao;
 import com.cloud.storage.dao.VMTemplatePoolDao;
@@ -197,9 +218,8 @@ import com.cloud.vm.VirtualMachine.State;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.UserVmDao;
 import com.cloud.vm.dao.VMInstanceDao;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import com.cloud.vm.snapshot.VMSnapshotVO;
+import com.cloud.vm.snapshot.dao.VMSnapshotDao;
 
 public class TemplateManagerImpl extends ManagerBase implements TemplateManager, TemplateApiService, Configurable {
     private final static Logger s_logger = Logger.getLogger(TemplateManagerImpl.class);
@@ -216,6 +236,10 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
     private VMInstanceDao _vmInstanceDao;
     @Inject
     private PrimaryDataStoreDao _poolDao;
+    @Inject
+    private VMSnapshotDao _vmSnapshotDao;
+    @Inject
+    private VMSnapshotTemplatePoolDao _vmSnapTmplPoolDao;
     @Inject
     private StoragePoolHostDao _poolHostDao;
     @Inject
@@ -272,6 +296,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
     private UserVmJoinDao _userVmJoinDao;
     @Inject
     private SnapshotDataStoreDao _snapshotStoreDao;
+
     @Inject
     private ImageStoreDao _imgStoreDao;
     @Inject
@@ -473,6 +498,57 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         return vmTemplate;
     }
 
+    @Override
+    public VMSnapshotTemplateStorageResourceAssoc seedTemplateFromVmSnapshot(long vmSnapshotId, long zoneId, Long paramStorageId) {
+
+        VMSnapshotVO vmSnapshotVo = _vmSnapshotDao.findById(vmSnapshotId);
+        if (vmSnapshotVo == null) {
+            throw new InvalidParameterValueException("Unable to find the specified vm snapshot : " + vmSnapshotId);
+        }
+
+        _accountMgr.checkAccess(CallContext.current().getCallingAccount(), AccessType.OperateEntry, true, vmSnapshotVo);
+
+        Long storageId = paramStorageId;
+
+        // Check if VM's root volume is on specified storage pool, seeding on primary storage other than the pool holding VM's root volume is not yet supported
+        VolumeVO rootVolume = getRootVolume(vmSnapshotVo.getVmId());
+        long rootVolumePoolId = rootVolume.getPoolId();
+        StoragePoolVO sPoolVo = null;
+
+        if (storageId == null) {
+            storageId = rootVolumePoolId;
+        } else {
+            // Make sure specified storage pool is same as that of the pool holding VM snapshot image itself
+            // TODO this check should go if seeding is supported to all primary storage pools in future.
+            if (rootVolumePoolId != storageId) {
+                throw new InvalidParameterValueException("Invalid combination of parameters detected. " +
+                        "Found that VM snapshot (ROOT volume) is on primary storage pool [" + rootVolumePoolId +
+                        "]  which is different from specified storage pool : [" + storageId + "]. Seeding template (from VM snapshot) to different storage pool" +
+                        " is not yet supported. Please specify the primary storage pool holding the VM snapshot.");
+            }
+        }
+        // Validate API parameter storageId
+        sPoolVo = _poolDao.findById(storageId);
+        if (sPoolVo == null) {
+            throw new InvalidParameterValueException("Unable to find the specified storage pool : " + storageId);
+        }
+
+        return reallySeedVmSnapshotTemplateInStoragePool(vmSnapshotVo, sPoolVo);
+    }
+
+    private VMSnapshotTemplateStoragePoolVO reallySeedVmSnapshotTemplateInStoragePool(final VMSnapshotVO vmSnapshot, final StoragePoolVO pool) {
+        VMSnapshotTemplateStoragePoolVO newVmSnapshotTemplate = null;
+        try {
+            s_logger.info("Start to seed template from" + vmSnapshot.getId() + " into primary storage " + pool.getId());
+            StoragePool priStoragePpol = (StoragePool)_dataStoreMgr.getPrimaryDataStore(pool.getId());
+            newVmSnapshotTemplate = seedTemplateFromVmSnapshotForCreate(vmSnapshot, priStoragePpol);
+            s_logger.info("End of seeding template from " + vmSnapshot.getId() + " into primary storage " + pool.getId());
+        } catch (Throwable e) {
+            s_logger.warn("Unexpected exception ", e);
+        }
+        return newVmSnapshotTemplate;
+    }
+
     private String extract(Account caller, Long templateId, String url, Long zoneId, String mode, Long eventId, boolean isISO) {
         String desc = Upload.Type.TEMPLATE.toString();
         if (isISO) {
@@ -542,7 +618,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         _tmpltSvr.syncTemplateToRegionStore(templateId, tmpltStore);
 
         TemplateInfo templateObject = _tmplFactory.getTemplate(templateId, tmpltStore);
-        String extractUrl = tmpltStore.createEntityExtractUrl(tmpltStoreRef.getInstallPath(), template.getFormat(), templateObject);
+        String extractUrl = tmpltStore.createEntityExtractUrl(templateObject.getInstallPath(), template.getFormat(), templateObject);
         tmpltStoreRef.setExtractUrl(extractUrl);
         tmpltStoreRef.setExtractUrlCreated(DateUtil.now());
         _tmplStoreDao.update(tmpltStoreRef.getId(), tmpltStoreRef);
@@ -673,6 +749,83 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
     }
 
     @Override
+    @DB
+    public VMSnapshotTemplateStoragePoolVO seedTemplateFromVmSnapshotForCreate(VMSnapshotVO vmSnapshot, StoragePool pool) {
+        long poolId = pool.getId();
+        long vmSnapshotId = vmSnapshot.getId();
+
+        VMSnapshotTemplateStoragePoolVO vmSnapshotTemplateStoragePoolRef = _vmSnapTmplPoolDao.findByPoolVmSnapshot(poolId, vmSnapshotId);
+        if (vmSnapshotTemplateStoragePoolRef != null) {
+            vmSnapshotTemplateStoragePoolRef.setMarkedForGC(false);
+            _vmSnapTmplPoolDao.update(vmSnapshotTemplateStoragePoolRef.getId(), vmSnapshotTemplateStoragePoolRef);
+
+            if (vmSnapshotTemplateStoragePoolRef.getObjectInStoreState() == ObjectInDataStoreStateMachine.State.Ready) {
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("Template from VM snapshot " + vmSnapshotId + " has already been seeded on primary storage pool " + poolId);
+                }
+
+                return vmSnapshotTemplateStoragePoolRef;
+            }
+        }
+
+        List<StoragePoolHostVO> vos = _poolHostDao.listByHostStatus(poolId, com.cloud.host.Status.Up);
+        if (vos == null || vos.isEmpty()) {
+            throw new CloudRuntimeException("Cannot seed template from VM snapshot " + vmSnapshotId + " on primary storage pool " + poolId +
+                    " since there is no host in the Up state connected to this pool");
+        }
+
+        if (vmSnapshotTemplateStoragePoolRef == null) {
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Seeding template from VM snapshot : " + vmSnapshotId + " on primary storage pool " + poolId);
+            }
+            PrimaryDataStore pd = (PrimaryDataStore)_dataStoreMgr.getPrimaryDataStore(poolId);
+
+            VmSnapshotTemplateInfo vmSnapshotTemplateInfo = pd.getVmSnapshotTemplate(vmSnapshotId);
+            UserVm vmSnapshotOwnerVm = _userVmDao.findById(vmSnapshot.getVmId());
+            List<VolumeInfo> volumeInfos = getVolumes(vmSnapshot.getVmId());
+            VmSnapshotObject vmSnapshotObj = new VmSnapshotObject(vmSnapshot, volumeInfos);
+
+            AsyncCallFuture<VmSnapshotTemplateApiResult> future = _tmpltSvr.seedVmSnapshotTemplateOnPrimary(pd, vmSnapshotObj, vmSnapshotTemplateInfo, vmSnapshotOwnerVm);
+            try {
+                VmSnapshotTemplateApiResult result = future.get();
+                if (result.isFailed()) {
+                    s_logger.debug("Seed template from VM snapshot failed:" + result.getResult());
+                    return null;
+                }
+
+                return _vmSnapTmplPoolDao.findByPoolVmSnapshot(poolId, vmSnapshotId);
+            } catch (Exception ex) {
+                s_logger.debug("failed to seed template from VM snapshot :" + vmSnapshotId + " has already been seeded on primary storage pool " + poolId);
+            }
+        }
+
+        return null;
+
+    }
+
+    private VolumeVO getRootVolume(long vmId) {
+        List<VolumeVO> volumeVos = _volumeDao.findByInstance(vmId);
+        VolumeInfo volumeInfo = null;
+        for (VolumeVO volume : volumeVos) {
+            if (volume.getVolumeType() == Volume.Type.ROOT) {
+                return volume;
+            }
+        }
+        return null;
+    }
+
+    public List<VolumeInfo> getVolumes(Long vmId) {
+        List<VolumeInfo> volumeInfos = new ArrayList<VolumeInfo>();
+        List<VolumeVO> volumeVos = _volumeDao.findByInstance(vmId);
+        VolumeInfo volumeInfo = null;
+        for (VolumeVO volume : volumeVos) {
+            volumeInfo = _volFactory.getVolume(volume.getId());
+            volumeInfos.add(volumeInfo);
+        }
+        return volumeInfos;
+    }
+
+    @Override
     public String getChecksum(DataStore store, String templatePath) {
         EndPoint ep = _epSelector.select(store);
         ComputeChecksumCommand cmd = new ComputeChecksumCommand(store.getTO(), templatePath);
@@ -705,7 +858,6 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         try {
             templateStoragePoolRef.setTemplateSize(0);
             templateStoragePoolRef.setDownloadState(VMTemplateStorageResourceAssoc.Status.NOT_DOWNLOADED);
-
             _tmpltPoolDao.update(templateStoragePoolRefId, templateStoragePoolRef);
         } finally {
             _tmpltPoolDao.releaseFromLockTable(templateStoragePoolRefId);
@@ -1091,7 +1243,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         if (isoId == null) {
             throw new InvalidParameterValueException("The specified VM has no ISO attached to it.");
         }
-        CallContext.current().setEventDetails("Vm Id: " + vmId + " ISO Id: " + isoId);
+        CallContext.current().setEventDetails("Vm Id: " + userVM.getUuid() + " ISO Id: " + isoId);
 
         State vmState = userVM.getState();
         if (vmState != State.Running && vmState != State.Stopped) {
@@ -1233,6 +1385,19 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         VMTemplateVO template = _tmpltDao.findById(templateId);
         if (template == null) {
             throw new InvalidParameterValueException("unable to find template with id " + templateId);
+        }
+
+        List<VMInstanceVO> vmInstanceVOList;
+        if(cmd.getZoneId() != null) {
+            vmInstanceVOList = _vmInstanceDao.listNonExpungedByZoneAndTemplate(cmd.getZoneId(), templateId);
+        }
+        else {
+            vmInstanceVOList = _vmInstanceDao.listNonExpungedByTemplate(templateId);
+        }
+        if(!cmd.isForced() && CollectionUtils.isNotEmpty(vmInstanceVOList)) {
+            final String message = String.format("Unable to delete template with id: %1$s because VM instances: [%2$s] are using it.",  templateId, Joiner.on(",").join(vmInstanceVOList));
+            s_logger.warn(message);
+            throw new InvalidParameterValueException(message);
         }
 
         _accountMgr.checkAccess(caller, AccessType.OperateEntry, true, template);

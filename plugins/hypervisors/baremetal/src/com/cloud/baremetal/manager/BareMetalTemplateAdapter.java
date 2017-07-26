@@ -44,12 +44,15 @@ import org.apache.cloudstack.api.command.user.iso.RegisterIsoCmd;
 import org.apache.cloudstack.api.command.user.template.RegisterTemplateCmd;
 import org.apache.cloudstack.storage.command.TemplateOrVolumePostUploadCommand;
 import org.apache.cloudstack.storage.datastore.db.TemplateDataStoreVO;
+import javax.ejb.Local;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
 import java.util.Date;
 import java.util.List;
 
+
+@Local(value = TemplateAdapter.class)
 public class BareMetalTemplateAdapter extends TemplateAdapterBase implements TemplateAdapter {
     private final static Logger s_logger = Logger.getLogger(BareMetalTemplateAdapter.class);
     @Inject
@@ -138,6 +141,27 @@ public class BareMetalTemplateAdapter extends TemplateAdapterBase implements Tem
         s_logger.debug("Attempting to mark template host refs for template: " + template.getName() + " as destroyed in zone: " + zoneName);
         Account account = _accountDao.findByIdIncludingRemoved(template.getAccountId());
         String eventType = EventTypes.EVENT_TEMPLATE_DELETE;
+
+        for (TemplateDataStoreVO vo : templateHostVOs) {
+           TemplateDataStoreVO lock = null;
+           try {
+           lock = _tmpltStoreDao.acquireInLockTable(vo.getId());
+           if (lock == null) {
+                   s_logger.debug("Failed to acquire lock when deleting templateDataStoreVO with ID: " + vo.getId());
+                   success = false;
+                   break;
+                   }
+
+                   vo.setDestroyed(true);
+                   _tmpltStoreDao.update(vo.getId(), vo);
+
+               } finally {
+                   if (lock != null) {
+                       _tmpltStoreDao.releaseFromLockTable(lock.getId());
+                   }
+               }
+           }
+
 
         if (profile.getZoneIdList() != null) {
             UsageEventVO usageEvent = new UsageEventVO(eventType, account.getId(), profile.getZoneIdList().get(0),
