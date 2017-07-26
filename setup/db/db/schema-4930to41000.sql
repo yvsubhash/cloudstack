@@ -19,8 +19,6 @@
 -- Schema upgrade from 4.9.3.0 to 4.10.0.0;
 --;
 
-ALTER TABLE `cloud`.`domain_router` ADD COLUMN  update_state varchar(64) DEFAULT NULL;
-
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (257, UUID(), 6, 'Windows 10 (32-bit)', now());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (258, UUID(), 6, 'Windows 10 (64-bit)', now());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (259, UUID(), 6, 'Windows Server 2016 (64-bit)', now());
@@ -122,9 +120,6 @@ CREATE TABLE `cloud`.`vlan_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE `cloud`.`network_offerings` ADD COLUMN supports_public_access boolean default false;
-
-ALTER TABLE `cloud`.`image_store_details` CHANGE COLUMN `value` `value` VARCHAR(255) NULL DEFAULT NULL COMMENT 'value of the detail', ADD COLUMN `display` tinyint(1) NOT
-NULL DEFAULT '1' COMMENT 'True if the detail can be displayed to the end user' AFTER `value`;
 
 ALTER TABLE `snapshots` ADD COLUMN `location_type` VARCHAR(32) COMMENT 'Location of snapshot (ex. Primary)';
 
@@ -235,23 +230,152 @@ WHERE (o.cpu is null AND o.speed IS NULL AND o.ram_size IS NULL) AND
 -- CLOUDSTACK-9827: Storage tags stored in multiple places
 DROP VIEW IF EXISTS `cloud`.`storage_tag_view`;
 
-CREATE TABLE `cloud`.`guest_os_details` (
-  `id` bigint unsigned NOT NULL auto_increment,
-  `guest_os_id` bigint unsigned NOT NULL COMMENT 'VPC gateway id',
-  `name` varchar(255) NOT NULL,
-  `value` varchar(1024) NOT NULL,
-  `display` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'True if the detail can be displayed to the end user',
+ALTER TABLE `user_ip_address` ADD COLUMN `rule_state` VARCHAR(32) COMMENT 'static  rule state while removing';
+
+UPDATE   `cloud`.`network_offerings` set traffic_type='PrivateGw' where id=5;
+
+INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'management-server', 'vmware.snapshot.backup.session.timeout', '1200', 'VMware client timeout in seconds for snapshot backup', '1200');
+
+DROP TABLE IF EXISTS `cloud`.`cluster_physical_network_traffic_info`;
+CREATE TABLE `cloud`.`cluster_physical_network_traffic_info` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `uuid` varchar(40),
+  `cluster_id` bigint unsigned NOT NULL COMMENT 'cluster id',
+  `physical_network_traffic_id` bigint unsigned NOT NULL COMMENT 'id of physical network traffic in the zone of the cluster',
+  `vmware_network_label` varchar(255) COMMENT 'network label of the physical device dedicated to this traffic on a VMware host at cluster level',
   PRIMARY KEY (`id`),
-  CONSTRAINT `fk_guest_os_details__guest_os_id` FOREIGN KEY `fk_guest_os_details__guest_os_id`(`guest_os_id`) REFERENCES `guest_os`(`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_cluster_physical_network_traffic_info__cluster_id` FOREIGN KEY (`cluster_id`) REFERENCES `cluster`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cluster_physical_network_traffic_info__traffic_id` FOREIGN KEY (`physical_network_traffic_id`) REFERENCES `physical_network_traffic_types`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `uc_cluster_physical_network_traffic_info__uuid` UNIQUE (`uuid`),
+  UNIQUE KEY (`cluster_id`, `physical_network_traffic_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-ALTER TABLE `user_ip_address` ADD COLUMN `rule_state` VARCHAR(32) COMMENT 'static  rule state while removing';
-CREATE TABLE `cloud`.`firewall_rules_dcidrs`(
-  `id` BIGINT(20) unsigned NOT NULL AUTO_INCREMENT,
-  `firewall_rule_id` BIGINT(20) unsigned NOT NULL,
-  `destination_cidr` VARCHAR(18) DEFAULT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY `unique_rule_dcidrs` (`firewall_rule_id`, `destination_cidr`),
-  KEY `fk_firewall_dcidrs_firewall_rules` (`firewall_rule_id`),
-  CONSTRAINT `fk_firewall_dcidrs_firewall_rules` FOREIGN KEY (`firewall_rule_id`) REFERENCES `firewall_rules` (`id`) ON DELETE CASCADE
-)ENGINE=InnoDB DEFAULT CHARSET=utf8;
+DROP TABLE IF EXISTS `cloud`.`netscaler_servicepackages`;
+CREATE TABLE `cloud`.`netscaler_servicepackages` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `uuid` varchar(255) UNIQUE,
+  `name` varchar(255) UNIQUE COMMENT 'name of the service package',
+  `description` varchar(255) COMMENT 'description of the service package',
+  PRIMARY KEY  (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `cloud`.`external_netscaler_controlcenter`;
+CREATE TABLE `cloud`.`external_netscaler_controlcenter` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `uuid` varchar(255) UNIQUE,
+  `username` varchar(255) COMMENT 'username of the NCC',
+  `password` varchar(255) COMMENT 'password of NCC',
+  `ncc_ip` varchar(255) COMMENT 'IP of NCC Manager',
+  `num_retries` bigint unsigned NOT NULL default 2 COMMENT 'Number of retries in ncc for command failure',
+  PRIMARY KEY  (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP VIEW IF EXISTS `cloud`.`async_job_view`;
+CREATE VIEW `cloud`.`async_job_view` AS
+    select
+        account.id account_id,
+        account.uuid account_uuid,
+        account.account_name account_name,
+        account.type account_type,
+        domain.id domain_id,
+        domain.uuid domain_uuid,
+        domain.name domain_name,
+        domain.path domain_path,
+        user.id user_id,
+        user.uuid user_uuid,
+        async_job.id,
+        async_job.uuid,
+        async_job.related,
+        async_job.job_cmd,
+        async_job.job_status,
+        async_job.job_process_status,
+        async_job.job_result_code,
+        async_job.job_result,
+        async_job.created,
+        async_job.removed,
+        async_job.instance_type,
+        async_job.instance_id,
+        CASE
+            WHEN async_job.instance_type = 'Volume' THEN volumes.uuid
+            WHEN
+                async_job.instance_type = 'Template'
+                    or async_job.instance_type = 'Iso'
+            THEN
+                vm_template.uuid
+            WHEN
+                async_job.instance_type = 'VirtualMachine'
+                    or async_job.instance_type = 'ConsoleProxy'
+                    or async_job.instance_type = 'SystemVm'
+                    or async_job.instance_type = 'DomainRouter'
+            THEN
+                vm_instance.uuid
+            WHEN async_job.instance_type = 'Snapshot' THEN snapshots.uuid
+            WHEN async_job.instance_type = 'Host' THEN host.uuid
+            WHEN async_job.instance_type = 'StoragePool' THEN storage_pool.uuid
+            WHEN async_job.instance_type = 'IpAddress' THEN user_ip_address.uuid
+            WHEN async_job.instance_type = 'SecurityGroup' THEN security_group.uuid
+            WHEN async_job.instance_type = 'PhysicalNetwork' THEN physical_network.uuid
+            WHEN async_job.instance_type = 'TrafficType' THEN physical_network_traffic_types.uuid
+            WHEN async_job.instance_type = 'PhysicalNetworkServiceProvider' THEN physical_network_service_providers.uuid
+            WHEN async_job.instance_type = 'FirewallRule' THEN firewall_rules.uuid
+            WHEN async_job.instance_type = 'Account' THEN acct.uuid
+            WHEN async_job.instance_type = 'User' THEN us.uuid
+            WHEN async_job.instance_type = 'StaticRoute' THEN static_routes.uuid
+            WHEN async_job.instance_type = 'PrivateGateway' THEN vpc_gateways.uuid
+            WHEN async_job.instance_type = 'Counter' THEN counter.uuid
+            WHEN async_job.instance_type = 'Condition' THEN conditions.uuid
+            WHEN async_job.instance_type = 'AutoScalePolicy' THEN autoscale_policies.uuid
+            WHEN async_job.instance_type = 'AutoScaleVmProfile' THEN autoscale_vmprofiles.uuid
+            WHEN async_job.instance_type = 'AutoScaleVmGroup' THEN autoscale_vmgroups.uuid
+            ELSE null
+        END instance_uuid
+    from
+        `cloud`.`async_job`
+            left join
+        `cloud`.`account` ON async_job.account_id = account.id
+            left join
+        `cloud`.`domain` ON domain.id = account.domain_id
+            left join
+        `cloud`.`user` ON async_job.user_id = user.id
+            left join
+        `cloud`.`volumes` ON async_job.instance_id = volumes.id
+            left join
+        `cloud`.`vm_template` ON async_job.instance_id = vm_template.id
+            left join
+        `cloud`.`vm_instance` ON async_job.instance_id = vm_instance.id
+            left join
+        `cloud`.`snapshots` ON async_job.instance_id = snapshots.id
+            left join
+        `cloud`.`host` ON async_job.instance_id = host.id
+            left join
+        `cloud`.`storage_pool` ON async_job.instance_id = storage_pool.id
+            left join
+        `cloud`.`user_ip_address` ON async_job.instance_id = user_ip_address.id
+            left join
+        `cloud`.`security_group` ON async_job.instance_id = security_group.id
+            left join
+        `cloud`.`physical_network` ON async_job.instance_id = physical_network.id
+            left join
+        `cloud`.`physical_network_traffic_types` ON async_job.instance_id = physical_network_traffic_types.id
+            left join
+        `cloud`.`physical_network_service_providers` ON async_job.instance_id = physical_network_service_providers.id
+            left join
+        `cloud`.`firewall_rules` ON async_job.instance_id = firewall_rules.id
+            left join
+        `cloud`.`account` acct ON async_job.instance_id = acct.id
+            left join
+        `cloud`.`user` us ON async_job.instance_id = us.id
+            left join
+        `cloud`.`static_routes` ON async_job.instance_id = static_routes.id
+            left join
+        `cloud`.`vpc_gateways` ON async_job.instance_id = vpc_gateways.id
+            left join
+        `cloud`.`counter` ON async_job.instance_id = counter.id
+            left join
+        `cloud`.`conditions` ON async_job.instance_id = conditions.id
+            left join
+        `cloud`.`autoscale_policies` ON async_job.instance_id = autoscale_policies.id
+            left join
+        `cloud`.`autoscale_vmprofiles` ON async_job.instance_id = autoscale_vmprofiles.id
+            left join
+        `cloud`.`autoscale_vmgroups` ON async_job.instance_id = autoscale_vmgroups.id;
