@@ -30,6 +30,7 @@ public class StopCommand extends RebootCommand {
     boolean checkBeforeCleanup = false;
     boolean isForcedStop = false;
     String controlIp = null;
+    boolean isForcedStop = false;
 
     protected StopCommand() {
     }
@@ -95,7 +96,11 @@ public class StopCommand extends RebootCommand {
     }
 
     public void setControlIp(String controlIp){
-        this.controlIp =controlIp;
+        this.controlIp = controlIp;
+    }
+
+    public boolean isForcedStop(){
+        return this.isForcedStop;
     }
     public boolean isForcedStop(){
         return this.isForcedStop;

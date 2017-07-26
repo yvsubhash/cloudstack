@@ -86,6 +86,7 @@ public final class LibvirtStopCommandWrapper extends CommandWrapper<StopCommand,
 
             libvirtComputingResource.destroyNetworkRulesForVM(conn, vmName);
             final String result = libvirtComputingResource.stopVM(conn, vmName, command.isForcedStop());
+
             if (result == null) {
                 for (final DiskDef disk : disks) {
                     libvirtComputingResource.cleanupDisk(disk);

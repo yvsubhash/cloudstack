@@ -4951,17 +4951,21 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
         return null;
     }
 
-    public void shutdownVM(final Connection conn, final VM vm, final String vmName, boolean isForcedStop) throws XmlRpcException {
+
+
+
+    public void shutdownVM(final Connection conn, final VM vm, final String vmName, final boolean isForcedStop) throws XmlRpcException {
         Task task = null;
         String shutDownType = "shutdown";
         try {
             if (isForcedStop) {
                 task = vm.hardShutdownAsync(conn);
                 shutDownType = "asynchronous hardshutdown";
-            }  else {
-                 task = vm.cleanShutdownAsync(conn);
-                 shutDownType = "asynchronous cleanshutdown";
+            } else {
+                task = vm.cleanShutdownAsync(conn);
+                shutDownType = "asynchronous cleanshutdown";
             }
+
             try {
                 // poll every 1 seconds , timeout after 10 minutes
                 waitForTask(conn, task, 1000, 10 * 60 * 1000);

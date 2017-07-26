@@ -94,10 +94,6 @@ public class CopyTemplateCmd extends BaseAsyncCmd {
         return null;
     }
 
-    public Long getDestinationZoneId() {
-        return destZoneId;
-    }
-
     public Long getId() {
         return id;
     }
@@ -137,7 +133,8 @@ public class CopyTemplateCmd extends BaseAsyncCmd {
 
     @Override
     public String getEventDescription() {
-    return  "copying template: " + this._uuidMgr.getUuid(VirtualMachineTemplate.class, getId()) + " from zone: " + this._uuidMgr.getUuid(DataCenter.class, getSourceZoneId()) + " to zone: " + this._uuidMgr.getUuid(DataCenter.class, getDestinationZoneId());
+        return  "copying template: " + getId() + " from zone: " + getSourceZoneId()
+                + " to zone: " + getDestinationZoneIds();
     }
 
     @Override
