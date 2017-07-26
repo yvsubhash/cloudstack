@@ -30,8 +30,6 @@ public interface VMTemplateZoneDao extends GenericDao<VMTemplateZoneVO, Long> {
 
     public List<VMTemplateZoneVO> listByZoneTemplate(Long zoneId, long templateId);
 
-    public List<VMTemplateZoneVO> listActiveTemplate(long templateId);
-
     public void deletePrimaryRecordsForTemplate(long templateId);
 
     public List<VMTemplateZoneVO> listActiveTemplate(long templateId);
