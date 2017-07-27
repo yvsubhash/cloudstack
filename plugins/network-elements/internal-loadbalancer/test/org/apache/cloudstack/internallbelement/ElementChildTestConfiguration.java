@@ -32,7 +32,7 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.lb.dao.ApplicationLoadBalancerRuleDao;
 import org.apache.cloudstack.network.lb.InternalLoadBalancerVMManager;
 import org.apache.cloudstack.test.utils.SpringUtils;
-
+import com.cloud.network.router.NetworkHelper;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.network.IpAddressManager;
@@ -69,6 +69,11 @@ public class ElementChildTestConfiguration {
         @Bean
         public NetworkModel networkModel() {
             return Mockito.mock(NetworkModel.class);
+        }
+
+        @Bean
+        public NetworkHelper networkHelper() {
+            return Mockito.mock(NetworkHelper.class);
         }
 
         @Bean
