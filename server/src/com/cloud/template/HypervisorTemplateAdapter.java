@@ -16,7 +16,6 @@
 // under the License.
 package com.cloud.template;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -182,8 +181,7 @@ public class HypervisorTemplateAdapter extends TemplateAdapterBase {
         }
 
         Set<Long> zoneSet = new HashSet<Long>();
-        Collections.shuffle(imageStores);
-        // For private templates choose a random store. TODO - Have a better algorithm based on size, no. of objects, load etc.
+        _statsCollector.reOrderImageStores(imageStores);
         for (DataStore imageStore : imageStores) {
             // skip data stores for a disabled zone
             Long zoneId = imageStore.getScope().getScopeId();
@@ -205,6 +203,7 @@ public class HypervisorTemplateAdapter extends TemplateAdapterBase {
                     s_logger.info("Image store doesn't have enough capacity. Skip downloading template to this image store " + imageStore.getId());
                     continue;
                 }
+
                 // We want to download private template to one of the image store in a zone
                 if (isPrivateTemplate(template) && zoneSet.contains(zoneId)) {
                     continue;
@@ -250,7 +249,7 @@ public class HypervisorTemplateAdapter extends TemplateAdapterBase {
 
                 List<TemplateOrVolumePostUploadCommand> payloads = new LinkedList<>();
                 Set<Long> zoneSet = new HashSet<Long>();
-                Collections.shuffle(imageStores); // For private templates choose a random store. TODO - Have a better algorithm based on size, no. of objects, load etc.
+                _statsCollector.reOrderImageStores(imageStores);
                 for (DataStore imageStore : imageStores) {
                     // skip data stores for a disabled zone
                     Long zoneId_is = imageStore.getScope().getScopeId();
@@ -266,6 +265,12 @@ public class HypervisorTemplateAdapter extends TemplateAdapterBase {
                         if (Grouping.AllocationState.Disabled == zone.getAllocationState()) {
                             s_logger.info("Zone " + zoneId_is +
                                     " is disabled, so skip downloading template to its image store " + imageStore.getId());
+                            continue;
+                        }
+
+                        // Check if image store has enough capacity for template
+                        if (!_statsCollector.imageStoreHasEnoughCapacity(imageStore)) {
+                            s_logger.info("Image store doesn't have enough capacity. Skip downloading template to this image store " + imageStore.getId());
                             continue;
                         }
 
