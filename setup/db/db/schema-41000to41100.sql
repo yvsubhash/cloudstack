@@ -454,3 +454,6 @@ FROM `affinity_group`
 UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE hypervisor_version='6.2' AND hypervisor_type="Hyperv";
 
 UPDATE `cloud`.`hypervisor_capabilities` SET `max_data_volumes_limit`=30 WHERE `hypervisor_type`='VMware';
+
+UPDATE `cloud`.`configuration` SET `description`='Default API port. To disable set it to 0.' WHERE `name`='integration.api.port';
+
