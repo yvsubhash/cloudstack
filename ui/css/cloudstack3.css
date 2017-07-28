@@ -5768,12 +5768,12 @@ label.error {
 }
 
 .multi-wizard .content .section {
-  width: 416px;
-  background: #E9E9E9;
+  width: 409px;
+  background: #F4F4F4;
   margin: 16px auto auto;
   overflow: hidden;
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   color: #505A62;
   border: 1px solid #E0DFDF;
 }
@@ -5994,7 +5994,7 @@ label.error {
 
 /*** Select container*/
 .multi-wizard .select-container {
-  height: 352px;
+  height: 260px;
   overflow: auto;
   overflow-x: hidden;
   border: 1px solid #D9DFE1;
@@ -6192,7 +6192,7 @@ label.error {
 }
 
 .multi-wizard.instance-wizard .data-disk-offering .select-container {
-  height: 300px;
+  height: 200px;
   margin: -7px 6px 0 8px;
   /*+border-radius:6px;*/
   -moz-border-radius: 6px;
@@ -6386,7 +6386,7 @@ label.error {
 }
 
 .instance-wizard .step.data-disk-offering.custom-disk-size .select-container {
-  height: 272px;
+  height: 200px;
 }
 
 .instance-wizard .step.data-disk-offering.custom-iops-do .select-container {
