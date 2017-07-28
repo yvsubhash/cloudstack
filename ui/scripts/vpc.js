@@ -745,8 +745,19 @@
                         }
                     },
                     dataProvider: function(args) {
+                        var array1 = [];
+                        if (args.filterBy != null) {
+                            if (args.filterBy.search != null && args.filterBy.search.by != null && args.filterBy.search.value != null) {
+                                switch (args.filterBy.search.by) {
+                                    case "name":
+                                        if (args.filterBy.search.value.length > 0)
+                                            array1.push("&keyword=" + args.filterBy.search.value);
+                                        break;
+                                }
+                            }
+                        }
                         $.ajax({
-                            url: createURL('listLoadBalancers'),
+                            url: createURL('listLoadBalancers&page=' + args.page + '&pagesize=' + pageSize + array1.join("")),
                             data: {
                                 networkid: args.context.networks[0].id,
                                 listAll: true
