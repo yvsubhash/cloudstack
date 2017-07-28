@@ -107,5 +107,5 @@ public interface StoragePool extends Identity, InternalIdentity {
 
     boolean isManaged();
 
-    ScopeType getScope();
+    ScopeType getScopeType();
 }
