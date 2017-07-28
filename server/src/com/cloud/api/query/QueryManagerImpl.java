@@ -1172,6 +1172,9 @@ public class QueryManagerImpl extends MutualExclusiveIdsManagerBase implements Q
         ListResponse<DomainRouterResponse> response = new ListResponse<DomainRouterResponse>();
 
         List<DomainRouterResponse> routerResponses = ViewResponseHelper.createDomainRouterResponse(result.first().toArray(new DomainRouterJoinVO[result.first().size()]));
+        for(DomainRouterResponse router : routerResponses) {
+            router.setObjectName("router");
+        }
         response.setResponses(routerResponses, result.second());
         return response;
     }
@@ -1189,7 +1192,7 @@ public class QueryManagerImpl extends MutualExclusiveIdsManagerBase implements Q
     }
 
     private Pair<List<DomainRouterJoinVO>, Integer> searchForRoutersInternal(BaseListProjectAndAccountResourcesCmd cmd, Long id, String name, String state, Long zoneId,
-        Long podId, Long clusterId, Long hostId, String keyword, Long networkId, Long vpcId, Boolean forVpc, String role, String version) {
+        Long podId, Long clusterId, Long hostId, String keyword, Long networkId, Long vpcId, Boolean forVpc, String[] role, String version) {
 
         Account caller = CallContext.current().getCallingAccount();
         List<Long> permittedAccounts = new ArrayList<Long>();
@@ -1222,7 +1225,7 @@ public class QueryManagerImpl extends MutualExclusiveIdsManagerBase implements Q
         sb.and("clusterId", sb.entity().getClusterId(), SearchCriteria.Op.EQ);
         sb.and("hostId", sb.entity().getHostId(), SearchCriteria.Op.EQ);
         sb.and("vpcId", sb.entity().getVpcId(), SearchCriteria.Op.EQ);
-        sb.and("role", sb.entity().getRole(), SearchCriteria.Op.EQ);
+        sb.and("role", sb.entity().getRole(), SearchCriteria.Op.IN);
         sb.and("version", sb.entity().getTemplateVersion(), SearchCriteria.Op.LIKE);
 
         if (forVpc != null) {

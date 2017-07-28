@@ -33,7 +33,6 @@ import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.api.response.VpcResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 
-import com.cloud.network.router.VirtualRouter.Role;
 import com.cloud.vm.VirtualMachine;
 
 @APICommand(name = "listRouters", description = "List routers.", responseObject = DomainRouterResponse.class, entityType = {VirtualMachine.class},
@@ -128,8 +127,8 @@ public class ListRoutersCmd extends BaseListProjectAndAccountResourcesCmd {
         return version;
     }
 
-    public String getRole() {
-        return Role.VIRTUAL_ROUTER.toString();
+    public String[] getRole() {
+        return new String[] {"VIRTUAL_ROUTER", "INTERNAL_LB_VM"};
     }
 
     /////////////////////////////////////////////////////
