@@ -39,6 +39,7 @@ import org.apache.cloudstack.api.response.HostResponse;
 import org.apache.cloudstack.api.response.HostTagResponse;
 import org.apache.cloudstack.api.response.ImageStoreResponse;
 import org.apache.cloudstack.api.response.InstanceGroupResponse;
+import org.apache.cloudstack.api.response.NicResponse;
 import org.apache.cloudstack.api.response.ProjectAccountResponse;
 import org.apache.cloudstack.api.response.ProjectInvitationResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
@@ -165,7 +166,14 @@ public class ViewResponseHelper {
             }
             vrDataList.put(vr.getId(), vrData);
         }
-        return new ArrayList<DomainRouterResponse>(vrDataList.values());
+        List<DomainRouterResponse> routersList=new ArrayList<DomainRouterResponse>(vrDataList.values());
+        for (DomainRouterResponse response : routersList) {
+            for (NicResponse nic : response.getNics()) {
+                if (nic.getDefault())
+                    response.setPublicIp(nic.getIpaddress());
+            }
+        }
+        return routersList;
     }
 
     public static List<SecurityGroupResponse> createSecurityGroupResponses(List<SecurityGroupJoinVO> securityGroups) {
