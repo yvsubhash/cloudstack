@@ -49,6 +49,7 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import org.apache.cloudstack.engine.subsystem.api.storage.CopyCommandResult;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
+import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
 import org.apache.cloudstack.engine.subsystem.api.storage.StrategyPriority;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeDataFactory;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
@@ -56,6 +57,7 @@ import org.apache.cloudstack.framework.async.AsyncCallFuture;
 import org.apache.cloudstack.framework.async.AsyncCallbackDispatcher;
 import org.apache.cloudstack.framework.async.AsyncCompletionCallback;
 import org.apache.cloudstack.framework.async.AsyncRpcContext;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.storage.command.CommandResult;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
@@ -65,7 +67,10 @@ import com.cloud.agent.api.MigrateWithStorageAnswer;
 import com.cloud.agent.api.MigrateWithStorageCommand;
 import com.cloud.agent.api.to.VirtualMachineTO;
 import com.cloud.host.Host;
+import com.cloud.host.dao.HostDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
+import com.cloud.hypervisor.HypervisorGuruManager;
+import com.cloud.resource.ResourceManager;
 import com.cloud.storage.dao.VolumeDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.VMInstanceVO;
@@ -87,6 +92,16 @@ public class VmwareStorageMotionStrategyTest {
     PrimaryDataStoreDao storagePoolDao;
     @Inject
     VMInstanceDao instanceDao;
+    @Inject
+    HostDao hostDao;
+    @Inject
+    ConfigurationDao configurationDao;
+    @Inject
+    DataStoreManager dataStoreMgr;
+    @Inject
+    protected HypervisorGuruManager hvGuruMgr;
+    @Inject
+    ResourceManager resourceMgr;
 
     CopyCommandResult result;
 
@@ -258,8 +273,33 @@ public class VmwareStorageMotionStrategyTest {
         }
 
         @Bean
+        public HostDao hostDao() {
+            return Mockito.mock(HostDao.class);
+        }
+
+        @Bean
+        public ConfigurationDao configDao() {
+            return Mockito.mock(ConfigurationDao.class);
+        }
+
+        @Bean
         public AgentManager agentManager() {
             return Mockito.mock(AgentManager.class);
+        }
+
+        @Bean
+        public DataStoreManager dataStoreMgr() {
+            return Mockito.mock(DataStoreManager.class);
+        }
+
+        @Bean
+        public HypervisorGuruManager hvGuruMgr() {
+            return Mockito.mock(HypervisorGuruManager.class);
+        }
+
+        @Bean
+        public ResourceManager resourceMgr() {
+            return Mockito.mock(ResourceManager.class);
         }
 
         public static class Library implements TypeFilter {

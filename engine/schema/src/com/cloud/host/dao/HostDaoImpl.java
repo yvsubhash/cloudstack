@@ -50,6 +50,7 @@ import com.cloud.host.HostVO;
 import com.cloud.host.Status;
 import com.cloud.host.Status.Event;
 import com.cloud.hypervisor.Hypervisor;
+import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.info.RunningHostCountInfo;
 import com.cloud.org.Grouping;
 import com.cloud.org.Managed;
@@ -1209,4 +1210,16 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
         sc.setParameters("type", type);
         return listBy(sc);
     }
+
+	@Override
+	public List<HostVO> findHypervisorHostsByTypeZoneIdAndHypervisorType(long zoneId, HypervisorType hypervisorType) {
+		SearchCriteria<HostVO> sc = TypeClusterStatusSearch.create();
+        sc.setParameters("type", Host.Type.Routing);
+        sc.setParameters("hypervisorType", hypervisorType);
+        sc.setParameters("dataCenterId", zoneId);
+        sc.setParameters("status", Status.Up);
+        sc.setParameters("resourceState", ResourceState.Enabled);
+
+        return listBy(sc);
+	}
 }

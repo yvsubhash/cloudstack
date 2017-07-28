@@ -2669,11 +2669,12 @@ public class VirtualMachineMO extends BaseMO {
         return virtualDisks;
     }
 
-    public List<String> detachAllDisksExcept(String vmdkBaseName, String deviceBusName) throws Exception {
+    public List<String> detachAllDisksExcept(String vmdkBaseName, String deviceBusName, ManagedObjectReference morDatastoreFromVolume) throws Exception {
         List<VirtualDevice> devices = _context.getVimClient().getDynamicProperty(_mor, "config.hardware.device");
 
         VirtualMachineConfigSpec reConfigSpec = new VirtualMachineConfigSpec();
         List<String> detachedDiskFiles = new ArrayList<String>();
+        boolean vmdkOnSameDatastoreAsVolume = false;
 
         for (VirtualDevice device : devices) {
             if (device instanceof VirtualDisk) {
@@ -2684,7 +2685,9 @@ public class VirtualMachineMO extends BaseMO {
                 DatastoreFile dsBackingFile = new DatastoreFile(diskBackingInfo.getFileName());
                 String backingBaseName = dsBackingFile.getFileBaseName();
                 String deviceNumbering = getDeviceBusName(devices, device);
-                if (backingBaseName.equalsIgnoreCase(vmdkBaseName) || (deviceBusName != null && deviceBusName.equals(deviceNumbering))) {
+                vmdkOnSameDatastoreAsVolume = isVmdkOnSameDatastoreAsVolume(diskBackingInfo, morDatastoreFromVolume);
+
+                if (vmdkOnSameDatastoreAsVolume && (backingBaseName.equalsIgnoreCase(vmdkBaseName) || (deviceBusName != null && deviceBusName.equals(deviceNumbering)))) {
                     continue;
                 } else {
                     s_logger.info("Detach " + diskBackingInfo.getFileName() + " from " + getName());
@@ -2711,6 +2714,24 @@ public class VirtualMachineMO extends BaseMO {
         }
 
         return detachedDiskFiles;
+    }
+
+    private boolean isVmdkOnSameDatastoreAsVolume(VirtualDiskFlatVer2BackingInfo diskBackingInfo, ManagedObjectReference morDatastoreFromVolume) throws Exception {
+        boolean vmdkOnSameDatastoreAsVolume = false;
+        ManagedObjectReference morDatastoreFromVcenter;
+
+        if (morDatastoreFromVolume != null && diskBackingInfo != null) {
+            morDatastoreFromVcenter = diskBackingInfo.getDatastore();
+            if (morDatastoreFromVcenter == null) {
+                String msg = "Unable to find datastore object for volume/vmdk : " + diskBackingInfo.getFileName();
+                s_logger.error(msg);
+                throw new Exception(msg);
+            }
+            if (morDatastoreFromVcenter.equals(morDatastoreFromVolume)) {
+                vmdkOnSameDatastoreAsVolume = true;
+            }
+        }
+        return vmdkOnSameDatastoreAsVolume;
     }
 
     public List<VirtualDevice> getAllDeviceList() throws Exception {
@@ -3244,6 +3265,7 @@ public class VirtualMachineMO extends BaseMO {
         }
         return diskDsFullPaths.toArray(new String[0]);
     }
+
     public void ensureLsiLogicSasDeviceControllers(int count, int availableBusNum) throws Exception {
         int scsiControllerKey = getLsiLogicSasDeviceControllerKeyNoException();
         if (scsiControllerKey < 0) {

@@ -29,6 +29,10 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
+
+import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataObject;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
 import org.apache.cloudstack.engine.subsystem.api.storage.EndPoint;
@@ -44,6 +48,7 @@ import org.apache.cloudstack.storage.RemoteHostEndPoint;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.agent.api.to.DataObjectType;
 import com.cloud.capacity.CapacityManager;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
@@ -53,6 +58,7 @@ import com.cloud.hypervisor.Hypervisor;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.ScopeType;
 import com.cloud.storage.Storage.TemplateType;
+import com.cloud.user.Account;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.QueryBuilder;
 import com.cloud.utils.db.SearchCriteria.Op;
@@ -352,14 +358,65 @@ public class DefaultEndPointSelector implements EndPointSelector {
             if (volume.getHypervisorType() == Hypervisor.HypervisorType.VMware) {
                 VirtualMachine vm = volume.getAttachedVM();
                 if (vm != null) {
-                    Long hostId = vm.getHostId() != null ? vm.getHostId() : vm.getLastHostId();
-                    if (hostId != null) {
-                        return getEndPointFromHostId(hostId);
+                    Long vmHostId = vm.getHostId() != null ? vm.getHostId() : vm.getLastHostId();
+                    if (vmHostId != null) {
+                        if (object.getType() == DataObjectType.VOLUME &&
+                                vm.getState() == VirtualMachine.State.Starting &&
+                                !isVolumeAccessibleToVmHost(object, vmHostId)) {
+                            // If VM is still in Starting state, then make sure the volume is accessible to VM host.
+                            // This handles case of VM starting in scope (host or cluster) different from the datastore containing the volume being deleted.
+                            // Return end point accessible to volume's datastore whose resource_state (DB) may disabled or enabled if the caller is admin account
+                            Account caller = CallContext.current().getCallingAccount();
+                            if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN) {
+                                DataStore volStore = object.getDataStore();
+                                List<EndPoint> endPointsWithAccessToStore = selectAll(volStore);
+                                if (endPointsWithAccessToStore != null && endPointsWithAccessToStore.size() > 0) {
+                                    return endPointsWithAccessToStore.get(0);
+                                }
+                            }
+                        } else {
+                            return getEndPointFromHostId(vmHostId);
+                        }
                     }
                 }
             }
         }
         return select(object);
+    }
+
+    private boolean isVolumeAccessibleToVmHost(DataObject object, Long vmHostId) {
+        boolean volumeAccessibleToVmHost = true;
+
+        DataStore volStore = object.getDataStore();
+        Long volStoreClusterId = volStore.getScope().getScopeId();
+        Long volStoreHostId = volStore.getScope().getScopeId();
+        HostVO vmHost = hostDao.findById(vmHostId);
+        Long vmClusterId = vmHost.getClusterId();
+
+        if (s_logger.isDebugEnabled()) {
+            s_logger.debug("Detected that the attached VM is in starting state. Checking if volume : " + object.getId() +
+                    " is accessible to VM host : " + vmHostId);
+        }
+
+        if (volStore.getScope().getScopeType() == ScopeType.HOST && volStoreHostId != null && !volStoreHostId.equals(vmHostId)) {
+            // VM's host is different from the host connected to storage pool bearing the volume
+            volumeAccessibleToVmHost = false;
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Detected that VM's host : " + vmHostId +
+                        " is different from the host : " + volStoreHostId + " connected to storage pool bearing the volume " + object.getId() +
+                        ". Hence VM host " + vmHostId + " cannot access the volume.");
+            }
+        } else if (volStore.getScope().getScopeType() == ScopeType.CLUSTER && volStoreClusterId != null && !volStoreClusterId.equals(vmClusterId)) {
+            // VM's cluster is different from the cluster of storage pool bearing the volume
+            volumeAccessibleToVmHost = false;
+            if (s_logger.isDebugEnabled()) {
+                s_logger.debug("Detected that VM's cluster : " + vmClusterId +
+                        " is different from the cluster : " + volStoreClusterId + " connected to storage pool bearing the volume " + object.getId() +
+                        ". Hence VM host " + vmHostId + " cannot access the volume.");
+            }
+        }
+
+        return volumeAccessibleToVmHost;
     }
 
     @Override
