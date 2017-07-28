@@ -331,12 +331,8 @@ public class StoragePoolVO implements StoragePool {
         this.scope = scope;
     }
 
-    public ScopeType getScope() {
-        return scope;
-    }
-
     @Override
-    public ScopeType getScopeType() {
+    public ScopeType getScope() {
         return scope;
     }
 

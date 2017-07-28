@@ -113,7 +113,7 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
         if(pools != null && pools.size() != 0){
             capacityType = pools.get(0).getPoolType().isShared() == true ?
                     Capacity.CAPACITY_TYPE_STORAGE_ALLOCATED : Capacity.CAPACITY_TYPE_LOCAL_STORAGE;
-            if (pools.get(0).getScopeType().equals(ScopeType.ZONE)) {
+            if (pools.get(0).getScope().equals(ScopeType.ZONE)) {
                 clusterId = null;
             }
         } else {
