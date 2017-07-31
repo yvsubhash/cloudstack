@@ -101,7 +101,6 @@ public class DomainRouterJoinDaoImpl extends GenericDaoBase<DomainRouterJoinVO, 
                     // legacy code, public/control/guest nic info is kept in
                     // nics response object
                     if (ty == TrafficType.Public) {
-                        routerResponse.setPublicIp(router.getIpAddress());
                         routerResponse.setPublicMacAddress(router.getMacAddress());
                         routerResponse.setPublicNetmask(router.getNetmask());
                         routerResponse.setGateway(router.getGateway());
@@ -195,7 +194,6 @@ public class DomainRouterJoinDaoImpl extends GenericDaoBase<DomainRouterJoinVO, 
                 // legacy code, public/control/guest nic info is kept in
                 // nics response object
                 if (ty == TrafficType.Public) {
-                    vrData.setPublicIp(vr.getIpAddress());
                     vrData.setPublicMacAddress(vr.getMacAddress());
                     vrData.setPublicNetmask(vr.getNetmask());
                     vrData.setGateway(vr.getGateway());
