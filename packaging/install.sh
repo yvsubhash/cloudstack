@@ -64,6 +64,7 @@ function doupdate() {
         mv -f /etc/cloud.rpmsave /etc/cloud.old-rpmsave 2>/dev/null || true
     fi
 
+    install_epel_pyargparse
     yum update --enablerepo='cloud-temp' 'cloudstack-*' || return $?
 
     if [[ "$(rpm -qa |grep cloud-agent-scripts-3.0.7)" ]]; then
