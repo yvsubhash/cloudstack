@@ -2084,7 +2084,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
             for (NicTO nicTo : sortNicsByDeviceId(nics)) {
                 s_logger.info("Prepare NIC device based on NicTO: " + _gson.toJson(nicTo));
 
-                boolean configureVServiceInNexus = (nicTo.getType() == TrafficType.Guest) && (vmSpec.getDetails().containsKey("ConfigureVServiceInNexus"));
+                boolean configureVServiceInNexus = (nicTo.getType() == TrafficType.Guest || nicTo.getType() == TrafficType.PrivateGw) && (vmSpec.getDetails().containsKey("ConfigureVServiceInNexus"));
                 VirtualMachine.Type vmType = cmd.getVirtualMachine().getType();
                 Pair<ManagedObjectReference, String> networkInfo = prepareNetworkFromNicInfo(vmMo.getRunningHost(), nicTo, configureVServiceInNexus, vmType);
                 if ((nicTo.getBroadcastType() != BroadcastDomainType.Lswitch) ||
@@ -2631,7 +2631,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         }
 
         OptionValue newVal;
-        if (nicTo.getType().equals(TrafficType.Guest) && dvSwitchUuid != null && nicTo.getGateway() != null && nicTo.getNetmask() != null)  {
+        if ((nicTo.getType().equals(TrafficType.Guest) || nicTo.getType().equals(TrafficType.PrivateGw)) && dvSwitchUuid != null && nicTo.getGateway() != null && nicTo.getNetmask() != null)  {
             String vrIp = nicTo.getBroadcastUri().getPath().substring(1);
             newVal = new OptionValue();
             newVal.setKey("vsp.vr-ip." + nicTo.getMac());
@@ -3233,6 +3233,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         TrafficType[] supportedTrafficTypes =
                 new TrafficType[] {
                 TrafficType.Guest,
+                TrafficType.PrivateGw,
                 TrafficType.Public,
                 TrafficType.Control,
                 TrafficType.Management,
@@ -3252,7 +3253,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
         // If a virtual switch type is specified while adding cluster that will be used.
         // Else If virtual switch type/name is specified in physical traffic label that will be used
         // Else use standard vSwitch
-        if (trafficType == TrafficType.Guest && _guestTrafficInfo != null && _guestTrafficInfo.containsKey(nicTo.getTrafficId())) {
+        if ((trafficType == TrafficType.Guest || trafficType == TrafficType.PrivateGw) && _guestTrafficInfo != null && _guestTrafficInfo.containsKey(nicTo.getTrafficId())) {
             switchType = _guestTrafficInfo.get(nicTo.getTrafficId()).getVirtualSwitchType();
             switchName = _guestTrafficInfo.get(nicTo.getTrafficId()).getVirtualSwitchName();
         } else if (trafficType == TrafficType.Public && _publicTrafficLabel != null) {
@@ -3287,7 +3288,7 @@ public class VmwareResource implements StoragePoolResource, ServerResource, Vmwa
     }
 
     private String getNetworkNamePrefix(NicTO nicTo) throws Exception {
-        if (nicTo.getType() == Networks.TrafficType.Guest) {
+        if (nicTo.getType() == Networks.TrafficType.Guest || nicTo.getType() == Networks.TrafficType.PrivateGw) {
             return "cloud.guest";
         } else if (nicTo.getType() == Networks.TrafficType.Control || nicTo.getType() == Networks.TrafficType.Management) {
             return "cloud.private";

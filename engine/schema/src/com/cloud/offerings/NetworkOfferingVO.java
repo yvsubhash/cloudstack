@@ -388,7 +388,7 @@ public class NetworkOfferingVO implements NetworkOffering {
     public NetworkOfferingVO(String name, Network.GuestType guestType) {
         this(name,
             "System Offering for " + name,
-            TrafficType.Guest,
+            TrafficType.PrivateGw,
             true,
             true,
             0,

@@ -2084,7 +2084,7 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
                     } else {
                         continue; // so broadcastDomainType remains null! why have None/Undecided/UnKnown?
                     }
-                } else if (offering.getTrafficType() == TrafficType.Guest) {
+                } else if (offering.getTrafficType() == TrafficType.Guest || offering.getTrafficType() == TrafficType.PrivateGw) {
                     continue;
                 }
 
