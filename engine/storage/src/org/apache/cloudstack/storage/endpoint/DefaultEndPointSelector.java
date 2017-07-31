@@ -45,8 +45,6 @@ import org.apache.cloudstack.engine.subsystem.api.storage.VmSnapshotTemplateInfo
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
 import org.apache.cloudstack.storage.LocalHostEndpoint;
 import org.apache.cloudstack.storage.RemoteHostEndPoint;
-import org.apache.log4j.Logger;
-import org.springframework.stereotype.Component;
 
 import com.cloud.agent.api.to.DataObjectType;
 import com.cloud.capacity.CapacityManager;

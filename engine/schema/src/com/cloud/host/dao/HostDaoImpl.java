@@ -1211,9 +1211,9 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
         return listBy(sc);
     }
 
-	@Override
-	public List<HostVO> findHypervisorHostsByTypeZoneIdAndHypervisorType(long zoneId, HypervisorType hypervisorType) {
-		SearchCriteria<HostVO> sc = TypeClusterStatusSearch.create();
+    @Override
+    public List<HostVO> findHypervisorHostsByTypeZoneIdAndHypervisorType(long zoneId, HypervisorType hypervisorType) {
+        SearchCriteria<HostVO> sc = TypeClusterStatusSearch.create();
         sc.setParameters("type", Host.Type.Routing);
         sc.setParameters("hypervisorType", hypervisorType);
         sc.setParameters("dataCenterId", zoneId);
@@ -1221,5 +1221,5 @@ public class HostDaoImpl extends GenericDaoBase<HostVO, Long> implements HostDao
         sc.setParameters("resourceState", ResourceState.Enabled);
 
         return listBy(sc);
-	}
+    }
 }
