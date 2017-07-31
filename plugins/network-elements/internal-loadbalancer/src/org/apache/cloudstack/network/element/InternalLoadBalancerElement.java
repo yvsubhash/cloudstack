@@ -25,8 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.command.admin.internallb.ConfigureInternalLoadBalancerElementCmd;
@@ -82,7 +81,6 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.DomainRouterDao;
-import com.cloud.network.router.NetworkHelper;
 
 public class InternalLoadBalancerElement extends AdapterBase implements LoadBalancingServiceProvider, InternalLoadBalancerElementService, IpDeployer {
     private static final Logger s_logger = Logger.getLogger(InternalLoadBalancerElement.class);
@@ -109,9 +107,6 @@ public class InternalLoadBalancerElement extends AdapterBase implements LoadBala
     ApplicationLoadBalancerRuleDao _appLbDao;
     @Inject
     EntityManager _entityMgr;
-    @Autowired
-    @Qualifier("networkHelper")
-    protected NetworkHelper _networkHelper;
 
     protected InternalLoadBalancerElement() {
     }
@@ -418,7 +413,8 @@ public class InternalLoadBalancerElement extends AdapterBase implements LoadBala
             if (routers == null || routers.isEmpty()) {
                 return true;
             }
-            return _networkHelper.validateHAProxyLBRule(rule);
+            VirtualRouterElement virtualRouterElement = new VirtualRouterElement();
+            return virtualRouterElement.validateHAProxyLBRule(rule);
         }
         return true;
     }
