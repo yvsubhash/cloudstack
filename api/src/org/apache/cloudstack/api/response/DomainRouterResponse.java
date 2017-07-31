@@ -419,6 +419,10 @@ public class DomainRouterResponse extends BaseResponse implements ControlledView
         this.nics.add(nic);
     }
 
+    public Set<NicResponse> getNics() {
+        return nics;
+    }
+
     public String getIp6Dns1() {
         return ip6Dns1;
     }
