@@ -2592,8 +2592,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
         String mountpoint = null;
         if (isoURL.startsWith("xs-tools")) {
             try {
-                final String[] items = _host.getProductVersion().split("\\.");
-                if (Integer.parseInt(items[0]) == 7 && Integer.parseInt(items[1]) > 0) {
+                if (_host.getProductVersion().charAt(0) >= '7') {
                     isoURL = "guest-tools.iso";
                 }
                 final Set<VDI> vdis = VDI.getByNameLabel(conn, isoURL);
@@ -3886,8 +3885,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
             String templateName = iso.getName();
             if (templateName.startsWith("xs-tools")) {
                 try {
-                    final String[] items = _host.getProductVersion().split("\\.");
-                    if (Integer.parseInt(items[0]) == 7 && Integer.parseInt(items[1]) > 0) {
+                    if (_host.getProductVersion().charAt(0) >= '7') {
                         templateName = "guest-tools.iso";
                     }
                     final Set<VDI> vdis = VDI.getByNameLabel(conn, templateName);
