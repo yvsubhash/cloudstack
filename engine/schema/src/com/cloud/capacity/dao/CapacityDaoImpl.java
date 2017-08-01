@@ -850,7 +850,10 @@ public class CapacityDaoImpl extends GenericDaoBase<CapacityVO, Long> implements
          StringBuilder sql = new StringBuilder(ORDER_HOSTS_BY_FREE_CAPACITY_PART1);
         if(clusterId != null) {
             sql.append("AND cluster_id = ?");
+        } else {
+            sql.append("AND cluster_id is NULL");
         }
+
         sql.append(ORDER_HOSTS_BY_FREE_CAPACITY_PART2);
          try {
              pstmt = txn.prepareAutoCloseStatement(sql.toString());

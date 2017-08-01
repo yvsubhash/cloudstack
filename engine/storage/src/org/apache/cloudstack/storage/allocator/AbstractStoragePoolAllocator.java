@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import com.cloud.storage.Storage;
+import com.cloud.storage.ScopeType;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
@@ -112,8 +113,11 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
         if(pools != null && pools.size() != 0){
             capacityType = pools.get(0).getPoolType().isShared() == true ?
                     Capacity.CAPACITY_TYPE_STORAGE_ALLOCATED : Capacity.CAPACITY_TYPE_LOCAL_STORAGE;
-        } else{
-            return null;
+            if ((_storagePoolDao.findById(pools.get(0).getId())).getScope().equals(ScopeType.ZONE)) {
+                clusterId = null;
+            }
+        } else {
+            return pools;
         }
 
         List<Long> poolIdsByCapacity = _capacityDao.orderHostsByFreeCapacity(clusterId, capacityType);
