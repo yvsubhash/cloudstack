@@ -2319,8 +2319,7 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
             throw new InvalidParameterValueException("Creating snapshot failed due to volume: " + volumeId + " doesn't exist");
         }
 
-        if ((volume.getState() != Volume.State.Ready && volume.getState() != Volume.State.Snapshotting) ||
-                    ((volume.getInstanceId() != null && volume.getState() != Volume.State.Ready))) {
+        if ((volume.getState() != Volume.State.Ready && volume.getState() != Volume.State.Snapshotting)) {
             throw new InvalidParameterValueException("VolumeId: " + volumeId + " is not in " + Volume.State.Ready + " or " + Volume.State.Snapshotting + " state but "
                     + volume.getState() + ". Cannot take snapshot.");
         }
