@@ -26,7 +26,7 @@ ipsec status  vpn-$1 > /tmp/vpn-$1.status
 
 status=0
 isakmpMsg=""
-cat /tmp/vpn-$1.status | grep "ISAKMP SA established" > /dev/null
+cat /tmp/vpn-$1.status | grep -i "ISAKMP SA established" > /dev/null
 isakmpok=$?
 if [ $isakmpok -ne 0 ]
 then
@@ -35,7 +35,7 @@ else
     isakmpMsg="ISAKMP SA found;"
 fi
 
-cat /tmp/vpn-$1.status | grep "IPsec SA established" > /dev/null
+cat /tmp/vpn-$1.status | grep -i "IPsec SA established" > /dev/null
 ipsecok=$?
 
 if [ $ipsecok -eq 0 ]
@@ -54,7 +54,7 @@ else
     fi
 fi
 
-cat /tmp/vpn-$1.status | grep -i "ESTABLISHED" > /dev/null
+cat /tmp/vpn-$1.status | grep -i "INSTALLED, TUNNEL" > /dev/null
 ipsecok=$?
 if [ $ipsecok -ne 0 ]
 then
