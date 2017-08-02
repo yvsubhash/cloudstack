@@ -362,7 +362,7 @@ public class Upgrade470to471 implements DbUpgrade {
     }
 
     private void updateSourceCidrs(Connection conn){
-        try(PreparedStatement pstmt = conn.prepareStatement("UPDATE `cloud`.`firewall_rules_cidrs` AS s, ((SELECT IFNULL(networks.network_cidr,networks.cidr) cidr,"+
+        try(PreparedStatement pstmt = conn.prepareStatement("UPDATE `cloud`.`firewall_rules_cidrs` AS s, (SELECT IFNULL(networks.network_cidr,networks.cidr) cidr,"+
                 " `firewall_rules_cidrs`.`id`, `firewall_rules`.`traffic_type` "+
                 "FROM `cloud`.`networks`, `cloud`.`firewall_rules`,`cloud`.`firewall_rules_cidrs` WHERE `cloud`.`networks`.`id`=`cloud`.`firewall_rules`.`network_id` " +
                 "AND `cloud`.`firewall_rules`.`id` = `cloud`.`firewall_rules_cidrs`.`firewall_rule_id`) AS p " +
