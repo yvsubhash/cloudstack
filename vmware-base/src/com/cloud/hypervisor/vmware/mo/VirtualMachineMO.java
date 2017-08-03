@@ -2727,7 +2727,7 @@ public class VirtualMachineMO extends BaseMO {
                 s_logger.error(msg);
                 throw new Exception(msg);
             }
-            if (morDatastoreFromVcenter.equals(morDatastoreFromVolume)) {
+            if (morDatastoreFromVcenter.getValue().equalsIgnoreCase(morDatastoreFromVolume.getValue())) {
                 vmdkOnSameDatastoreAsVolume = true;
             }
         }
