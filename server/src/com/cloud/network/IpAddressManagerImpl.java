@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import com.cloud.dc.DomainVlanMapVO;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -702,11 +703,14 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             public IPAddressVO doInTransaction(TransactionStatus status) throws InsufficientAddressCapacityException {
                 StringBuilder errorMessage = new StringBuilder("Unable to get ip adress in ");
                 boolean fetchFromDedicatedRange = false;
+                boolean fetchFromDomainDedicatedRange = false;
                 List<Long> dedicatedVlanDbIds = new ArrayList<Long>();
+                List<Long> domainDedicatedVlanDbIds = new ArrayList<Long>();
                 List<Long> nonDedicatedVlanDbIds = new ArrayList<Long>();
                 DataCenter zone = _entityMgr.findById(DataCenter.class, dcId);
 
                 SearchCriteria<IPAddressVO> sc = null;
+                SearchCriteria<IPAddressVO> dsc = AssignIpAddressSearch.create();
                 if (podId != null) {
                     sc = AssignIpAddressFromPodVlanSearch.create();
                     sc.setJoinParameters("podVlanMapSB", "podId", podId);
@@ -722,9 +726,17 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 //Checking if network is null in the case of system VM's. At the time of allocation of IP address to systemVm, no network is present.
                 if(network == null || !(network.getGuestType() == GuestType.Shared && zone.getNetworkType() == NetworkType.Advanced)) {
                     List<AccountVlanMapVO> maps = _accountVlanMapDao.listAccountVlanMapsByAccount(owner.getId());
+                    Set<Long> domainids = _domainDao.getDomainParentIds(owner.getDomainId());
                     for (AccountVlanMapVO map : maps) {
                         if (vlanDbIds == null || vlanDbIds.contains(map.getVlanDbId()))
                             dedicatedVlanDbIds.add(map.getVlanDbId());
+                    }
+                    for(Long id: domainids) {
+                        List<DomainVlanMapVO> dmaps = _domainVlanMapDao.listDomainVlanMapsByDomain(id);
+                        for(DomainVlanMapVO dmap : dmaps) {
+                            if (vlanDbIds == null || vlanDbIds.contains(dmap.getVlanDbId()))
+                                domainDedicatedVlanDbIds.add(dmap.getVlanDbId());
+                        }
                     }
                 }
                 List<VlanVO> nonDedicatedVlans = _vlanDao.listZoneWideNonDedicatedVlans(dcId);
@@ -732,6 +744,14 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                     if (vlanDbIds == null || vlanDbIds.contains(nonDedicatedVlan.getId()))
                         nonDedicatedVlanDbIds.add(nonDedicatedVlan.getId());
                 }
+
+                if (domainDedicatedVlanDbIds != null && !domainDedicatedVlanDbIds.isEmpty()) {
+                    fetchFromDomainDedicatedRange = true;
+                    dsc.setParameters("vlanId", domainDedicatedVlanDbIds.toArray());
+                    dsc.setParameters("dc", dcId);
+                    errorMessage.append(", vlanId id=" + Arrays.toString(domainDedicatedVlanDbIds.toArray()));
+                }
+
                 if (dedicatedVlanDbIds != null && !dedicatedVlanDbIds.isEmpty()) {
                     fetchFromDedicatedRange = true;
                     sc.setParameters("vlanId", dedicatedVlanDbIds.toArray());
@@ -756,22 +776,33 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 // for direct network take ip addresses only from the vlans belonging to the network
                 if (vlanUse == VlanType.DirectAttached) {
                     sc.setJoinParameters("vlan", "networkId", guestNetworkId);
+                    dsc.setJoinParameters("vlan", "networkId", guestNetworkId);
                     errorMessage.append(", network id=" + guestNetworkId);
                 }
                 sc.setJoinParameters("vlan", "type", vlanUse);
 
                 if (requestedIp != null) {
                     sc.addAnd("address", SearchCriteria.Op.EQ, requestedIp);
+                    dsc.addAnd("address", SearchCriteria.Op.EQ, requestedIp);
                     errorMessage.append(": requested ip " + requestedIp + " is not available");
                 }
 
                 Filter filter = new Filter(IPAddressVO.class, "vlanId", true, 0l, 1l);
 
-                List<IPAddressVO> addrs = _ipAddressDao.lockRows(sc, filter, true);
+                List<IPAddressVO> addrs = new ArrayList<>();
+
+                if (fetchFromDedicatedRange) {
+                    addrs = _ipAddressDao.lockRows(sc, filter, true);
+                }
+
+                if(addrs.size() == 0 && fetchFromDomainDedicatedRange) {
+                    addrs = _ipAddressDao.lockRows(dsc, filter, true);
+                }
 
                 // If all the dedicated IPs of the owner are in use fetch an IP from the system pool
-                if (addrs.size() == 0 && fetchFromDedicatedRange) {
+                if (addrs.size() == 0) {
                     // Verify if account is allowed to acquire IPs from the system
+
                     boolean useSystemIps = UseSystemPublicIps.valueIn(owner.getId());
                     if (useSystemIps && nonDedicatedVlanDbIds != null && !nonDedicatedVlanDbIds.isEmpty()) {
                         fetchFromDedicatedRange = false;
