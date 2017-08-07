@@ -606,6 +606,46 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     }
 
     @Override
+    public List<IPAddressVO> disassociatePublicIpRange(long vlanDbId, final long userId, Account caller) {
+
+        VlanVO vlan = _vlanDao.findById(vlanDbId);
+
+        // Check if range has any allocated public IPs
+        final long allocIpCount = _publicIpAddressDao.countIPs(vlan.getDataCenterId(), vlanDbId, true);
+        final List<IPAddressVO> ips = _publicIpAddressDao.listByVlanId(vlanDbId);
+        boolean success = true;
+        final List<IPAddressVO> ipsNotInUse = new ArrayList<IPAddressVO>();
+        if (allocIpCount > 0) {
+            try {
+                vlan = _vlanDao.acquireInLockTable(vlanDbId, 30);
+                if (vlan == null) {
+                    throw new CloudRuntimeException("Unable to acquire vlan configuration: " + vlanDbId);
+                }
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("lock vlan " + vlanDbId + " is acquired");
+                }
+                for (final IPAddressVO ip : ips) {
+                    // Disassociate allocated IP's that are not in use
+                    if (!ip.isOneToOneNat() && !ip.isSourceNat() && !(_firewallDao.countRulesByIpId(ip.getId()) > 0)) {
+                        if (s_logger.isDebugEnabled()) {
+                            s_logger.debug("Releasing Public IP addresses" + ip + " of vlan " + vlanDbId + " as part of Public IP" + " range release to the system pool");
+                        }
+                        success = success && disassociatePublicIpAddress(ip.getId(), userId, caller);
+                        ipsNotInUse.add(ip);
+                    }
+                }
+                if (!success) {
+                    s_logger.warn("Some Public IP addresses that were not in use failed to be released as a part of" + " vlan " + vlanDbId + "release to the system pool");
+                }
+            } finally {
+                _vlanDao.releaseFromLockTable(vlanDbId);
+            }
+        }
+        return ipsNotInUse;
+
+    }
+
+    @Override
     @DB
     public boolean disassociatePublicIpAddress(long addrId, long userId, Account caller) {
 
