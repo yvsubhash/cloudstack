@@ -2791,9 +2791,10 @@
             if (jsonObj.revertable) {
                 allowedActions.push("revertSnapshot");
             }
+            
+            allowedActions.push("remove");
         }
-        allowedActions.push("remove");
-
+        
         return allowedActions;
     };
 
