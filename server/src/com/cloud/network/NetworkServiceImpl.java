@@ -3492,7 +3492,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         if ( domainId != null) {
             DomainVO domain = _domainDao.findById(domainId);
             if (domain == null) {
-                InvalidParameterValueException ex = new InvalidParameterValueException("Unable to find domain with id " + domainId);
+                throw new InvalidParameterValueException("Unable to find domain with id " + domainId);
             }
         }
 
