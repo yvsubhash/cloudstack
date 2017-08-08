@@ -24,7 +24,10 @@
 #set -x
 set -e
 
-$SUDO losetup -f
+if [[ `cat /etc/redhat-release` =~ " 7." ]]; then
+   $SUDO losetup -f
+fi
+
 TMP=/tmp
 MOUNTPATH=${HOME}/systemvm_mnt
 TMPDIR=${TMP}/cloud/systemvm
