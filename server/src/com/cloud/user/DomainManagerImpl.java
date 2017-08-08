@@ -23,6 +23,12 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import com.cloud.dc.DomainVlanMapVO;
+import com.cloud.dc.dao.DataCenterVnetDao;
+import com.cloud.dc.dao.DomainVlanMapDao;
+import com.cloud.network.IpAddressManager;
+import com.cloud.network.dao.DomainGuestVlanMapDao;
+import com.cloud.network.dao.DomainGuestVlanMapVO;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -108,6 +114,14 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
     private NetworkOrchestrationService _networkMgr;
     @Inject
     private NetworkDomainDao _networkDomainDao;
+    @Inject
+    private DomainGuestVlanMapDao _domainGuestVlanMapDao;
+    @Inject
+    private DomainVlanMapDao _domainVlanMapDao;
+    @Inject
+    private DataCenterVnetDao _dataCenterVnetDao;
+    @Inject
+    IpAddressManager _ipAddrMgr;
 
     @Inject
     MessageBus _messageBus;
@@ -511,6 +525,22 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
             s_logger.debug("Failed to delete the shared networks as a part of domain id=" + domainId + " clenaup");
             return false;
         }
+
+        //release domain specific public ip ranges
+        List<DomainVlanMapVO> vlanMaps = _domainVlanMapDao.listDomainVlanMapsByDomain(domainId);
+        for(DomainVlanMapVO vmap: vlanMaps) {
+            _ipAddrMgr.disassociatePublicIpRange(vmap.getVlanDbId(), ctx.getCallingUserId(),  ctx.getCallingAccount());
+        }
+        int ipRangesReleased = _domainVlanMapDao.removeByDomainId(domainId);
+        s_logger.info("deleteDomain: Released " + ipRangesReleased + " dedicated public ip ranges from domain " + domainId);
+
+        // release domain specific guest vlans
+        List<DomainGuestVlanMapVO> maps = _domainGuestVlanMapDao.listDomainGuestVlanMapsByDomain(domainId);
+        for (DomainGuestVlanMapVO map : maps) {
+            _dataCenterVnetDao.releaseDomainDedicatedGuestVlans(map.getId());
+        }
+        int vlansReleased = _domainGuestVlanMapDao.removeByDomainId(domainId);
+        s_logger.info("deleteDomain: Released " + vlansReleased + " dedicated guest vlan ranges from domain " + domainId);
 
         // don't remove the domain if there are accounts required cleanup
         boolean deleteDomainSuccess = true;
