@@ -30,14 +30,18 @@ user=root
 DHCP_FOLDERS="/var/lib/dhclient/* /var/lib/dhcp3/* /var/lib/dhcp/*"
 keys_received=0
 file_count=0
+publickey=""
+SSHKEY_SERVER_IPs=()
+SSHKEY_SERVER_IP=""
 
 for DHCP_FILE in $DHCP_FOLDERS; do
     if [ -f $DHCP_FILE ]; then
         file_count=$((file_count+1))
-        SSHKEY_SERVER_IP=$(grep dhcp-server-identifier $DHCP_FILE | tail -1 | awk '{print $NF}' | tr -d '\;')
+        SSHKEY_SERVER_IPs+=("$(grep dhcp-server-identifier $DHCP_FILE | tail -1 | awk '{print $NF}' | tr -d '\;')")
+        SSHKEY_SERVER_IPs+=("$(grep routers $DHCP_FILE | tail -1 | awk '{print $NF}' | tr -d '\;')")
 
-        if [ -n "$SSHKEY_SERVER_IP" ]; then
-            logger -t "cloud" "Found ssh key server at $SSHKEY_SERVER_IP"
+        if [ ${#SSHKEY_SERVER_IPs[@]} -ne 0 ]; then
+            logger -t "cloud" "Found ssh key server at ${SSHKEY_SERVER_IPs[@]}"
             break
         else
             logger -t "cloud" "Could not find ssh key server IP in $DHCP_FILE"
@@ -45,17 +49,21 @@ for DHCP_FILE in $DHCP_FOLDERS; do
     fi
 done
 
-if [ -z "$SSHKEY_SERVER_IP" ]; then
+if [ ${#SSHKEY_SERVER_IPs[@]} -eq 0 ]; then
      logger -t "cloud" "Unable to determine the password server, falling back to data-server"
-     SSHKEY_SERVER_IP=data-server
+     SSHKEY_SERVER_IPs+=data-server
 fi
- 
-logger -t "cloud" "Sending request to ssh key server at $SSHKEY_SERVER_IP"
-publickey=$(wget -q -t 3 -T 20 -O - http://$SSHKEY_SERVER_IP/latest/public-keys)
-if [ $? -eq 0 ]; then
-    logger -t "cloud" "Got response from server at $SSHKEY_SERVER_IP"
-    keys_received=1
-fi
+
+for SSHKEY_SERVER_IP in "${SSHKEY_SERVER_IPs[@]}"
+do
+    logger -t "cloud" "Sending request to ssh key server at $SSHKEY_SERVER_IP"
+    publickey=$(wget -q -t 3 -T 20 -O - http://$SSHKEY_SERVER_IP/latest/public-keys)
+    if [ $? -eq 0 ]; then
+        logger -t "cloud" "Got response from server at $SSHKEY_SERVER_IP"
+        keys_received=1
+        break;
+    fi
+done
 
 if [ "$keys_received" == "0" ]; then
     logger -t "cloud" "Failed to get ssh keys from any server"
