@@ -85,7 +85,7 @@ function doupdate() {
 function install_epel_pyargparse() {
 
     yum update --disablerepo=cloud-temp -y
-    doinstall wget python-setuptools
+    doinstallauto wget python-setuptools
     epel_download_path=/tmp/cloud-temp
     epel6_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/6/x86_64/
     epel7_rpm_location=$epel_download_path/dl.fedoraproject.org/pub/epel/7/x86_64/e
