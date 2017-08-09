@@ -3629,9 +3629,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
     private UserVmVO commitUserVm(final DataCenter zone, final VirtualMachineTemplate template, final String hostName, final String displayName, final Account owner,
                                   final Long diskOfferingId, final Long diskSize, final String userData, final Account caller, final Boolean isDisplayVm, final String keyboard,
-                                  final long accountId, final long userId, final ServiceOfferingVO offering, final boolean isIso, final String sshPublicKey, final LinkedHashMap<String, NicProfile> networkNicMap,
+                                  final long accountId, final long userId, final ServiceOfferingVO offering, final boolean isIso, final String sshKeyPairName, final String sshPublicKey, final LinkedHashMap<String, NicProfile> networkNicMap,
                                   final long id, final String instanceName, final String uuidName, final HypervisorType hypervisorType, final Map<String, String> customParameters) throws InsufficientCapacityException {
-
         return Transaction.execute(new TransactionCallbackWithException<UserVmVO, InsufficientCapacityException>() {
             @Override
             public UserVmVO doInTransaction(TransactionStatus status) throws InsufficientCapacityException {
@@ -3866,7 +3865,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         Pair<UserVmVO, Map<VirtualMachineProfile.Param, Object>> vmParamPair = null;
         try {
-            vmParamPair = startVirtualMachine(vmId, hostId, additonalParams, deploymentPlannerToUse, cmd.getPodId(), cmd.getClusterId(), cmd.getVmIds());
+            vmParamPair = startVirtualMachine(vmId, hostId, additionalParams, deploymentPlannerToUse, cmd.getPodId(), cmd.getClusterId(), cmd.getVmIds());
             vm = vmParamPair.first();
 
             // At this point VM should be in "Running" state
