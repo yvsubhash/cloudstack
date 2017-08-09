@@ -875,6 +875,8 @@ load_modules() {
  #load nf modules for ftp
  modprobe nf_nat_ftp
  modprobe nf_conntrack_ftp
+ modprobe nf_nat_pptp
+ modprobe nf_conntrack_pptp
 }
 
 setup_router() {
