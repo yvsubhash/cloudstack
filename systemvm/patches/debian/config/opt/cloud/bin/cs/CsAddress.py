@@ -336,6 +336,7 @@ class CsIP:
         guest
         control
         public
+        privategw
         """
         if "nw_type" in self.address:
             return self.address['nw_type']
@@ -516,6 +517,7 @@ class CsIP:
 
     def post_config_change(self, method):
         route = CsRoute()
+        logging.debug("In address post config change")
         tableName = "Table_" + self.dev
 
         if method == "add":
@@ -571,7 +573,8 @@ class CsIP:
         if self.get_type() in ["guest"] and not cmdline.is_redundant():
             pwdsvc = CsPasswdSvc(self.address['public_ip']).start()
 
-        if self.get_type() == "public" and self.config.is_vpc() and method == "add":
+        logging.debug("Configuring public or private gaeway")
+        if (self.get_type() == "public" or (self.get_type() == "privategw" and self.address["source_nat"])) and self.config.is_vpc() and method == "add":
             if self.address["source_nat"]:
                 vpccidr = cmdline.get_vpccidr()
                 self.fw.append(
