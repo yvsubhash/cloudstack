@@ -470,4 +470,5 @@ public interface ResponseGenerator {
 
     VmSnapshotTemplateResponse createVmSnapshotTemplateResponse(Long vmSnapshotId, Long storageId);
 
+    List<AsyncJobResponse> createAsyncJobResponse(List<Long> jobIds);
 }
