@@ -100,19 +100,23 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
 
     protected Attribute _updateTimeAttr;
 
-    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1 = "SELECT host.cluster_id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) " +
-        "FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id WHERE ";
-    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " AND host.type = 'Routing' AND host.removed is null GROUP BY host.cluster_id " +
-        "ORDER BY 2 ASC ";
+    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART0 = "SELECT cluster_id, SUM(vm_count) FROM (";
+    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1 = "SELECT host.cluster_id AS cluster_id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) AS vm_count " +
+            "FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id WHERE ";
+    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " AND host.type = 'Routing' AND host.removed is null GROUP BY cluster_id UNION ALL " +
+            "SELECT rsv.cluster_id AS cluster_id, COUNT(rsv.cluster_id) AS vm_count FROM `cloud`.`vm_reservation` rsv LEFT JOIN `cloud`.`vm_instance` vm ON rsv.vm_id = vm.id WHERE vm.state in ('Stopped') AND vm.account_id = ? AND ";
+    private static final String ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART3 = " GROUP BY cluster_id) t GROUP BY cluster_id ORDER BY 2 ASC ";
 
-    private static final String ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT = "SELECT pod.id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) FROM `cloud`.`" +
-        "host_pod_ref` pod LEFT JOIN `cloud`.`vm_instance` vm ON pod.id = vm.pod_id WHERE pod.data_center_id = ? AND pod.removed is null "
-        + " GROUP BY pod.id ORDER BY 2 ASC ";
+    private static final String ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT = "SELECT pod_id, SUM(vm_count) FROM (SELECT pod.id AS pod_id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) AS vm_count " +
+            "FROM `cloud`.`host_pod_ref` pod LEFT JOIN `cloud`.`vm_instance` vm ON pod.id = vm.pod_id WHERE pod.data_center_id = ? AND pod.removed is null GROUP BY pod_id UNION ALL " +
+            "SELECT rsv.pod_id AS pod_id, COUNT(rsv.pod_id) AS vm_count FROM `cloud`.`vm_reservation` rsv LEFT JOIN `cloud`.`vm_instance` vm ON rsv.vm_id = vm.id WHERE vm.state in ('Stopped') AND vm.account_id = ? AND " +
+            "rsv.data_center_id = ? GROUP BY pod_id) t GROUP BY pod_id ORDER BY 2 ASC ";
 
-    private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT =
-        "SELECT host.id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id " +
-            "WHERE host.data_center_id = ? AND host.type = 'Routing' AND host.removed is null ";
-    private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " GROUP BY host.id ORDER BY 2 ASC ";
+    private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT = "SELECT host_id, SUM(vm_count) FROM (SELECT host.id AS host_id, SUM(IF(vm.state in ('Running', 'Starting') AND vm.account_id = ?, 1, 0)) AS vm_count " +
+            "FROM `cloud`.`host` host LEFT JOIN `cloud`.`vm_instance` vm ON host.id = vm.host_id WHERE host.data_center_id = ? AND host.type = 'Routing' AND host.removed is null ";
+    private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2 = " GROUP BY host_id UNION ALL SELECT rsv.host_id AS host_id, COUNT(rsv.host_id) AS vm_count " +
+            "FROM `cloud`.`vm_reservation` rsv LEFT JOIN `cloud`.`vm_instance` vm ON rsv.vm_id = vm.id WHERE vm.state in ('Stopped') AND vm.account_id = ? AND rsv.data_center_id = ? ";
+    private static final String ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART3 = " GROUP BY host_id) t GROUP BY host_id ORDER BY 2 ASC ";
 
     private static final String COUNT_VMS_BASED_ON_VGPU_TYPES1 =
             "SELECT pci, type, SUM(vmcount) FROM (SELECT MAX(IF(offering.name = 'pciDevice', value, '')) AS pci, MAX(IF(offering.name = 'vgpuType', value, '')) " +
@@ -569,13 +573,18 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         List<Long> result = new ArrayList<Long>();
         Map<Long, Double> clusterVmCountMap = new HashMap<Long, Double>();
 
-        StringBuilder sql = new StringBuilder(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1);
+        StringBuilder sql = new StringBuilder(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART0);
+        sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1);
         sql.append("host.data_center_id = ?");
         sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2);
+        sql.append("rsv.data_center_id = ?");
+        sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART3);
         try {
             pstmt = txn.prepareAutoCloseStatement(sql.toString());
             pstmt.setLong(1, accountId);
             pstmt.setLong(2, zoneId);
+            pstmt.setLong(3, accountId);
+            pstmt.setLong(4, zoneId);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -598,13 +607,18 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         List<Long> result = new ArrayList<Long>();
         Map<Long, Double> clusterVmCountMap = new HashMap<Long, Double>();
 
-        StringBuilder sql = new StringBuilder(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1);
+        StringBuilder sql = new StringBuilder(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART0);
+        sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART1);
         sql.append("host.pod_id = ?");
         sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2);
+        sql.append("rsv.pod_id = ?");
+        sql.append(ORDER_CLUSTERS_NUMBER_OF_VMS_FOR_ACCOUNT_PART3);
         try {
             pstmt = txn.prepareAutoCloseStatement(sql.toString());
             pstmt.setLong(1, accountId);
             pstmt.setLong(2, podId);
+            pstmt.setLong(3, accountId);
+            pstmt.setLong(4, podId);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -627,11 +641,13 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         PreparedStatement pstmt = null;
         List<Long> result = new ArrayList<Long>();
         Map<Long, Double> podVmCountMap = new HashMap<Long, Double>();
+        String sql = ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT;
         try {
-            String sql = ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT;
             pstmt = txn.prepareAutoCloseStatement(sql);
             pstmt.setLong(1, accountId);
             pstmt.setLong(2, dataCenterId);
+            pstmt.setLong(3, accountId);
+            pstmt.setLong(4, dataCenterId);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -641,9 +657,9 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
             }
             return new Pair<List<Long>, Map<Long, Double>>(result, podVmCountMap);
         } catch (SQLException e) {
-            throw new CloudRuntimeException("DB Exception on: " + ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT, e);
+            throw new CloudRuntimeException("DB Exception on: " + sql, e);
         } catch (Throwable e) {
-            throw new CloudRuntimeException("Caught: " + ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT, e);
+            throw new CloudRuntimeException("Caught: " + sql, e);
         }
     }
 
@@ -652,24 +668,40 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         TransactionLegacy txn = TransactionLegacy.currentTxn();
         PreparedStatement pstmt = null;
         List<Long> result = new ArrayList<Long>();
-        try {
-            StringBuilder sql = new StringBuilder(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT);
-            if (podId != null) {
-                sql.append(" AND host.pod_id = ? ");
-            }
-            if (clusterId != null) {
-                sql.append(" AND host.cluster_id = ? ");
-            }
-            sql.append(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2);
 
+        StringBuilder sql = new StringBuilder(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT);
+        if (podId != null) {
+            sql.append(" AND host.pod_id = ? ");
+        }
+        if (clusterId != null) {
+            sql.append(" AND host.cluster_id = ? ");
+        }
+        sql.append(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART2);
+        if (podId != null) {
+            sql.append(" AND rsv.pod_id = ? ");
+        }
+        if (clusterId != null) {
+            sql.append(" AND rsv.cluster_id = ? ");
+        }
+        sql.append(ORDER_HOSTS_NUMBER_OF_VMS_FOR_ACCOUNT_PART3);
+        try {
             pstmt = txn.prepareAutoCloseStatement(sql.toString());
-            pstmt.setLong(1, accountId);
-            pstmt.setLong(2, dcId);
+            int position = 1;
+            pstmt.setLong(position, accountId);
+            pstmt.setLong(++position, dcId);
             if (podId != null) {
-                pstmt.setLong(3, podId);
+                pstmt.setLong(++position, podId);
             }
             if (clusterId != null) {
-                pstmt.setLong(4, clusterId);
+                pstmt.setLong(++position, clusterId);
+            }
+            pstmt.setLong(++position, accountId);
+            pstmt.setLong(++position, dcId);
+            if (podId != null) {
+                pstmt.setLong(++position, podId);
+            }
+            if (clusterId != null) {
+                pstmt.setLong(++position, clusterId);
             }
 
             ResultSet rs = pstmt.executeQuery();
@@ -678,9 +710,9 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
             }
             return result;
         } catch (SQLException e) {
-            throw new CloudRuntimeException("DB Exception on: " + ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT, e);
+            throw new CloudRuntimeException("DB Exception on: " + sql, e);
         } catch (Throwable e) {
-            throw new CloudRuntimeException("Caught: " + ORDER_PODS_NUMBER_OF_VMS_FOR_ACCOUNT, e);
+            throw new CloudRuntimeException("Caught: " + sql, e);
         }
     }
 

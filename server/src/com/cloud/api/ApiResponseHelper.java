@@ -3961,4 +3961,13 @@ public class ApiResponseHelper implements ResponseGenerator {
 
         return response;
     }
+    public List<AsyncJobResponse> createAsyncJobResponse(List<Long> jobIds) {
+        List<AsyncJobResponse> respList = new ArrayList<AsyncJobResponse>();
+        for (Long jobId : jobIds) {
+            AsyncJobJoinVO job = ApiDBUtils.newAsyncJobView(jobId.longValue());
+            respList.add(ApiDBUtils.newAsyncJobResponse(job));
+        }
+        return respList;
+    }
+
 }

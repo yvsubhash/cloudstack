@@ -186,6 +186,7 @@ import com.cloud.network.dao.AccountGuestVlanMapDao;
 import com.cloud.network.dao.AccountGuestVlanMapVO;
 import com.cloud.network.dao.FirewallRulesCidrsDao;
 import com.cloud.network.dao.FirewallRulesDao;
+import com.cloud.network.dao.FirewallRulesDcidrsDao;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.LoadBalancerDao;
@@ -277,6 +278,7 @@ import com.cloud.template.TemplateManager;
 import com.cloud.template.VirtualMachineTemplate;
 import com.cloud.user.Account;
 import com.cloud.user.AccountDetailsDao;
+import com.cloud.user.AccountManager;
 import com.cloud.user.AccountService;
 import com.cloud.user.AccountVO;
 import com.cloud.user.ResourceLimitService;
@@ -312,8 +314,6 @@ import com.cloud.vm.dao.UserVmDetailsDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.cloud.vm.snapshot.VMSnapshot;
 import com.cloud.vm.snapshot.dao.VMSnapshotDao;
-import com.cloud.user.AccountManager;
-import com.cloud.network.dao.FirewallRulesDcidrsDao;
 
 public class ApiDBUtils {
     private static ManagementServer s_ms;
@@ -1892,8 +1892,12 @@ public class ApiDBUtils {
         return s_jobJoinDao.newAsyncJobResponse(ve);
     }
 
-    public static AsyncJobJoinVO newAsyncJobView(AsyncJob e) {
-        return s_jobJoinDao.newAsyncJobView(e);
+    public static AsyncJobJoinVO newAsyncJobView(AsyncJob job) {
+        return newAsyncJobView(job.getId());
+    }
+
+    public static AsyncJobJoinVO newAsyncJobView(long jobId) {
+        return s_jobJoinDao.newAsyncJobView(jobId);
     }
 
     public static DiskOfferingResponse newDiskOfferingResponse(DiskOfferingJoinVO offering) {
