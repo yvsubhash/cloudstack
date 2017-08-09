@@ -15,20 +15,19 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
--- LXC, "http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-kvm.qcow2.bz2", "c059b0d051e0cd6fbe9d5d4fc40c7e5d");
--- Ovm3, "http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-ovm.raw.bz2", "c8577d27b2daafb2d9a4ed307ce2f00f");
+-- LXC, "http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-kvm.qcow2.bz2", "76e80e140e8d64d0f34aaf7af13e89e8";
 
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type)
-    VALUES (1, UUID(), 'routing-1', 'SystemVM Template (XenServer)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-xen.vhd.bz2', '8886f554a499ec5405b6f203d9d36460', 0, 'SystemVM Template (XenServer)', 'VHD', 184, 0, 1, 'XenServer' );
+    VALUES (1, UUID(), 'routing-1', 'SystemVM Template (XenServer)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-xen.vhd.bz2', 'bc1eb0ce78af411a4807cfebad4d9e51', 0, 'SystemVM Template (XenServer)', 'VHD', 184, 0, 1, 'XenServer' );
 
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type)
-    VALUES (3, UUID(), 'routing-3', 'SystemVM Template (KVM)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-kvm.qcow2.bz2', 'c059b0d051e0cd6fbe9d5d4fc40c7e5d', 0, 'SystemVM Template (KVM)', 'QCOW2', 15, 0, 1, 'KVM' );
+    VALUES (3, UUID(), 'routing-3', 'SystemVM Template (KVM)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-kvm.qcow2.bz2', '76e80e140e8d64d0f34aaf7af13e89e8', 0, 'SystemVM Template (KVM)', 'QCOW2', 15, 0, 1, 'KVM' );
 
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type)
-    VALUES (8, UUID(), 'routing-8', 'SystemVM Template (vSphere)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-vmware.ova', '4b415224fe00b258f66cad9fce9f73fc', 0, 'SystemVM Template (vSphere)', 'OVA', 15, 0, 1, 'VMware' );
+    VALUES (8, UUID(), 'routing-8', 'SystemVM Template (vSphere)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-vmware.ova', '20e32fd18f8d7726c170e7eb24c49d5d', 0, 'SystemVM Template (vSphere)', 'OVA', 15, 0, 1, 'VMware' );
 
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text, format, guest_os_id, featured, cross_zones, hypervisor_type)
-    VALUES (9, UUID(), 'routing-9', 'SystemVM Template (HyperV)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://download.cloudstack.org/systemvm/4.6/systemvm64template-4.6.0-hyperv.vhd.zip', '53e24bddfa56ea3139ed37af4b519013', 0, 'SystemVM Template (HyperV)', 'VHD', 15, 0, 1, 'Hyperv' );
+    VALUES (9, UUID(), 'routing-9', 'SystemVM Template (HyperV)', 0, now(), 'SYSTEM', 0, 64, 1, 'http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-hyperv.vhd.bz2', 'fd8834b8c528c6a6db8a3504125d9985', 0, 'SystemVM Template (HyperV)', 'VHD', 15, 0, 1, 'Hyperv' );
 
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, removed, type, hvm, bits, account_id, url, checksum, enable_password, display_text,  format, guest_os_id, featured, cross_zones, hypervisor_type, extractable)
     VALUES (2, UUID(), 'centos53-x86_64', 'CentOS 5.3(64-bit) no GUI (XenServer)', 1, now(), now(), 'BUILTIN', 0, 64, 1, 'http://download.cloudstack.org/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2', 'b63d854a9560c013142567bbae8d98cf', 0, 'CentOS 5.3(64-bit) no GUI (XenServer)', 'VHD', 12, 1, 1, 'XenServer', 1);
