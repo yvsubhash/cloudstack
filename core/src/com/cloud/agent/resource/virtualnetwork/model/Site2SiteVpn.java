@@ -32,7 +32,7 @@ public class Site2SiteVpn extends ConfigBase {
 
     public Site2SiteVpn(String localPublicIp, String localGuestCidr, String localPublicGateway, String peerGatewayIp, String peerGuestCidrList, String espPolicy,
  String ikePolicy,
-            String ipsecPsk, Long ikeLifetime, Long espLifetime, boolean create, Boolean dpd, boolean passive, boolean encap,Integer ikeVersion) {
+            String ipsecPsk, Long ikeLifetime, Long espLifetime, boolean create, Boolean dpd, boolean passive, boolean encap, Integer ikeVersion) {
         super(ConfigBase.SITE2SITEVPN);
         this.localPublicIp = localPublicIp;
         this.localGuestCidr = localGuestCidr;
