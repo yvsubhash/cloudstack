@@ -542,6 +542,12 @@ class CsSite2SiteVpn(CsDataBag):
         vpnsecretsfile = "%s/ipsec.vpn-%s.secrets" % (self.VPNCONFDIR, rightpeer)
         ikepolicy=obj['ike_policy'].replace(';','-')
         esppolicy=obj['esp_policy'].replace(';','-')
+        ikeversion = obj['ike_version']
+
+        if ikeversion==1:
+            keyexchange="ike1"
+        elif ikeversion==2:
+            keyexchange="ike2"
 
         pfs='no'
         if 'modp' in esppolicy:
@@ -559,7 +565,7 @@ class CsSite2SiteVpn(CsDataBag):
         file.addeq(" rightsubnet=%s" % peerlist)
         file.addeq(" type=tunnel")
         file.addeq(" authby=secret")
-        file.addeq(" keyexchange=ike")
+        file.addeq(" keyexchange=%s" % keyexchange)
         file.addeq(" ike=%s" % ikepolicy)
         file.addeq(" ikelifetime=%s" % self.convert_sec_to_h(obj['ike_lifetime']))
         file.addeq(" esp=%s" % esppolicy)
