@@ -103,7 +103,6 @@ public class DomainRouterJoinDaoImpl extends GenericDaoBase<DomainRouterJoinVO, 
                     if (ty == TrafficType.Public) {
                         routerResponse.setPublicMacAddress(router.getMacAddress());
                         routerResponse.setPublicNetmask(router.getNetmask());
-                        routerResponse.setGateway(router.getGateway());
                         routerResponse.setPublicNetworkId(router.getNetworkUuid());
                     } else if (ty == TrafficType.Control) {
                         routerResponse.setLinkLocalIp(router.getIpAddress());
@@ -196,7 +195,6 @@ public class DomainRouterJoinDaoImpl extends GenericDaoBase<DomainRouterJoinVO, 
                 if (ty == TrafficType.Public) {
                     vrData.setPublicMacAddress(vr.getMacAddress());
                     vrData.setPublicNetmask(vr.getNetmask());
-                    vrData.setGateway(vr.getGateway());
                     vrData.setPublicNetworkId(vr.getNetworkUuid());
                 } else if (ty == TrafficType.Control) {
                     vrData.setLinkLocalIp(vr.getIpAddress());
