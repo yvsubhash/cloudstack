@@ -312,6 +312,7 @@ while [ $# -gt 0 ] ; do
      ;;
   -m | --install-management)
      echo "***** Installing the Management Server *****"
+     install_epel_pyargparse
 	 doinstallauto cloudstack-management
 	 true
 	 shift
