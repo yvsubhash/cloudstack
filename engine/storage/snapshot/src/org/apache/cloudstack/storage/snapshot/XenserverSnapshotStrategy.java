@@ -136,46 +136,47 @@ public class XenserverSnapshotStrategy extends SnapshotStrategyBase {
         SnapshotDataStoreVO latestSnapshotOnBackupStore = snapshotStoreDao.findLatestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Image);
         SnapshotDataStoreVO latestSnapshotOnPrimaryStore = snapshotStoreDao.findLatestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Primary);
         HypervisorType hypervisorType = snapshot.getBaseVolume().getHypervisorType();
-        if (latestSnapshotOnPrimaryStore != null && latestSnapshotOnBackupStore != null && hypervisorType == Hypervisor.HypervisorType.XenServer &&
-                _statsCollector.imageStoreHasEnoughCapacity((DataStore)latestSnapshotOnBackupStore)) { // CS does incremental backup only for XenServer
-
-            // In case of volume migration from one pool to other pool, CS should take full snapshot to avoid any issues with delta chain,
-            // to check if this is a migrated volume, compare the current pool id of volume and store_id of oldest snapshot on primary for this volume.
-            // Why oldest? Because at this point CS has two snapshot on primary entries for same volume, one with old pool_id and other one with
-            // current pool id. So, verify and if volume found to be migrated, delete snapshot entry with previous pool store_id.
-            SnapshotDataStoreVO oldestSnapshotOnPrimary = snapshotStoreDao.findOldestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Primary);
-            VolumeVO volume = volumeDao.findById(snapshot.getVolumeId());
-            if (oldestSnapshotOnPrimary != null) {
-                if (oldestSnapshotOnPrimary.getDataStoreId() == volume.getPoolId() && oldestSnapshotOnPrimary.getId() != latestSnapshotOnPrimaryStore.getId()) {
-                    if (volume.getSize() != latestSnapshotOnBackupStore.getSize()) {
-                        //Volume resized, take full backup
-                        fullBackup = true;
-                    } else {
-                        int _deltaSnapshotMax = NumbersUtil.parseInt(configDao.getValue("snapshot.delta.max"),
-                                SnapshotManager.DELTAMAX);
-                        int deltaSnap = _deltaSnapshotMax;
-                        int i;
-
-                        for (i = 1; i < deltaSnap; i++) {
-                            Long prevBackupId = latestSnapshotOnBackupStore.getParentSnapshotId();
-                            if (prevBackupId == 0) {
-                                break;
-                            }
-                            latestSnapshotOnBackupStore = snapshotStoreDao.findBySnapshot(prevBackupId, DataStoreRole.Image);
-                            if (latestSnapshotOnBackupStore == null) {
-                                break;
-                            }
-                        }
-
-                        if (i >= deltaSnap) {
+        if (latestSnapshotOnPrimaryStore != null && latestSnapshotOnBackupStore != null && hypervisorType == Hypervisor.HypervisorType.XenServer) { // CS does incremental backup only for XenServer
+            DataStore store = dataStoreMgr.getDataStore(latestSnapshotOnBackupStore.getDataStoreId(), latestSnapshotOnBackupStore.getRole());
+            if(_statsCollector.imageStoreHasEnoughCapacity(store)) {
+                // In case of volume migration from one pool to other pool, CS should take full snapshot to avoid any issues with delta chain,
+                // to check if this is a migrated volume, compare the current pool id of volume and store_id of oldest snapshot on primary for this volume.
+                // Why oldest? Because at this point CS has two snapshot on primary entries for same volume, one with old pool_id and other one with
+                // current pool id. So, verify and if volume found to be migrated, delete snapshot entry with previous pool store_id.
+                SnapshotDataStoreVO oldestSnapshotOnPrimary = snapshotStoreDao.findOldestSnapshotForVolume(snapshot.getVolumeId(), DataStoreRole.Primary);
+                VolumeVO volume = volumeDao.findById(snapshot.getVolumeId());
+                if (oldestSnapshotOnPrimary != null) {
+                    if (oldestSnapshotOnPrimary.getDataStoreId() == volume.getPoolId() && oldestSnapshotOnPrimary.getId() != latestSnapshotOnPrimaryStore.getId()) {
+                        if (volume.getSize() != latestSnapshotOnBackupStore.getSize()) {
+                            //Volume resized, take full backup
                             fullBackup = true;
                         } else {
-                            fullBackup = false;
+                            int _deltaSnapshotMax = NumbersUtil.parseInt(configDao.getValue("snapshot.delta.max"),
+                                    SnapshotManager.DELTAMAX);
+                            int deltaSnap = _deltaSnapshotMax;
+                            int i;
+
+                            for (i = 1; i < deltaSnap; i++) {
+                                Long prevBackupId = latestSnapshotOnBackupStore.getParentSnapshotId();
+                                if (prevBackupId == 0) {
+                                    break;
+                                }
+                                latestSnapshotOnBackupStore = snapshotStoreDao.findBySnapshot(prevBackupId, DataStoreRole.Image);
+                                if (latestSnapshotOnBackupStore == null) {
+                                    break;
+                                }
+                            }
+
+                            if (i >= deltaSnap) {
+                                fullBackup = true;
+                            } else {
+                                fullBackup = false;
+                            }
                         }
+                    } else if (oldestSnapshotOnPrimary.getId() != latestSnapshotOnPrimaryStore.getId()) {
+                        // if there is an snapshot entry for previousPool(primary storage) of migrated volume, delete it becasue CS created one more snapshot entry for current pool
+                        snapshotStoreDao.remove(oldestSnapshotOnPrimary.getId());
                     }
-                } else if (oldestSnapshotOnPrimary.getId() != latestSnapshotOnPrimaryStore.getId()) {
-                    // if there is an snapshot entry for previousPool(primary storage) of migrated volume, delete it becasue CS created one more snapshot entry for current pool
-                    snapshotStoreDao.remove(oldestSnapshotOnPrimary.getId());
                 }
             }
         }
