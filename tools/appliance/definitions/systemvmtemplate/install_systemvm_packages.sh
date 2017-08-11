@@ -73,9 +73,7 @@ function install_packages() {
     python-flask \
     haproxy \
     radvd \
-    sharutils \
-    fuse \
-    afflib-tools
+    sharutils
 
   ${apt_get} -t wheezy-backports install keepalived irqbalance open-vm-tools qemu-guest-agent
   ${apt_get} -t wheezy-backports install strongswan libcharon-extra-plugins libstrongswan-extra-plugins
