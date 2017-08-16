@@ -172,6 +172,8 @@ class CsAcl(CsDataBag):
 
                 logging.debug("egress   rule  ####==> %s", self.rule)
                 for cidr in self.rule['dcidr']:
+                    if cidr == '0.0.0.0/0':
+                        continue
                     ipsetAddCmd = 'ipset add '+ destIpsetName + ' '+cidr
                     CsHelper.execute(ipsetAddCmd)
                     dflag = True
