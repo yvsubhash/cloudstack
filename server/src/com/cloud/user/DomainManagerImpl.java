@@ -323,6 +323,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                     removeDomainWithNoAccountsForCleanupNetworksOrDedicatedResources(domain);
                 }
 
+                releaseDedicatedIPRangesAndVlans(domain.getId());
                 cleanupDomainOfferings(domain.getId());
                 CallContext.current().putContextParameter(Domain.class, domain.getUuid());
                 return true;
@@ -526,21 +527,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
             return false;
         }
 
-        //release domain specific public ip ranges
-        List<DomainVlanMapVO> vlanMaps = _domainVlanMapDao.listDomainVlanMapsByDomain(domainId);
-        for(DomainVlanMapVO vmap: vlanMaps) {
-            _ipAddrMgr.disassociatePublicIpRange(vmap.getVlanDbId(), ctx.getCallingUserId(),  ctx.getCallingAccount());
-        }
-        int ipRangesReleased = _domainVlanMapDao.removeByDomainId(domainId);
-        s_logger.info("deleteDomain: Released " + ipRangesReleased + " dedicated public ip ranges from domain " + domainId);
-
-        // release domain specific guest vlans
-        List<DomainGuestVlanMapVO> maps = _domainGuestVlanMapDao.listDomainGuestVlanMapsByDomain(domainId);
-        for (DomainGuestVlanMapVO map : maps) {
-            _dataCenterVnetDao.releaseDomainDedicatedGuestVlans(map.getId());
-        }
-        int vlansReleased = _domainGuestVlanMapDao.removeByDomainId(domainId);
-        s_logger.info("deleteDomain: Released " + vlansReleased + " dedicated guest vlan ranges from domain " + domainId);
 
         // don't remove the domain if there are accounts required cleanup
         boolean deleteDomainSuccess = true;
@@ -571,6 +557,26 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         }
 
         return success && deleteDomainSuccess;
+    }
+
+    protected void releaseDedicatedIPRangesAndVlans(long domainId) {
+
+        CallContext ctx = CallContext.current();
+        //release domain specific public ip ranges
+        List<DomainVlanMapVO> vlanMaps = _domainVlanMapDao.listDomainVlanMapsByDomain(domainId);
+        for(DomainVlanMapVO vmap: vlanMaps) {
+            _ipAddrMgr.disassociatePublicIpRange(vmap.getVlanDbId(), ctx.getCallingUserId(),  ctx.getCallingAccount());
+        }
+        int ipRangesReleased = _domainVlanMapDao.removeByDomainId(domainId);
+        s_logger.info("deleteDomain: Released " + ipRangesReleased + " dedicated public ip ranges from domain " + domainId);
+
+        // release domain specific guest vlans
+        List<DomainGuestVlanMapVO> maps = _domainGuestVlanMapDao.listDomainGuestVlanMapsByDomain(domainId);
+        for (DomainGuestVlanMapVO map : maps) {
+            _dataCenterVnetDao.releaseDomainDedicatedGuestVlans(map.getId());
+        }
+        int vlansReleased = _domainGuestVlanMapDao.removeByDomainId(domainId);
+        s_logger.info("deleteDomain: Released " + vlansReleased + " dedicated guest vlan ranges from domain " + domainId);
     }
 
     @Override

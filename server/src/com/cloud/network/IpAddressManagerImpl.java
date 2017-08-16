@@ -795,23 +795,10 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 if (dedicatedVlanDbIds != null && !dedicatedVlanDbIds.isEmpty()) {
                     fetchFromDedicatedRange = true;
                     sc.setParameters("vlanId", dedicatedVlanDbIds.toArray());
+                    sc.setParameters("dc", dcId);
                     errorMessage.append(", vlanId id=" + Arrays.toString(dedicatedVlanDbIds.toArray()));
-                } else if (nonDedicatedVlanDbIds != null && !nonDedicatedVlanDbIds.isEmpty()) {
-                    sc.setParameters("vlanId", nonDedicatedVlanDbIds.toArray());
-                    errorMessage.append(", vlanId id=" + Arrays.toString(nonDedicatedVlanDbIds.toArray()));
-                } else {
-                    if (podId != null) {
-                        InsufficientAddressCapacityException ex = new InsufficientAddressCapacityException("Insufficient address capacity", Pod.class, podId);
-                        ex.addProxyObject(ApiDBUtils.findPodById(podId).getUuid());
-                        throw ex;
-                    }
-                    s_logger.warn(errorMessage.toString());
-                    InsufficientAddressCapacityException ex = new InsufficientAddressCapacityException("Insufficient address capacity", DataCenter.class, dcId);
-                    ex.addProxyObject(ApiDBUtils.findZoneById(dcId).getUuid());
-                    throw ex;
                 }
 
-                sc.setParameters("dc", dcId);
 
                 // for direct network take ip addresses only from the vlans belonging to the network
                 if (vlanUse == VlanType.DirectAttached) {

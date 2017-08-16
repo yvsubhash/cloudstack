@@ -172,8 +172,8 @@
                 } else {
                     cloudStack.dialog.createForm({
                         form: {
-                            title: 'label.add.account',
-                            desc: '(optional) Please specify an account to be associated with this IP range.',
+                            title: 'label.add.accountordomain',
+                            desc: '(optional) Please specify an account/domain to be associated with this IP range.',
                             fields: fields
                         },
                         after: function (args) {
@@ -501,7 +501,7 @@
                                             'account': {
                                                 label: 'label.account',
                                                 custom: {
-                                                    buttonLabel: 'label.add.account',
+                                                    buttonLabel: 'label.add.accountordomain',
                                                     action: cloudStack.publicIpRangeAccount.dialog()
                                                 }
                                             },
@@ -615,9 +615,9 @@
                                             },
 
                                             addAccount: {
-                                                label: 'label.add.account',
+                                                label: 'label.add.accountordomain',
                                                 createForm: {
-                                                    title: 'label.add.account',
+                                                    title: 'label.add.accountordomain',
                                                     fields: {
                                                         account: {
                                                             label: 'label.account'
@@ -663,7 +663,7 @@
                                                         success: function (json) {
                                                             args.response.success({
                                                                 notification: {
-                                                                    label: 'label.add.account',
+                                                                    label: 'label.add.accountordomain',
                                                                     poll: function (args) {
                                                                         args.complete();
                                                                     }

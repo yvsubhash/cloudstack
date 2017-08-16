@@ -310,6 +310,7 @@ var dictionary = {
     "label.add.VM.to.tier": "إضافة جهاز إفتراضي في طبقة",
     "label.add.VPN.gateway": "أضف بوابة الشبكة الافتراضية الشخصية",
     "label.add.account": "Add Account",
+    "label.add.accoutordomain": "Add Account/Domain",
     "label.add.account.to.project": "إضافة حساب للمشروع",
     "label.add.accounts": "إضافة حسابات",
     "label.add.accounts.to": "إضافة حسابات إلى",
