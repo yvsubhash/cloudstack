@@ -169,8 +169,10 @@ public class ViewResponseHelper {
         List<DomainRouterResponse> routersList=new ArrayList<DomainRouterResponse>(vrDataList.values());
         for (DomainRouterResponse response : routersList) {
             for (NicResponse nic : response.getNics()) {
-                if (nic.getDefault())
+                if (nic.getDefault()) {
                     response.setPublicIp(nic.getIpaddress());
+                    response.setGateway(nic.getGateway());
+                }
             }
         }
         return routersList;
