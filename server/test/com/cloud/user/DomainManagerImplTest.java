@@ -120,6 +120,7 @@ public class DomainManagerImplTest {
         Mockito.when(_accountDao.findCleanupsForRemovedAccounts(DOMAIN_ID)).thenReturn(domainAccountsForCleanup);
         Mockito.when(_networkDomainDao.listNetworkIdsByDomain(DOMAIN_ID)).thenReturn(domainNetworkIds);
         Mockito.when(_dedicatedDao.listByDomainId(DOMAIN_ID)).thenReturn(domainDedicatedResources);
+        Mockito.doNothing().when(domainManager).releaseDedicatedIPRangesAndVlans(DOMAIN_ID);
     }
 
     @Test
