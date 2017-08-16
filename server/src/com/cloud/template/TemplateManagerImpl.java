@@ -1813,7 +1813,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
     @ActionEvent(eventType = EventTypes.EVENT_TEMPLATE_CREATE, eventDescription = "creating template", create = true)
     public VMTemplateVO createPrivateTemplateRecord(CreateTemplateCmd cmd, Account templateOwner) throws ResourceAllocationException {
         Account caller = CallContext.current().getCallingAccount();
-        boolean isAdmin = (_accountMgr.isAdmin(caller.getId()));
+        boolean isAdmin = (_accountMgr.isRootAdmin(caller.getId()));
 
         _accountMgr.checkAccess(caller, null, true, templateOwner);
 
