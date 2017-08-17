@@ -548,9 +548,9 @@ class CsSite2SiteVpn(CsDataBag):
         ikeversion = obj['ike_version']
 
         if ikeversion==1:
-            keyexchange="ike1"
+            keyexchange="ikev1"
         elif ikeversion==2:
-            keyexchange="ike2"
+            keyexchange="ike"
 
         pfs='no'
         if 'modp' in esppolicy:
