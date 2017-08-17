@@ -319,6 +319,7 @@ while [ $# -gt 0 ] ; do
      ;;
   -a | --install-agent)
      echo "***** Installing the Agent *****"
+     install_epel_pyargparse
 		if doinstallauto cloudstack-agent; then
                         modprobe kvm
                         modprobe kvm_intel > /dev/null 2>&1
