@@ -97,6 +97,7 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.exception.ExceptionUtil;
 import com.cloud.utils.mgmt.JmxUtil;
 import com.cloud.vm.dao.VMInstanceDao;
+import com.cloud.storage.dao.VolumeDao;
 
 public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager, ClusterManagerListener, Configurable, AsyncJobService {
     // Advanced
@@ -148,6 +149,8 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
     private SnapshotDetailsDao _snapshotDetailsDao;
     @Inject
     private SyncQueueItemDao _syncQueueItemDao;
+    @Inject
+    private VolumeDao _volsDao;
 
     private volatile long _executionRunNumber = 1;
 
@@ -1083,6 +1086,7 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
 
                             try {
                                 _volumeDetailsDao.removeDetail(job.getInstanceId(), "SNAPSHOT_ID");
+                                _volsDao.remove(job.getInstanceId());
                             } catch (Exception e) {
                                 s_logger.error("Unexpected exception while removing concurrent request meta data :" + e.getLocalizedMessage());
                             }
