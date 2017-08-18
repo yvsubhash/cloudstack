@@ -326,22 +326,26 @@ class CsRedundant(object):
         static_routes = CsStaticRoutes("staticroutes", self.config)
         static_routes.process()
 
-        cmd = "%s -C %s" % (self.CONNTRACKD_BIN, self.CONNTRACKD_CONF)
-        CsHelper.execute("%s -c" % cmd)
-        CsHelper.execute("%s -f" % cmd)
-        CsHelper.execute("%s -R" % cmd)
-        CsHelper.execute("%s -B" % cmd)
-        CsHelper.service("ipsec", "restart")
-        CsHelper.service("xl2tpd", "restart")
-        interfaces = [interface for interface in self.address.get_interfaces() if interface.needs_vrrp()]
-        for interface in interfaces:
-            CsPasswdSvc(interface.get_gateway()).restart()
+        try:
+            cmd = "%s -C %s" % (self.CONNTRACKD_BIN, self.CONNTRACKD_CONF)
+            CsHelper.execute("%s -c" % cmd)
+            CsHelper.execute("%s -f" % cmd)
+            CsHelper.execute("%s -R" % cmd)
+            CsHelper.execute("%s -B" % cmd)
+            CsHelper.service("ipsec", "restart")
+            CsHelper.service("xl2tpd", "restart")
+            interfaces = [interface for interface in self.address.get_interfaces() if interface.needs_vrrp()]
+            for interface in interfaces:
+                CsPasswdSvc(interface.get_gateway()).restart()
 
-        CsHelper.service("dnsmasq", "restart")
-        self.cl.set_master_state(True)
-        self.cl.save()
+            CsHelper.service("dnsmasq", "restart")
+            logging.info("Setting router to MASTER mode")
+            self.cl.set_master_state(True)
+            self.cl.save()
+        except:
+            logging.error("Router failed to switch to MASTER mode")
+
         self.release_lock()
-
         interfaces = [interface for interface in self.address.get_interfaces() if interface.is_public()]
         CsHelper.reconfigure_interfaces(self.cl, interfaces)
         logging.info("Router switched to master mode")
