@@ -95,7 +95,14 @@ public class UserVmStateListener implements StateListener<State, VirtualMachine.
         if (oldState == State.Destroyed && newState == State.Stopped) {
           generateUsageEvent(vo.getServiceOfferingId(), vo, EventTypes.EVENT_VM_CREATE);
         } else if (newState == State.Running) {
-          generateUsageEvent(vo.getServiceOfferingId(), vo, EventTypes.EVENT_VM_START);
+            List<NicVO> nics = _nicDao.listByVmId(vo.getId());
+            for (NicVO nic : nics) {
+                NetworkVO network = _networkDao.findById(nic.getNetworkId());
+                long isDefault = (nic.isDefaultNic()) ? 1 : 0;
+                UsageEventUtils.publishUsageEvent(EventTypes.EVENT_NETWORK_OFFERING_ASSIGN, vo.getAccountId(), vo.getDataCenterId(), vo.getId(),
+                        Long.toString(nic.getId()), network.getNetworkOfferingId(), null, isDefault, vo.getClass().getName(), vo.getUuid(), vo.isDisplay());
+            }
+            generateUsageEvent(vo.getServiceOfferingId(), vo, EventTypes.EVENT_VM_START);
         } else if (newState == State.Stopped) {
           generateUsageEvent(vo.getServiceOfferingId(), vo, EventTypes.EVENT_VM_STOP);
           List<NicVO> nics = _nicDao.listByVmId(vo.getId());
