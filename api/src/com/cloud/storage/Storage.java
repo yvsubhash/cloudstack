@@ -147,7 +147,7 @@ public class Storage {
         }
 
         public boolean supportsOverProvisioning() {
-            return this == StoragePoolType.NetworkFilesystem || this == StoragePoolType.VSAN || this == StoragePoolType.VMFS || this == StoragePoolType.PreSetup;
+            return this == StoragePoolType.NetworkFilesystem || this == StoragePoolType.VSAN || this == StoragePoolType.VMFS || this == StoragePoolType.PreSetup || this == StoragePoolType.EXT;
         }
     }
 
