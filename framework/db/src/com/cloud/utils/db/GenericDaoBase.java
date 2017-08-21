@@ -159,6 +159,7 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
     protected static final String FOR_UPDATE_CLAUSE = " FOR UPDATE ";
     protected static final String SHARE_MODE_CLAUSE = " LOCK IN SHARE MODE";
     protected static final String SELECT_LAST_INSERT_ID_SQL = "SELECT LAST_INSERT_ID()";
+    public static final Date DATE_TO_NULL = new Date(Long.MIN_VALUE);
     protected static final int MYSQL_DEADLOCK_ERROR_CODE = 1213;
     protected static final int RETRY_ON_DEADLOCK_COUNT = 3;
     protected static final int DEADLOCK_RETRY_WAIT_TIME_MILLISECONDS = 1000;
@@ -1573,7 +1574,7 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
             }
         } else if (attr.field.getType() == Date.class) {
             final Date date = (Date)value;
-            if (date == null) {
+            if (date == null || date.equals(DATE_TO_NULL)) {
                 pstmt.setObject(j, null);
                 return;
             }
