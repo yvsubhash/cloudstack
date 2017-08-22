@@ -31,4 +31,8 @@
         <property name="name" value="Bare Metal Agent" />
     </bean>
 
+    <bean id="MoonShotBareMetalDiscoverer" class="com.cloud.moonshot.manager.MoonShotBareMetalDiscoverer">
+        <property name="name" value="MoonShot Bare Metal Agent" />
+    </bean>
+
 </beans>
