@@ -40,7 +40,7 @@ import com.cloud.vm.VirtualMachineProfile;
 
 public interface BaremetalPxeManager extends Manager, PluggableService {
     public enum BaremetalPxeType {
-        PING, KICK_START
+        PING, KICK_START, WDS
     }
 
     boolean prepare(VirtualMachineProfile profile, NicProfile nic, Network network, DeployDestination dest, ReservationContext context);
