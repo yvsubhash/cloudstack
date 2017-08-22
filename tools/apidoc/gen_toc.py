@@ -180,7 +180,9 @@ known_categories = {
     'stopNetScalerVpx' : 'Load Balancer',
     'deleteServicePackageOffering' : 'Load Balancer',
     'destroyNsVpx' : 'Load Balancer',
-    'startNsVpx' : 'Load Balancer'
+    'startNsVpx' : 'Load Balancer',
+    'MoonShot' : 'MoonShot',
+    'Wds' : 'WDS'
     }
 
 
