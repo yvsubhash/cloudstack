@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import com.cloud.domain.Domain;
 import org.apache.cloudstack.acl.RoleType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -28,6 +29,7 @@ import org.apache.log4j.Logger;
 import com.cloud.server.auth.UserAuthenticator;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
+import com.cloud.user.DomainManager;
 import com.cloud.user.User;
 import com.cloud.user.UserAccount;
 import com.cloud.user.dao.UserAccountDao;
@@ -43,6 +45,8 @@ public class LdapAuthenticator extends AdapterBase implements UserAuthenticator 
     private UserAccountDao _userAccountDao;
     @Inject
     private AccountManager _accountManager;
+    @Inject
+    private DomainManager _domainMgr;
 
     public LdapAuthenticator() {
         super();
@@ -119,10 +123,12 @@ public class LdapAuthenticator extends AdapterBase implements UserAuthenticator 
     }
 
     private void createCloudStackUserAccount(LdapUser user, long domainId, short accountType) {
+        Domain domain = _domainMgr.getDomain(domainId);
         String username = user.getUsername();
-        _accountManager.createUserAccount(username, "", user.getFirstname(), user.getLastname(), user.getEmail(), null, username,
-                                          accountType, RoleType.getByAccountType(accountType).getId(), domainId, null, null,
-                                          UUID.randomUUID().toString(), UUID.randomUUID().toString(), User.Source.LDAP);
+        _accountManager.createUserAccount(username, "", user.getFirstname(), user.getLastname(), user.getEmail(),
+                null, username, accountType, RoleType.getByAccountType(accountType).getId(), domain.getId(),
+                domain.getNetworkDomain(), null, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
+                User.Source.LDAP);
     }
 
     private void disableUserInCloudStack(UserAccount user) {

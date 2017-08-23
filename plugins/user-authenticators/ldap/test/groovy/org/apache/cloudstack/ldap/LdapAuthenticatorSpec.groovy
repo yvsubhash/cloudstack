@@ -16,9 +16,11 @@
 // under the License.
 package groovy.org.apache.cloudstack.ldap
 
+import com.cloud.domain.Domain
 import com.cloud.server.auth.UserAuthenticator
 import com.cloud.user.Account
 import com.cloud.user.AccountManager
+import com.cloud.user.DomainManager
 import com.cloud.user.User
 import com.cloud.user.UserAccount
 import com.cloud.user.UserAccountVO
@@ -159,13 +161,16 @@ class LdapAuthenticatorSpec extends spock.lang.Specification {
         LdapManager ldapManager = Mock(LdapManager)
         UserAccountDao userAccountDao = Mock(UserAccountDao)
         AccountManager accountManager = Mock(AccountManager)
+        DomainManager domainManager = Mock(DomainManager)
 
         def ldapAuthenticator = new LdapAuthenticator()
         ldapAuthenticator._ldapManager = ldapManager
         ldapAuthenticator._userAccountDao = userAccountDao
         ldapAuthenticator._accountManager = accountManager
+        ldapAuthenticator._domainMgr = domainManager
 
         long domainId = 1;
+        String networkDomainName = "networkDomain"
         String username = "rajanik"
         LdapManager.LinkType type = LdapManager.LinkType.GROUP
         String name = "CN=test,DC=ccp,DC=citrix,DC=com"
@@ -176,7 +181,11 @@ class LdapAuthenticatorSpec extends spock.lang.Specification {
         ldapManager.getUser(username, type.toString(), name) >> new LdapUser(username, "email", "firstname", "lastname", "principal", "domain", false)
         ldapManager.canAuthenticate(_,_) >> true
         //user should be created in cloudstack
-        accountManager.createUserAccount(username, "", "firstname", "lastname", "email", null, username, (short) 2, domainId, username, null, _, _, User.Source.LDAP) >> Mock(UserAccount)
+        Domain domain = Mock(Domain)
+        domainManager.getDomain(domainId) >> domain
+        domain.getId() >> domainId
+        domain.getNetworkDomain() >> networkDomainName
+        1 * accountManager.createUserAccount(username, "", "firstname", "lastname", "email", null, username, _, _, domainId, networkDomainName, null, _, _, User.Source.LDAP) >> Mock(UserAccount)
 
         when:
             Pair<Boolean, UserAuthenticator.ActionOnFailedAuthentication> result = ldapAuthenticator.authenticate(username, "password", domainId, null)
