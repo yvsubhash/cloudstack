@@ -819,11 +819,11 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 List<IPAddressVO> addrs = new ArrayList<>();
 
                 if (fetchFromDedicatedRange) {
-                    addrs = _ipAddressDao.lockRows(sc, filter, true);
+                    addrs = _ipAddressDao.search(sc, filter, false);
                 }
 
                 if(addrs.size() == 0 && fetchFromDomainDedicatedRange) {
-                    addrs = _ipAddressDao.lockRows(dsc, filter, true);
+                    addrs = _ipAddressDao.search(dsc, filter, false);
                 }
 
                 // If all the dedicated IPs of the owner are in use fetch an IP from the system pool
@@ -835,7 +835,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                         fetchFromDedicatedRange = false;
                         sc.setParameters("vlanId", nonDedicatedVlanDbIds.toArray());
                         errorMessage.append(", vlanId id=" + Arrays.toString(nonDedicatedVlanDbIds.toArray()));
-                        addrs = _ipAddressDao.lockRows(sc, filter, true);
+                        addrs = _ipAddressDao.search(sc, filter, false);
                     }
                 }
 
@@ -870,24 +870,23 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 addr.setAllocatedInDomainId(owner.getDomainId());
                 addr.setAllocatedToAccountId(owner.getId());
                 addr.setSystem(isSystem);
+
                 if (displayIp != null) {
                     addr.setDisplay(displayIp);
                 }
-
-                if (assign) {
-                    markPublicIpAsAllocated(addr);
-                } else {
-                    addr.setState(IpAddress.State.Allocating);
-                }
-                addr.setState(assign ? IpAddress.State.Allocated : IpAddress.State.Allocating);
 
                 if (vlanUse != VlanType.DirectAttached) {
                     addr.setAssociatedWithNetworkId(guestNetworkId);
                     addr.setVpcId(vpcId);
                 }
 
-                _ipAddressDao.update(addr.getId(), addr);
+                if (assign) {
+                    markPublicIpAsAllocated(addr);
+                } else {
+                    markPublicIpAsAllocating(addr);
+                }
 
+                _ipAddressDao.update(addr.getId(), addr);
                 return addr;
             }
         });
@@ -907,27 +906,38 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
                 Account owner = _accountMgr.getAccount(addr.getAllocatedToAccountId());
-                synchronized (this) {
-                    if (_ipAddressDao.lockRow(addr.getId(), true) != null) {
-                        IPAddressVO userIp = _ipAddressDao.findById(addr.getId());
-                        if (userIp.getState() == IpAddress.State.Allocating || addr.getState() == IpAddress.State.Free) {
-                            addr.setState(IpAddress.State.Allocated);
-                            _ipAddressDao.update(addr.getId(), addr);
-                            // Save usage event
-                            if (owner.getAccountId() != Account.ACCOUNT_ID_SYSTEM) {
-                                VlanVO vlan = _vlanDao.findById(addr.getVlanId());
-                                String guestType = vlan.getVlanType().toString();
-                                if (!isIpDedicated(addr)) {
-                                    UsageEventUtils.publishUsageEvent(EventTypes.EVENT_NET_IP_ASSIGN, owner.getId(), addr.getDataCenterId(), addr.getId(),
-                                            addr.getAddress().toString(),
-                                            addr.isSourceNat(), guestType, addr.getSystem(), addr.getClass().getName(), addr.getUuid());
-                                }
-                                if (updateIpResourceCount(addr)) {
-                                    _resourceLimitMgr.incrementResourceCount(owner.getId(), ResourceType.public_ip);
-                                }
+                if (_ipAddressDao.lockRow(addr.getId(), true) != null) {
+                    IPAddressVO userIp = _ipAddressDao.findById(addr.getId());
+                    if (userIp.getState() == IpAddress.State.Allocating || addr.getState() == IpAddress.State.Free) {
+                        addr.setState(IpAddress.State.Allocated);
+                        _ipAddressDao.update(addr.getId(), addr);
+                        // Save usage event
+                        if (owner.getAccountId() != Account.ACCOUNT_ID_SYSTEM) {
+                            VlanVO vlan = _vlanDao.findById(addr.getVlanId());
+                            String guestType = vlan.getVlanType().toString();
+                            if (!isIpDedicated(addr)) {
+                                UsageEventUtils.publishUsageEvent(EventTypes.EVENT_NET_IP_ASSIGN, owner.getId(), addr.getDataCenterId(), addr.getId(),
+                                        addr.getAddress().toString(),
+                                        addr.isSourceNat(), guestType, addr.getSystem(), addr.getClass().getName(), addr.getUuid());
+                            }
+                            if (updateIpResourceCount(addr)) {
+                                _resourceLimitMgr.incrementResourceCount(owner.getId(), ResourceType.public_ip);
                             }
                         }
                     }
+                }
+            }
+        });
+    }
+
+    @DB
+    private void markPublicIpAsAllocating(final IPAddressVO addr) {
+        Transaction.execute(new TransactionCallbackNoReturn() {
+            @Override
+            public void doInTransactionWithoutResult(TransactionStatus status) {
+                if (_ipAddressDao.lockRow(addr.getId(), true) != null) {
+                    addr.setState(IpAddress.State.Allocating);
+                    _ipAddressDao.update(addr.getId(), addr);
                 }
             }
         });

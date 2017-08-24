@@ -16,10 +16,8 @@
 // under the License.
 package com.cloud.utils.db;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLTransactionRollbackException;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,19 +25,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
-import static org.mockito.BDDMockito.times;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GenericDaoBaseTest {
     @Mock
     ResultSet resultSet;
-
-    @Mock
-    PreparedStatement preparedStatement;
-
-    @Mock
-    SQLTransactionRollbackException sqlTransactionRollbackException;
-
 
     @Test
     public void getObjectBoolean() throws SQLException {
@@ -156,31 +146,6 @@ public class GenericDaoBaseTest {
         Assert.assertTrue((byte) 1 == GenericDaoBase.getObject(byte.class,
                 resultSet, 1));
         Mockito.verify(resultSet).getByte(1);
-    }
-
-    @Test
-    public void RunPreparedStatementWithRetriesExpectedError() throws SQLException, java.lang.InterruptedException {
-        DbTestDao dbt = new DbTestDao();
-        Mockito.when(sqlTransactionRollbackException.getErrorCode()).thenReturn(1213);
-        Mockito.when(preparedStatement.executeQuery()).thenThrow(sqlTransactionRollbackException);
-        dbt.RunPreparedStatementWithRetries(preparedStatement);
-        Mockito.verify(preparedStatement, times(3)).executeQuery();
-    }
-
-    @Test
-    public void RunPreparedStatementWithRetriesUnexpectedError() throws SQLException, java.lang.InterruptedException {
-        DbTestDao dbt = new DbTestDao();
-        Mockito.when(sqlTransactionRollbackException.getErrorCode()).thenReturn(1200);
-        Mockito.when(preparedStatement.executeQuery()).thenThrow(sqlTransactionRollbackException);
-        dbt.RunPreparedStatementWithRetries(preparedStatement);
-        Mockito.verify(preparedStatement, times(1)).executeQuery();
-    }
-
-    @Test
-    public void RunPreparedStatementWithRetriesNoError() throws SQLException, java.lang.InterruptedException {
-        DbTestDao dbt = new DbTestDao();
-        dbt.RunPreparedStatementWithRetries(preparedStatement);
-        Mockito.verify(preparedStatement, times(1)).executeQuery();
     }
 
 }
