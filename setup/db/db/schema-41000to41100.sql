@@ -654,6 +654,8 @@ UPDATE `cloud`.`hypervisor_capabilities` set storage_motion_supported='1' WHERE 
 
 UPDATE `cloud`.`hypervisor_capabilities` SET `max_data_volumes_limit`=30 WHERE `hypervisor_type`='VMware';
 
+UPDATE  `cloud`.`hypervisor_capabilities` SET  `max_data_volumes_limit` =  '32' WHERE  `hypervisor_capabilities`.`hypervisor_type` =  'KVM';
+
 UPDATE `cloud`.`configuration` SET `description`='Default API port. To disable set it to 0.' WHERE `name`='integration.api.port';
 
 UPDATE `cloud`.`vm_template` SET  `url` = "http://s3.download.accelerite.com/templates/4.11/systemvm64template-2017-07-12-4.11-hyperv.vhd.bz2", `state` = "Active", `checksum` = "fd8834b8c528c6a6db8a3504125d9985" WHERE `id` = "9";
