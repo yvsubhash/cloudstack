@@ -2212,6 +2212,8 @@ div.ui-tabs-panel table span.none {
 }
 
 #user div.options .arrow {
+  left: -25px !important;
+  top: 10px !important;
 }
 
 div.detail-group td.view-all div.view-all {

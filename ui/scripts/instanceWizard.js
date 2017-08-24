@@ -404,7 +404,7 @@
                 });
 
                 var rootResizeAllow = false;
-                if(args.currentData.templateid != null) {
+                if(args.currentData.templateid != null && isAdmin()) {
                    $.ajax({
                       url: createURL("listConfigurations"),
                       dataType: "json",
