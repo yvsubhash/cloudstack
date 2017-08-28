@@ -64,4 +64,5 @@ public interface BaremetalPxeService extends Adapter {
     public static final String PXE_PARAM_PING_ROOT_DIR = "pingDir";
     public static final String PXE_PARAM_PING_STORAGE_SERVER_USERNAME = "pingStorageServerUserName";
     public static final String PXE_PARAM_PING_STORAGE_SERVER_PASSWORD = "pingStorageServerPassword";
+    public static final String WDS_INITIAL_REGISTER = "wdsInitialRegister";
 }
