@@ -400,14 +400,26 @@
                                 }
                             }
                         }
-                        //Ajax call to check if VPN is enabled.
+                       
+						//Ajax call to check if VPN is enabled.
+						var url_vpc = createURL('listRemoteAccessVpns');
+						var data_vpc; 
+						if (url_vpc.indexOf("projectid=")!=-1) {
+							data_vpc = {
+									domainid: g_domainid,
+									listAll: true
+							}
+						} else{
+							data_vpc = {
+									account: g_account,
+									domainid: g_domainid,
+									listAll: true
+							}
+						}
+
                         $.ajax({
-                            url: createURL('listRemoteAccessVpns'),
-                            data: {
-                                account: g_account,
-                                domainid: g_domainid,
-                                listAll: true
-                            },
+                            url: url_vpc,
+                            data: data_vpc,
                             async: false,
                             success: function(vpnResponse) {
                                 var isVPNEnabled = vpnResponse.listremoteaccessvpnsresponse.count;
