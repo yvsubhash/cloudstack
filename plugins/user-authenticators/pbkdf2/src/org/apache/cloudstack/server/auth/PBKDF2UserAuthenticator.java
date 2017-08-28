@@ -42,9 +42,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 
 public class PBKDF2UserAuthenticator extends AdapterBase implements UserAuthenticator {
     public static final Logger s_logger = Logger.getLogger(PBKDF2UserAuthenticator.class);
-    private static final int s_saltlen = 64;
-    private static final int s_rounds = 100000;
-    private static final int s_keylen = 512;
+
+    private static final int s_saltlen = 32;
+    private static final int s_rounds = 2000;
+    private static final int s_keylen = 192; //cloudstack user table has varchar(255) for password
+
 
     @Inject
     private UserAccountDao _userAccountDao;
