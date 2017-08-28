@@ -2779,7 +2779,25 @@
             }
         }
 
-        if ((jsonObj.type == "DATADISK"  || jsonObj.type == "ROOT") && (jsonObj.state == "Ready" || jsonObj.state == "Allocated")) {
+        var rootResizeAllow = false;
+        $.ajax({
+           url: createURL("listConfigurations"),
+           dataType: "json",
+           async: false,
+           success: function(json) {
+             if (json.listconfigurationsresponse != null) {
+               var configDetails = json.listconfigurationsresponse.configuration;
+               for (i in configDetails) {
+                 if(configDetails[i].name == "root.disk.resize.enable" && configDetails[i].value == "true") {
+                   rootResizeAllow = true;
+                   break;
+                 }
+               }
+             }
+           }
+        });
+
+        if ((jsonObj.type == "DATADISK"  || (rootResizeAllow && jsonObj.type == "ROOT")) && (jsonObj.state == "Ready" || jsonObj.state == "Allocated")) {
             allowedActions.push("resize");
         }
 
