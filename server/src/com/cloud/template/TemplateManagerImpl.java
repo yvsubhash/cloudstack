@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.google.common.collect.Iterables;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -1385,7 +1386,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
             vmInstanceVOList = _vmInstanceDao.listNonExpungedByTemplate(templateId);
         }
         if(!cmd.isForced() && CollectionUtils.isNotEmpty(vmInstanceVOList)) {
-            final String message = String.format("Unable to delete template with id: %1$s because VM instances: [%2$s] are using it.",  templateId, Joiner.on(",").join(vmInstanceVOList));
+            final String message = String.format("Unable to delete template with id: %1$s because VM instances: [%2$s] are using it.",  templateId, Joiner.on(", ").join(Iterables.transform(vmInstanceVOList, vo -> vo.getInstanceName())));
             s_logger.warn(message);
             throw new InvalidParameterValueException(message);
         }
