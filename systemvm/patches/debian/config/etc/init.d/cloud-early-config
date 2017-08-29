@@ -1298,6 +1298,7 @@ setup_ilbvm() {
   enable_svc cloud 0
   chkconfig nfs-common off
   chkconfig portmap off
+  import_jvm_cacerts
 }
 
 setup_default() {
@@ -1313,6 +1314,18 @@ change_password() {
 	then
 		echo "root:$VM_PASSWORD" | chpasswd
 	fi
+}
+
+import_jvm_cacerts(){
+ log_it "importing jvm keystore to realhostip keystore"
+ keyStore=/usr/local/cloud/systemvm/certs/realhostip.keystore
+ storepass="vmops.com"
+ java_home=$(readlink -f $(which java) | sed "s:bin/java::")
+ java_keystore=$java_home/lib/security/cacerts
+ java_store_pass="changeit"
+
+ keytool -importkeystore -srckeystore $java_keystore -srcstorepass $java_store_pass -destkeystore $keyStore -deststorepass $storepass -noprompt
+ log_it "import of jvm keystore to realhostip keystore completed"
 }
 
 start() {
