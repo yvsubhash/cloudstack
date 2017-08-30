@@ -7109,7 +7109,7 @@
 
         var data = [];
         $(protocols).each(function() {
-            data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.protocol.' + this.valueOf())});
+            data.push({id: this.valueOf().trim(), name: this.valueOf().trim(), description: _l('label.lb.protocol.' + this.valueOf().trim())});
         });
 
         protocolCapabilities = $.grep(
