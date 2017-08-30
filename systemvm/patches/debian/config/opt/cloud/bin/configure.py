@@ -617,7 +617,8 @@ class CsVpnUser(CsDataBag):
     def add_l2tp_ipsec_user(self, user, obj):
         userfound = False
         password = obj['password']
-
+        if '#' in password:
+            password='"'+password+'"'
         userAddEntry = "%s * %s *" %(user,password)
         logging.debug("Adding vpn user '%s'" % user)
 
@@ -632,6 +633,8 @@ class CsVpnUser(CsDataBag):
     def del_l2tp_ipsec_user(self, user, obj):
         userfound = False
         password = obj['password']
+        if '#' in password:
+            password='"'+password+'"'
         userentry = "%s * %s *" % (user,password)
 
         logging.debug("Deleting the user '%s'" % user)
