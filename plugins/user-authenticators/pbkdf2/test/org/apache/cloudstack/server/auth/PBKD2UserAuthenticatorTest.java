@@ -38,7 +38,7 @@ public class PBKD2UserAuthenticatorTest {
     public void encodePasswordTest() {
         PBKDF2UserAuthenticator authenticator = new PBKDF2UserAuthenticator();
         String encodedPassword = authenticator.encode("password123ABCS!@#$%");
-        Assert.assertTrue(encodedPassword.length() < 255 && encodedPassword.length() >= 182);
+        Assert.assertTrue(encodedPassword.length() < 255 && encodedPassword.length() >= 82);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class PBKD2UserAuthenticatorTest {
         daoField.setAccessible(true);
         daoField.set(authenticator, dao);
         UserAccountVO account = new UserAccountVO();
-        account.setPassword("FMDMdx/2QjrZniqNRAgOAC1ai/CY/C+2kmKhp3vo+98pkqhO+AR6hCyUl0bOXtkq3XWqNiSQTwbi7KTiwuWhyw==:+u8T5LzCtikCPvKnUDn6JDezf1Hg2bood/ke5Oo93pz9s1eD9k/JLsa497Z3h9QWfOQfq0zvCRmkzfXMF913vQ==:4096");
+        account.setPassword("gBoW93dTzo8bV4zXPeQQalNfHadKhu0SiwfRMRQnt2U=:TDK33fIgnczQfOl4Cqltlp3oS3usKBb4:2000");
         Mockito.when(dao.getUserAccount(Mockito.anyString(), Mockito.anyLong())).thenReturn(account);
         Pair<Boolean, UserAuthenticator.ActionOnFailedAuthentication> pair = authenticator.authenticate("admin", "password", 1l, null);
         Assert.assertTrue(pair.first());
